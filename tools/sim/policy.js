@@ -15,6 +15,7 @@ import { isUpgrade } from '../../js/systems/tools.js';
 import { buffOf, buffSpeed } from '../../js/systems/buffs.js';
 import { petList, canPatToday, needsStarter, canAutoFeed } from '../../js/systems/pets.js';
 import { localDay } from '../../js/core/time.js';
+import { buildingList, upgradeCheck } from '../../js/systems/buildings.js';
 
 // Policy knobs (how the simulated player behaves; these are not game numbers).
 const FOOD_TARGET = 40;     // keep about this many cooked meals (what auto-feed eats) in the bag: a night for 2 pets
@@ -135,6 +136,29 @@ export function createPolicy(data) {
     for (const [i, per] of Object.entries(r.inputs)) expand(i, per * runs, avail, acc);
   }
 
+  // ---- buildings ----
+  // Raw materials a cost needs in all (planks count as 2 logs, and so on).
+  function rawSize(items) {
+    const acc = newAcc();
+    for (const [id, n] of Object.entries(items)) expand(id, n, {}, acc);
+    return Object.values(acc.raw).reduce((a, b) => a + b, 0);
+  }
+  // Upgrades held back only by materials (not the Cottage cap, Renown, a blueprint or coins), cheapest first.
+  function buildingOptions(state) {
+    return buildingList(state, data)
+      .filter((b) => b.check.cost && (b.check.ok || b.check.reason === 'Not enough materials yet.'))
+      .map((b) => ({ id: b.id, cost: b.check.cost, size: rawSize(b.check.cost.items) }))
+      .sort((a, b) => a.size - b.size);
+  }
+  function buildingGoal(state) {
+    return buildingOptions(state)[0] || null;
+  }
+  function upgradeBuildings(game) {
+    for (const b of buildingOptions(game.getState())) {
+      if (upgradeCheck(game.getState(), data, b.id).ok) act(game, 'buildings/upgrade', { building: b.id });
+    }
+  }
+
   function analyse(state) {
     const goals = toolTargets.filter((id) => isUpgrade(state, data, id));
     const cost = (id) => {
@@ -147,9 +171,12 @@ export function createPolicy(data) {
     const rawShort = new Map();
     const make = new Map();
     const total = {};
-    for (const id of goals) {
+    // The cheapest building upgrade that only waits on materials comes first, then the tools.
+    const building = buildingGoal(state);
+    const wants = [...(building ? Object.entries(building.cost.items) : []), ...goals.map((id) => [id, 1])];
+    for (const [id, n] of wants) {
       const acc = newAcc();
-      expand(id, 1, avail, acc);
+      expand(id, n, avail, acc);
       for (const [i, n] of Object.entries(acc.raw)) rawShort.set(i, (rawShort.get(i) || 0) + n);
       for (const [r, n] of Object.entries(acc.make)) make.set(r, (make.get(r) || 0) + n);
       for (const [i, n] of Object.entries(acc.total)) total[i] = (total[i] || 0) + n;
@@ -348,6 +375,7 @@ export function createPolicy(data) {
     const day = localDay(info.now);
     for (const p of petList(state)) if (canPatToday(state, p.id, day)) act(game, 'pets/pat', { pet: p.id });
 
+    upgradeBuildings(game);
     planCrafts(game, analyse(game.getState()), info.horizonMs);
     const playerTask = planHarvest(game, analyse(game.getState()));
     eat(game, playerTask?.skill || game.getState().workers.player.task?.skill);

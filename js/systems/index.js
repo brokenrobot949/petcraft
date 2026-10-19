@@ -12,6 +12,7 @@ import * as meta from './meta.js';
 import * as settings from './settings.js';
 import * as skills from './skills.js';
 import * as bag from './bag.js';
+import * as buildings from './buildings.js';
 import * as tools from './tools.js';
 import * as harvest from './harvest.js';
 import * as pets from './pets.js';
@@ -19,4 +20,4 @@ import * as crafting from './crafting.js';
 import * as buffs from './buffs.js';
 import * as dev from './dev.js';
 
-export const SYSTEMS = [meta, settings, skills, bag, tools, harvest, pets, crafting, buffs, dev];
+export const SYSTEMS = [meta, settings, skills, bag, buildings, tools, harvest, pets, crafting, buffs, dev];

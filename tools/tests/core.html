@@ -17,7 +17,10 @@ import { createInitialState, validateState } from '../../js/core/state.js';
 import { createGame } from '../../js/core/game.js';
 import { parseSave } from '../../js/core/save.js';
 import { petMaxEnergy, petDrainPerHour } from '../../js/systems/petstats.js';
-import { qualityOdds } from '../../js/systems/crafting.js';
+import { qualityOdds, itemMs, queueSlots } from '../../js/systems/crafting.js';
+import { tierCost, upgradeCheck, canUpgradeAny, petCapacity } from '../../js/systems/buildings.js';
+import { petRestPerHour } from '../../js/systems/petstats.js';
+import { offlineCapMs } from '../../js/core/time.js';
 import { pantryList } from '../../js/systems/pets.js';
 import { actionMs } from '../../js/systems/harvest.js';
 
@@ -310,6 +313,48 @@ try {
   check('crafting: live ticks and catch-up give the same bag', sortedJson(ls.bag) === sortedJson(os.bag), `${sortedJson(ls.bag)} vs ${sortedJson(os.bag)}`);
   check('... the same skills', JSON.stringify(ls.skills) === JSON.stringify(os.skills));
   check('crafted state still valid', validateState(os) === null && validateState(sc) === null, validateState(os) || validateState(sc) || '');
+
+  // 10. Buildings (Phase 5).
+  const gB = freshGame(77);
+  const sB = gB.getState();
+  check('every building has an entry; stations start at tier 1, Garden and Nest at 0',
+    data.buildings.buildings.every((b) => sB.buildings[b.id]?.tier === b.startTier) && sB.buildings.forge.tier === 1 && sB.buildings.garden.tier === 0);
+  const refusedB = (type, payload) => { try { gB.dispatch(type, payload); return false; } catch { return true; } };
+  check('stable tier 2 is refused while the Cottage is tier 1', refusedB('buildings/upgrade', { building: 'stable' }));
+  check('cottage upgrade without materials is refused', refusedB('buildings/upgrade', { building: 'cottage' }) && sB.buildings.cottage.tier === 1);
+  const c2 = tierCost(data, 'cottage', 2);
+  for (const [item, n] of Object.entries(c2.items)) gB.dispatch('dev/grant', { item, qty: n });
+  check('upgradeCheck says yes once the materials are in the bag', upgradeCheck(sB, data, 'cottage').ok && canUpgradeAny(sB, data));
+  gB.dispatch('buildings/upgrade', { building: 'cottage' });
+  check('cottage reaches tier 2 and the materials are spent',
+    sB.buildings.cottage.tier === 2 && Object.keys(c2.items).every((i) => !sB.bag[i]));
+  check('upgrade gives Renown XP (30 x tier)', sB.renown.xp === data.balance.buildings.renownXpPerTier * 2);
+  check('offline cap grows to 10 h', offlineCapMs(sB, data.balance) === 10 * H);
+  check('garden stays locked at Renown 1', /Renown/.test(upgradeCheck(sB, data, 'garden').reason || ''));
+  const w2 = tierCost(data, 'workbench', 2);
+  for (const [item, n] of Object.entries(w2.items)) gB.dispatch('dev/grant', { item, qty: n });
+  gB.dispatch('buildings/upgrade', { building: 'workbench' });
+  check('workbench tier 2 crafts 5% faster',
+    near(itemMs(sB, data, data.recipes.recipes.find((r) => r.id === 'pine_plank')), 4000 / 1.05, 1e-6));
+  gB.dispatch('dev/setBuilding', { building: 'cottage', tier: 3 });
+  for (const [item, n] of Object.entries(tierCost(data, 'workbench', 3).items)) gB.dispatch('dev/grant', { item, qty: n });
+  gB.dispatch('dev/addCoins', { amount: 100000 });
+  const bp = upgradeCheck(sB, data, 'workbench');
+  check('tier 3 needs a blueprint', !bp.ok && bp.needsBlueprint);
+  gB.dispatch('dev/grant', { item: tierCost(data, 'workbench', 3).blueprint, qty: 1 });
+  const coins0 = sB.coins;
+  gB.dispatch('buildings/upgrade', { building: 'workbench' });
+  check('tier 3 spends the blueprint and coins; 2 queue slots',
+    sB.buildings.workbench.tier === 3 && !sB.bag[tierCost(data, 'workbench', 3).blueprint]
+    && sB.coins === coins0 - tierCost(data, 'workbench', 3).coins && queueSlots(sB, data, 'workbench') === 2);
+  gB.dispatch('pets/hatchStarter', { archetype: 'sprout', name: 'A' });
+  const capacity = petCapacity(sB, data);
+  while (Object.keys(sB.pets.list).length < capacity) gB.dispatch('dev/addPet', { archetype: 'wild' });
+  check('a full Stable refuses another pet', capacity === 4 && refusedB('dev/addPet', { archetype: 'wild' }));
+  gB.dispatch('dev/setBuilding', { building: 'stable', tier: 2 });
+  check('Stable tier 2 has room for 2 more', petCapacity(sB, data) === 6 && !refusedB('dev/addPet', { archetype: 'wild' }));
+  check('Stable tier 2 rests 20% faster', near(petRestPerHour(sB, data, sB.pets.list.pet1), 120, 1e-9));
+  check('state with buildings is valid', validateState(sB) === null, validateState(sB) || '');
 } catch (err) {
   failed++;
   lines.push(`FAIL  crashed: ${err.stack || err}`);

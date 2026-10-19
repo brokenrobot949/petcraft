@@ -11,6 +11,7 @@ import {
   HOUR_MS, archetypeOf, petLevelCap, petXpToNext, petHearts, petMaxEnergy, petDrainPerHour,
   petRestPerHour, petFeedThreshold,
 } from './petstats.js';
+import { petCapacity } from './buildings.js';
 
 export const id = 'pets';
 
@@ -136,9 +137,13 @@ export function cleanName(name, data) {
 }
 
 // Makes a new pet. It takes the first free active slot, or goes to the Stable.
+// Refused when every active slot and Stable space is taken (saves already over the limit keep their pets).
 export function createPet(state, ctx, { archetype, quality, name }) {
   const { data } = ctx;
   const p = state.pets;
+  if (Object.keys(p.list).length >= petCapacity(state, data)) {
+    throw new Error('The Stable is full. Upgrade it to make room for more pets.');
+  }
   const petId = `pet${p.nextId++}`;
   const pet = {
     id: petId,

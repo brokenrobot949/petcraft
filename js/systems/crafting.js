@@ -40,7 +40,7 @@ export function recipesFor(data, stationId) {
   return data.recipes.recipes.filter((r) => r.station === stationId);
 }
 
-// A station's building tier (buildings arrive in Phase 5; until then every station is tier 1).
+// A station's building tier (state.buildings, js/systems/buildings.js).
 export function stationTier(state, stationId) {
   return state.buildings[stationId]?.tier ?? 1;
 }

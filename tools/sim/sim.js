@@ -21,7 +21,6 @@ export const PLAYERS = {
 
 // Design-doc pacing milestones that cannot happen yet (docs/design.md "Pacing targets").
 export const NOT_YET = [
-  ['First building upgrade', '10 minutes'],
   ['Second pet tamed', 'day 1-2'],
   ['Whisperwood open (Renown 3)', 'day 1'],
   ['First stage-2 evolution', 'day 2'],
@@ -62,6 +61,7 @@ function milestoneList(data) {
     { id: 'pet', label: 'First pet hatched', test: (s) => Object.keys(s.pets.list).length > 0 },
     { id: 'plank', label: 'First pine plank', test: (s) => (s.stats.crafts.pine_plank || 0) > 0 },
     { id: 'bar', label: 'First copper bar', test: (s) => (s.stats.crafts.copper_bar || 0) > 0 },
+    { id: 'building', label: 'First building upgrade (target: 10 minutes)', test: (s) => Object.values(s.buildings).some((b) => b.tier >= 2) },
   ];
   for (const lvl of [5, 10, 20]) {
     for (const sk of skills) list.push({ id: `${sk.id}${lvl}`, label: `${sk.name} reaches ${lvl}`, test: (s) => s.skills[sk.id].level >= lvl });
@@ -69,6 +69,9 @@ function milestoneList(data) {
   list.push({ id: 'tool1', label: 'First copper tool equipped', test: (s) => kinds.some((k) => tier(s, k) >= 2) });
   for (const k of data.tools.kinds) list.push({ id: `tool_${k.id}`, label: `  copper ${k.name.toLowerCase()} equipped`, test: (s) => tier(s, k.id) >= 2 });
   list.push({ id: 'tool6', label: `All ${kinds.length} copper tools equipped`, test: (s) => kinds.every((k) => tier(s, k) >= 2) });
+  for (const b of data.buildings.buildings) {
+    list.push({ id: `${b.id}2`, label: `  ${b.name} tier 2`, test: (s) => (s.buildings[b.id]?.tier || 0) >= 2 });
+  }
   list.push({ id: 'fine', label: 'First Fine item crafted', test: (s, seen) => !!seen.fine });
   list.push({ id: 'masterwork', label: 'First Masterwork item crafted', test: (s, seen) => !!seen.masterwork });
   return list;

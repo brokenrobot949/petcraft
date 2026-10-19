@@ -341,3 +341,78 @@ quality { fineBase, finePerLevel, fineCap, fineFocusCap, masterworkBase, masterw
 focus { mult { good, perfect }, sweepMs, goodWidth, perfectWidth }, mealQuality }`, `pets.bond.favoriteDish`, `pets.energy.autoFeedCategories`.
 Focus bar: the marker sweeps 0..1 and back every `sweepMs`; Perfect = within `perfectWidth / 2` of
 the centre, Good = within `goodWidth / 2`.
+
+## Phase 5: homestead
+
+No schema bump: `state.buildings` was already a map. `buildings.init` fills one `{ tier }` entry per
+building in `data/buildings.json` (`startTier`; 0 = empty plot), so Phase 4 saves keep tier 1 stations.
+
+### Rules (js/systems/buildings.js)
+
+- `buildings/upgrade { building }` is instant. It needs the next tier's `costs[tier]` (items, coins and,
+  for tiers 3-5, one blueprint item), the Cottage at that tier or higher (the Cottage itself is exempt),
+  and for tier 0 -> 1 `state.renown.rank >= unlock.renown`. It adds `balance.buildings.renownXpPerTier x
+  new tier` to `state.renown.xp` (ranks arrive in Phase 6).
+- Effects are read where they apply: Cottage -> offline cap (core/time.js); stations -> queue slots and
+  speed (crafting.js `stationTier`); Stable -> rest speed (petstats.js) and pet spaces: `createPet`
+  refuses when pets >= `petCapacity` (active slots + `stableSpacesByTier`). Garden plots, Nest egg
+  slots and hatch speed are shown now and used in Phases 6-7.
+- Phase 5 content limits: renown rank stays 1, so the Garden (Renown 2) and Nest (Renown 8) stay
+  locked; the Forge and Alchemy Lab start built (tier 1). Tiers 3-5 need blueprints from the Mossbrook
+  market (Phase 6) and coins; test mode can grant both. Tier 3-5 costs use tier 1 materials until
+  Whisperwood and later zones exist (Phase 6 swaps them, data only).
+
+### Events (Phase 5)
+
+```js
+{ type: 'buildingUpgraded', building, tier, renownXp }
+```
+
+### Commands (Phase 5)
+
+`buildings/upgrade { building }`. Test mode: `dev/setBuilding { building, tier }` (any tier 0-5, no cost,
+ignores the Cottage cap), `dev/setRenown { rank }`.
+
+### Selectors (Phase 5)
+
+From `js/systems/buildings.js`: `buildingDef(data, id)`, `buildingTier(state, id)`, `tierCost(data, id, tier)
+-> { coins, items, blueprint } | null`, `petCapacity(state, data)`, `lookName(data, id, tier)`,
+`effectLines(state, data, id, tier) -> [string]`, `upgradeCheck(state, data, id) -> { ok, reason, tier,
+next, cost, missing: [{ item, have, need }], coinsShort, needsBlueprint }`, `buildingList(state, data)`
+(each def plus `tier` and `check`), `canUpgradeAny(state, data)` (Home tab badge).
+
+### data/buildings.json
+
+```json
+{
+  "buildings": [
+    { "id": "cottage", "name": "Cottage", "blurb": "...", "startTier": 1, "unlock": { "renown": 1 },
+      "effects": ["offlineCap", "tierCap"],
+      "looks": ["Tent", "Cabin", "Cottage", "Farmhouse", "Manor"],
+      "plot": [0.3, 0.3],
+      "costs": {
+        "2": { "coins": 0, "items": { "pine_plank": 10, "stone": 20 } },
+        "3": { "coins": 150, "items": { "...": 1 }, "blueprint": "blueprint_sturdy" }
+      } }
+  ],
+  "decor": [ { "prop": "sanctuary_ruins", "plot": [0.76, 0.22], "label": "Old Sanctuary" } ]
+}
+```
+`effects` kinds: offlineCap, tierCap, petSpaces, restSpeed, queueSlots, craftSpeed, gardenPlots,
+eggSlots, hatchSpeed. `looks[t-1]` names tier t's look. `plot` is the building's base centre in
+fractions of the Home scene. `costs` has a key for every tier the building can be raised to
+("1" only for buildings that start at 0). Station buildings share their id with `recipes.json` stations.
+Items gain the `blueprint` category (`blueprint_sturdy` t3, `blueprint_fine` t4, `blueprint_grand` t5)
+and building parts (`pine_frame`, `pine_shingles`, `copper_nails`).
+
+### balance.json additions (Phase 5)
+
+`buildings { maxTier, stableSpacesByTier, gardenPlotsByTier, nestEggSlotsByTier, nestHatchCutPerTier, renownXpPerTier }`.
+
+### Art roles (Phase 5)
+
+- `building.<id>.<tier>` (tier 1-5): one composed picture per building tier, layout `prop`
+  (anchored at its bottom centre). A role may list `parts: [{ src, x, y, w, h, dx, dy }]`: the atlas
+  packer pastes each piece at (dx, dy) inside the role's frameWidth x frameHeight canvas.
+- `prop.plot_empty` (an unbuilt plot), `prop.sanctuary_ruins`, `prop.signpost` (the road to Mossbrook).
+- `fx.leaf`, `fx.rain`, `fx.sparkle`: short animated strips for the polish layer.

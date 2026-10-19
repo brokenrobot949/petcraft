@@ -949,6 +949,641 @@
       "frameHeight": 16,
       "x": 48,
       "y": 160
+    },
+    "building.cottage.1": {
+      "group": "buildings",
+      "label": "Cottage: Tent",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "frameWidth": 48,
+      "frameHeight": 45,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/tileset_camp.png", "x": 64, "y": 3, "w": 48, "h": 45, "dx": 0, "dy": 0 }
+      ]
+    },
+    "building.cottage.2": {
+      "group": "buildings",
+      "label": "Cottage: Cabin",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 54,
+      "frameHeight": 48,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 304, "y": 304, "w": 48, "h": 48, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/tileset_camp.png", "x": 64, "y": 80, "w": 16, "h": 16, "dx": 38, "dy": 32 }
+      ]
+    },
+    "building.cottage.3": {
+      "group": "buildings",
+      "label": "Cottage: Cottage",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 63,
+      "frameHeight": 44,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 64, "y": 4, "w": 62, "h": 44, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 1, "y": 176, "w": 15, "h": 15, "dx": 0, "dy": 29 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 49, "y": 177, "w": 16, "h": 14, "dx": 47, "dy": 30 }
+      ]
+    },
+    "building.cottage.4": {
+      "group": "buildings",
+      "label": "Cottage: Farmhouse",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 64,
+      "frameHeight": 48,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 0, "y": 0, "w": 64, "h": 48, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 1, "y": 176, "w": 15, "h": 15, "dx": 1, "dy": 33 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 17, "y": 176, "w": 15, "h": 16, "dx": 11, "dy": 32 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 256, "y": 208, "w": 16, "h": 16, "dx": 48, "dy": 32 }
+      ]
+    },
+    "building.cottage.5": {
+      "group": "buildings",
+      "label": "Cottage: Manor",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 464, "y": 0, "w": 64, "h": 64, "dx": 0, "dy": 0 }
+      ]
+    },
+    "building.stable.1": {
+      "group": "buildings",
+      "label": "Stable: Hay Pen",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 20,
+      "frameHeight": 24,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 134, "y": 100, "w": 20, "h": 24, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 192, "y": 76, "w": 16, "h": 19, "dx": 2, "dy": 4 }
+      ]
+    },
+    "building.stable.2": {
+      "group": "buildings",
+      "label": "Stable: Lean-to",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "frameWidth": 50,
+      "frameHeight": 45,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/tileset_camp.png", "x": 160, "y": 3, "w": 48, "h": 45, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 192, "y": 76, "w": 16, "h": 19, "dx": 34, "dy": 26 }
+      ]
+    },
+    "building.stable.3": {
+      "group": "buildings",
+      "label": "Stable: Barn",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 51,
+      "frameHeight": 39,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 3, "y": 120, "w": 46, "h": 39, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 192, "y": 76, "w": 16, "h": 19, "dx": 35, "dy": 20 }
+      ]
+    },
+    "building.stable.4": {
+      "group": "buildings",
+      "label": "Stable: Big Barn",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 58,
+      "frameHeight": 47,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 416, "y": 0, "w": 48, "h": 47, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 192, "y": 76, "w": 16, "h": 19, "dx": 42, "dy": 28 },
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 192, "y": 76, "w": 16, "h": 19, "dx": 34, "dy": 28 }
+      ]
+    },
+    "building.stable.5": {
+      "group": "buildings",
+      "label": "Stable: Grand Barn",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 64,
+      "frameHeight": 46,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 192, "y": 2, "w": 64, "h": 46, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 192, "y": 76, "w": 16, "h": 19, "dx": 0, "dy": 27 },
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 192, "y": 76, "w": 16, "h": 19, "dx": 48, "dy": 27 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 256, "y": 240, "w": 16, "h": 16, "dx": 16, "dy": 30 }
+      ]
+    },
+    "building.workbench.1": {
+      "group": "buildings",
+      "label": "Workbench: Sawhorse bench",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 31,
+      "frameHeight": 23,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 466, "y": 132, "w": 31, "h": 23, "dx": 0, "dy": 0 }
+      ]
+    },
+    "building.workbench.2": {
+      "group": "buildings",
+      "label": "Workbench: Covered bench",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 48,
+      "frameHeight": 26,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 256, "y": 256, "w": 48, "h": 26, "dx": 0, "dy": 0 }
+      ]
+    },
+    "building.workbench.3": {
+      "group": "buildings",
+      "label": "Workbench: Workshop shed",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 48,
+      "frameHeight": 48,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 256, "y": 0, "w": 48, "h": 48, "dx": 0, "dy": 0 }
+      ]
+    },
+    "building.workbench.4": {
+      "group": "buildings",
+      "label": "Workbench: Workshop",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 60,
+      "frameHeight": 48,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 304, "y": 304, "w": 48, "h": 48, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 224, "y": 171, "w": 32, "h": 21, "dx": 28, "dy": 27 }
+      ]
+    },
+    "building.workbench.5": {
+      "group": "buildings",
+      "label": "Workbench: Carpentry hall",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 64,
+      "frameHeight": 48,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 304, "y": 0, "w": 64, "h": 48, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 466, "y": 132, "w": 31, "h": 23, "dx": 1, "dy": 25 }
+      ]
+    },
+    "building.kitchen.1": {
+      "group": "buildings",
+      "label": "Kitchen: Campfire with pot",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "frameWidth": 30,
+      "frameHeight": 32,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/tileset_camp.png", "x": 129, "y": 48, "w": 30, "h": 32, "dx": 0, "dy": 0 }
+      ]
+    },
+    "building.kitchen.2": {
+      "group": "buildings",
+      "label": "Kitchen: Cook stove",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 42,
+      "frameHeight": 28,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 466, "y": 178, "w": 28, "h": 28, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 498, "y": 160, "w": 16, "h": 16, "dx": 26, "dy": 12 }
+      ]
+    },
+    "building.kitchen.3": {
+      "group": "buildings",
+      "label": "Kitchen: Kitchen hut",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 53,
+      "frameHeight": 32,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 48, "y": 128, "w": 47, "h": 32, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 498, "y": 160, "w": 16, "h": 16, "dx": 37, "dy": 16 }
+      ]
+    },
+    "building.kitchen.4": {
+      "group": "buildings",
+      "label": "Kitchen: Kitchen house",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 60,
+      "frameHeight": 48,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 368, "y": 0, "w": 48, "h": 48, "dx": 12, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 465, "y": 160, "w": 32, "h": 16, "dx": 0, "dy": 32 }
+      ]
+    },
+    "building.kitchen.5": {
+      "group": "buildings",
+      "label": "Kitchen: Grand kitchen",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 62,
+      "frameHeight": 44,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 64, "y": 4, "w": 62, "h": 44, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 466, "y": 178, "w": 28, "h": 28, "dx": 33, "dy": 16 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 465, "y": 160, "w": 32, "h": 16, "dx": 0, "dy": 28 }
+      ]
+    },
+    "building.forge.1": {
+      "group": "buildings",
+      "label": "Forge: Stone furnace",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 30,
+      "frameHeight": 29,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 465, "y": 209, "w": 30, "h": 29, "dx": 0, "dy": 0 }
+      ]
+    },
+    "building.forge.2": {
+      "group": "buildings",
+      "label": "Forge: Anvil and furnace",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 49,
+      "frameHeight": 29,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 465, "y": 209, "w": 30, "h": 29, "dx": 0, "dy": 0 },
+        { "src": "Items/Tool/Anvil.png", "x": 0, "y": 0, "w": 16, "h": 16, "dx": 33, "dy": 13 }
+      ]
+    },
+    "building.forge.3": {
+      "group": "buildings",
+      "label": "Forge: Forge shed",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 57,
+      "frameHeight": 39,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 498, "y": 199, "w": 28, "h": 39, "dx": 29, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 465, "y": 209, "w": 30, "h": 29, "dx": 0, "dy": 10 },
+        { "src": "Items/Tool/Anvil.png", "x": 0, "y": 0, "w": 16, "h": 16, "dx": 21, "dy": 23 }
+      ]
+    },
+    "building.forge.4": {
+      "group": "buildings",
+      "label": "Forge: Smithy",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 61,
+      "frameHeight": 47,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 416, "y": 0, "w": 48, "h": 47, "dx": 4, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 465, "y": 209, "w": 30, "h": 29, "dx": 31, "dy": 18 },
+        { "src": "Items/Tool/Anvil.png", "x": 0, "y": 0, "w": 16, "h": 16, "dx": 0, "dy": 31 }
+      ]
+    },
+    "building.forge.5": {
+      "group": "buildings",
+      "label": "Forge: Great forge",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 62,
+      "frameHeight": 48,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 498, "y": 199, "w": 28, "h": 39, "dx": 32, "dy": 9 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 368, "y": 0, "w": 48, "h": 48, "dx": 0, "dy": 0 },
+        { "src": "Items/Tool/Anvil.png", "x": 0, "y": 0, "w": 16, "h": 16, "dx": 46, "dy": 32 }
+      ]
+    },
+    "building.alchemyLab.1": {
+      "group": "buildings",
+      "label": "Alchemy Lab: Cauldron",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 512, "y": 160, "w": 16, "h": 16, "dx": 0, "dy": 0 }
+      ]
+    },
+    "building.alchemyLab.2": {
+      "group": "buildings",
+      "label": "Alchemy Lab: Cauldron and shelf",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 36,
+      "frameHeight": 29,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 512, "y": 160, "w": 16, "h": 16, "dx": 0, "dy": 13 },
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 48, "y": 113, "w": 16, "h": 29, "dx": 20, "dy": 0 }
+      ]
+    },
+    "building.alchemyLab.3": {
+      "group": "buildings",
+      "label": "Alchemy Lab: Alchemy hut",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 60,
+      "frameHeight": 39,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 3, "y": 120, "w": 46, "h": 39, "dx": 7, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 512, "y": 160, "w": 16, "h": 16, "dx": 44, "dy": 23 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 336, "y": 192, "w": 16, "h": 16, "dx": 0, "dy": 23 }
+      ]
+    },
+    "building.alchemyLab.4": {
+      "group": "buildings",
+      "label": "Alchemy Lab: Alchemy house",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 60,
+      "frameHeight": 48,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 368, "y": 0, "w": 48, "h": 48, "dx": 6, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 512, "y": 160, "w": 16, "h": 16, "dx": 44, "dy": 32 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 336, "y": 224, "w": 16, "h": 16, "dx": 0, "dy": 32 }
+      ]
+    },
+    "building.alchemyLab.5": {
+      "group": "buildings",
+      "label": "Alchemy Lab: Tower",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 66,
+      "frameHeight": 48,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 0, "y": 0, "w": 64, "h": 48, "dx": 1, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 512, "y": 160, "w": 16, "h": 16, "dx": 0, "dy": 32 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 336, "y": 192, "w": 16, "h": 16, "dx": 50, "dy": 32 }
+      ]
+    },
+    "building.garden.1": {
+      "group": "buildings",
+      "label": "Garden: Two crop rows",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetField.png",
+      "frameWidth": 34,
+      "frameHeight": 25,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 34, "h": 10, "dx": 0, "dy": 2 },
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 34, "h": 10, "dx": 0, "dy": 12 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 1, "y": 176, "w": 15, "h": 15, "dx": 1, "dy": 1 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 17, "y": 176, "w": 15, "h": 16, "dx": 19, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 49, "y": 177, "w": 16, "h": 14, "dx": 0, "dy": 11 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 96, "y": 178, "w": 16, "h": 14, "dx": 18, "dy": 11 }
+      ]
+    },
+    "building.garden.2": {
+      "group": "buildings",
+      "label": "Garden: Four rows",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetField.png",
+      "frameWidth": 34,
+      "frameHeight": 35,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 34, "h": 10, "dx": 0, "dy": 1 },
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 34, "h": 10, "dx": 0, "dy": 9 },
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 34, "h": 10, "dx": 0, "dy": 17 },
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 34, "h": 10, "dx": 0, "dy": 25 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 1, "y": 176, "w": 15, "h": 15, "dx": 2, "dy": 1 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 17, "y": 176, "w": 15, "h": 16, "dx": 18, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 49, "y": 177, "w": 16, "h": 14, "dx": 1, "dy": 18 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 96, "y": 178, "w": 16, "h": 14, "dx": 17, "dy": 18 }
+      ]
+    },
+    "building.garden.3": {
+      "group": "buildings",
+      "label": "Garden: Fenced plots",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "frameWidth": 39,
+      "frameHeight": 40,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 181, "y": 39, "w": 39, "h": 22, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 34, "h": 10, "dx": 2, "dy": 12 },
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 34, "h": 10, "dx": 2, "dy": 22 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 1, "y": 176, "w": 15, "h": 15, "dx": 3, "dy": 9 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 17, "y": 176, "w": 15, "h": 16, "dx": 21, "dy": 8 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 49, "y": 177, "w": 16, "h": 14, "dx": 2, "dy": 20 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 96, "y": 178, "w": 16, "h": 14, "dx": 20, "dy": 20 },
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 181, "y": 39, "w": 39, "h": 22, "dx": 0, "dy": 18 }
+      ]
+    },
+    "building.garden.4": {
+      "group": "buildings",
+      "label": "Garden: Big fenced garden",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "frameWidth": 39,
+      "frameHeight": 54,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 181, "y": 39, "w": 39, "h": 22, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 34, "h": 10, "dx": 2, "dy": 12 },
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 34, "h": 10, "dx": 2, "dy": 20 },
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 34, "h": 10, "dx": 2, "dy": 28 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 1, "y": 176, "w": 15, "h": 15, "dx": 4, "dy": 14 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 17, "y": 176, "w": 15, "h": 16, "dx": 20, "dy": 13 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 49, "y": 177, "w": 16, "h": 14, "dx": 3, "dy": 23 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 96, "y": 178, "w": 16, "h": 14, "dx": 19, "dy": 23 },
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 34, "h": 10, "dx": 2, "dy": 36 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 112, "y": 176, "w": 16, "h": 16, "dx": 3, "dy": 29 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 1, "y": 176, "w": 15, "h": 15, "dx": 20, "dy": 30 },
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 181, "y": 39, "w": 39, "h": 22, "dx": 0, "dy": 32 }
+      ]
+    },
+    "building.garden.5": {
+      "group": "buildings",
+      "label": "Garden: Garden with greenhouse",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 48,
+      "frameHeight": 58,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 96, "y": 176, "w": 48, "h": 46, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 34, "h": 10, "dx": 7, "dy": 40 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 17, "y": 176, "w": 15, "h": 16, "dx": 8, "dy": 36 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 1, "y": 176, "w": 15, "h": 15, "dx": 26, "dy": 37 },
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 181, "y": 39, "w": 39, "h": 22, "dx": 5, "dy": 36 }
+      ]
+    },
+    "building.nest.1": {
+      "group": "buildings",
+      "label": "Nest: Straw nest",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "frameWidth": 30,
+      "frameHeight": 19,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/tileset_camp.png", "x": 17, "y": 61, "w": 30, "h": 19, "dx": 0, "dy": 0 }
+      ]
+    },
+    "building.nest.2": {
+      "group": "buildings",
+      "label": "Nest: Nest with eggs",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "frameWidth": 30,
+      "frameHeight": 20,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/tileset_camp.png", "x": 17, "y": 61, "w": 30, "h": 19, "dx": 0, "dy": 1 },
+        { "src": "Items/Food/SeedLarge.png", "x": 0, "y": 0, "w": 14, "h": 13, "dx": 3, "dy": 1 },
+        { "src": "Items/Food/SeedLargeWhite.png", "x": 0, "y": 0, "w": 14, "h": 13, "dx": 14, "dy": 0 }
+      ]
+    },
+    "building.nest.3": {
+      "group": "buildings",
+      "label": "Nest: Nest hut",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 52,
+      "frameHeight": 32,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 48, "y": 128, "w": 47, "h": 32, "dx": 0, "dy": 0 },
+        { "src": "Items/Food/SeedLarge.png", "x": 0, "y": 0, "w": 14, "h": 13, "dx": 38, "dy": 19 },
+        { "src": "Items/Food/SeedLargeWhite.png", "x": 0, "y": 0, "w": 14, "h": 13, "dx": 29, "dy": 19 }
+      ]
+    },
+    "building.nest.4": {
+      "group": "buildings",
+      "label": "Nest: Hatchery",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 48,
+      "frameHeight": 48,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 368, "y": 0, "w": 48, "h": 48, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/tileset_camp.png", "x": 17, "y": 61, "w": 30, "h": 19, "dx": 9, "dy": 29 },
+        { "src": "Items/Food/SeedLarge.png", "x": 0, "y": 0, "w": 14, "h": 13, "dx": 12, "dy": 29 },
+        { "src": "Items/Food/SeedLargeWhite.png", "x": 0, "y": 0, "w": 14, "h": 13, "dx": 23, "dy": 28 }
+      ]
+    },
+    "building.nest.5": {
+      "group": "buildings",
+      "label": "Nest: Grand hatchery",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 58,
+      "frameHeight": 47,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 416, "y": 0, "w": 48, "h": 47, "dx": 5, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/tileset_camp.png", "x": 17, "y": 61, "w": 30, "h": 19, "dx": 0, "dy": 28 },
+        { "src": "Backgrounds/Tilesets/tileset_camp.png", "x": 17, "y": 61, "w": 30, "h": 19, "dx": 28, "dy": 28 },
+        { "src": "Items/Food/SeedLarge.png", "x": 0, "y": 0, "w": 14, "h": 13, "dx": 3, "dy": 28 },
+        { "src": "Items/Food/SeedLargeWhite.png", "x": 0, "y": 0, "w": 14, "h": 13, "dx": 13, "dy": 27 },
+        { "src": "Items/Food/SeedLarge.png", "x": 0, "y": 0, "w": 14, "h": 13, "dx": 32, "dy": 27 },
+        { "src": "Items/Food/SeedLargeWhite.png", "x": 0, "y": 0, "w": 14, "h": 13, "dx": 42, "dy": 28 }
+      ]
+    },
+    "prop.plot_empty": {
+      "group": "props",
+      "label": "Empty building plot",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetField.png",
+      "frameWidth": 26,
+      "frameHeight": 19,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 26, "h": 12, "dx": 0, "dy": 7 },
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 181, "y": 45, "w": 6, "h": 16, "dx": 1, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 181, "y": 45, "w": 6, "h": 16, "dx": 19, "dy": 0 }
+      ]
+    },
+    "prop.sanctuary_ruins": {
+      "group": "props",
+      "label": "Sanctuary ruins",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetVillageAbandoned.png",
+      "frameWidth": 64,
+      "frameHeight": 44,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetVillageAbandoned.png", "x": 0, "y": 4, "w": 64, "h": 44, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetVillageAbandoned.png", "x": 145, "y": 86, "w": 31, "h": 24, "dx": 33, "dy": 20 }
+      ]
+    },
+    "prop.signpost": {
+      "group": "props",
+      "label": "Wooden signpost (road to Mossbrook)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "frameWidth": 16,
+      "frameHeight": 22,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 181, "y": 39, "w": 6, "h": 22, "dx": 5, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 80, "y": 131, "w": 16, "h": 12, "dx": 0, "dy": 0 }
+      ]
+    },
+    "fx.leaf": {
+      "group": "fx",
+      "label": "Falling leaf (6 frames)",
+      "layout": "strip",
+      "src": "FX/Particle/Leaf.png",
+      "frameWidth": 12,
+      "frameHeight": 7
+    },
+    "fx.rain": {
+      "group": "fx",
+      "label": "Rain streak (3 frames)",
+      "layout": "strip",
+      "src": "FX/Particle/Rain.png",
+      "frameWidth": 8,
+      "frameHeight": 8
+    },
+    "fx.sparkle": {
+      "group": "fx",
+      "label": "Sparkle (7 frames)",
+      "layout": "strip",
+      "src": "FX/Particle/Spark.png",
+      "frameWidth": 10,
+      "frameHeight": 8
+    },
+    "item.pine_frame": {
+      "group": "items",
+      "label": "Pine Frame",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 112,
+      "y": 0
+    },
+    "item.pine_shingles": {
+      "group": "items",
+      "label": "Pine Shingles",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 16,
+      "frameHeight": 14,
+      "x": 208,
+      "y": 10
+    },
+    "item.copper_nails": {
+      "group": "items",
+      "label": "Copper Nails",
+      "layout": "icon",
+      "src": "Items/Weapons/Ninjaku/Sprite.png",
+      "frameWidth": 7,
+      "frameHeight": 12
+    },
+    "item.blueprint_sturdy": {
+      "group": "items",
+      "label": "Sturdy Blueprint",
+      "layout": "icon",
+      "src": "Items/Scroll/Scroll.png",
+      "frameWidth": 14,
+      "frameHeight": 14
+    },
+    "item.blueprint_fine": {
+      "group": "items",
+      "label": "Fine Blueprint",
+      "layout": "icon",
+      "src": "Items/Scroll/ScrollPlant.png",
+      "frameWidth": 16,
+      "frameHeight": 16
+    },
+    "item.blueprint_grand": {
+      "group": "items",
+      "label": "Grand Blueprint",
+      "layout": "icon",
+      "src": "Items/Scroll/ScrollRock.png",
+      "frameWidth": 16,
+      "frameHeight": 16
     }
   }
 }

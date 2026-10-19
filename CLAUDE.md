@@ -60,8 +60,20 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 4 done (2026-10-19)
-Next: Phase 5 (homestead, building tiers, polish layer v1).
+Phase: 5 done (2026-10-19)
+Next: Phase 6 (Mossbrook market, coins, commissions, achievements, Renown ranks, zones 2-5, tool tiers 3-6).
+Phase 5: no schema bump (buildings.init fills one { tier } per building in data/buildings.json). 8 buildings
+  (Cottage, Stable, Workbench, Kitchen, Forge, Alchemy Lab, Garden, Nest), 5 tiers each, instant upgrades
+  (js/systems/buildings.js): materials, coins from tier 3, blueprints for tiers 3-5; nothing passes the
+  Cottage's tier; +30 x tier Renown XP. Effects: Cottage away cap, Stable spaces (createPet refuses when
+  full) and rest speed, station queue slots and speed. New parts: pine frame, shingles, copper nails.
+  Home scene: 3x3 village grid (plots in buildings.json, roads in balance.render.home), tap a building
+  or use the Buildings button for its sheet; upgrade arrow; pop + sparkles on a new tier; idle pets wander
+  near the Stable. Polish layer v1 (js/render/polish.js, both scenes): shadows, day/night tint on the real
+  clock, rain by the hour, leaves, pollen, fireflies. Home tab badge when an upgrade is ready.
+  Art: 40 building looks composed from pack pieces (packer supports "parts"; see tools/atlas/README.md).
+  Test mode adds: set any building tier, blueprints + coins, Renown rank, time of day and rain.
+  Contract in docs/architecture.md "Phase 5: homestead". Core checks: 72. Simulator tracks building milestones.
 Phase 4: save schema v4 (station queues, player buffs, craft counts; migration 3->4). Four stations
   (data/recipes.json, 24 recipes) with queues that run offline, Focus tap (Good x1.5 / Perfect x2.5),
   Normal/Fine/Masterwork quality, copper tools for all 6 kinds (tier 2; a better tool equips itself),
@@ -94,14 +106,20 @@ Known issues:
 - Auto-feed uses cooked meals and tonics only (Rob, 2026-10-19; balance.pets.energy.autoFeedCategories), so
   pets no longer live on the raw food they gather. With the Kitchen kept busy pets still rest under 1%
   of the time (simulator), because meals take 4-6 s each; making meals cost more is a Phase 10 lever.
-- All four stations are open from the start at tier 1; the Forge (Renown 2) and Alchemy Lab
-  (Renown 5) unlocks and station tiers arrive with buildings (Phase 5) and Renown (Phase 6).
 - Copper tools only open Whisperwood, which arrives in Phase 6; until then they add nothing but a
   new look in the bag (tier gates materials, quality gives speed).
 - No use yet for stone, rabbit hide, pine seed and the rare gems/curios (selling: Phase 6).
 - A pet's personal favorite dish (+40 Bond, revealed on first feed) is not built yet (Phase 8 with gifts).
 - Pet XP is a placeholder: a pet reaches the hatchling cap (level 10) in about a day of work.
-- Homestead pieces are cast in Phase 5.
+- Renown ranks don't rise yet (Phase 6), so the Garden (Renown 2) and Nest (Renown 8) stay locked and
+  the Forge (Renown 2) and Alchemy Lab (Renown 5) start built. Garden crops (Phase 6) and Nest eggs
+  (Phase 7) do nothing yet. Tiers 3-5 need blueprints from the Mossbrook market (Phase 6).
+- Building costs for tiers 3-5 use Meadowfold materials until later zones exist; Phase 6 swaps them.
+- Simulator: first building upgrade lands at the first check-in after 8:00 (about 4.5 h for the regular
+  player), because the policy only acts at check-ins; an active player needs about 5-10 minutes.
+- 30 fps was measured only in the desktop preview (about 65-130 fps); not yet on a real phone.
+- Weak icon matches: pine frame (a shelf), copper nails. Several buildings reuse the same house pictures
+  at different tiers; Rob may want to recast (the catalog can't edit composed "parts" roles yet).
 - Weak item icon matches Rob may want to recast: bow (sideways), pine log (a stump), pine seed,
   berries, rabbit hide, sinew, river shell, four-leaf clover (3 leaves), lucky rabbit foot; Phase 4:
   hazelnut, pine plank (a crate), tool handle, both strings (same icon), copper fittings (an anvil),

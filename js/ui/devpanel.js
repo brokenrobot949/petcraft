@@ -53,6 +53,23 @@ export function createDevPanel(app) {
   petSel.addEventListener('focus', fillPets);
   const petCmd = (type, extra) => () => run(type, { pet: petSel.value, ...extra() });
 
+  // ---- buildings, renown, time of day ----
+  const bldSel = el('select.field', { 'aria-label': 'Building' },
+    data.buildings.buildings.map((b) => el('option', { value: b.id }, b.name)));
+  const bldTier = el('select.field', { 'aria-label': 'Tier' },
+    Array.from({ length: data.balance.buildings.maxTier + 1 }, (_, t) => el('option', { value: String(t) }, `Tier ${t}`)));
+  const rankIn = el('input.field', { type: 'number', value: '2', min: '1', inputMode: 'numeric', 'aria-label': 'Renown rank' });
+  // The polish layer lives with the scenes (PixiJS), so it loads only when used.
+  const polish = (o) => import('../render/polish.js').then((m) => m.setPolishOverride(o)).catch((err) => toast(err.message));
+  const hourSel = el('select.field', { 'aria-label': 'Time of day' },
+    [['', 'Real clock'], ['6', 'Dawn'], ['13', 'Day'], ['19', 'Dusk'], ['23', 'Night']].map(([v, t]) => el('option', { value: v }, t)));
+  const rainSel = el('select.field', { 'aria-label': 'Rain' },
+    [['', 'Real weather'], ['1', 'Rain'], ['0', 'No rain']].map(([v, t]) => el('option', { value: v }, t)));
+  const applyPolish = () => polish({
+    hour: hourSel.value === '' ? null : Number(hourSel.value),
+    rain: rainSel.value === '' ? null : rainSel.value === '1',
+  });
+
   return el('div.panel.dev-panel', {},
     el('h2', {}, 'Test mode'),
     el('p.small.muted', {}, 'For testing. Removed before release.'),
@@ -67,6 +84,22 @@ export function createDevPanel(app) {
     el('div.row', {},
       el('button.btn', { type: 'button', onclick: () => run('dev/addCoins', { amount: 100 }) }, '+100'),
       el('button.btn', { type: 'button', onclick: () => run('dev/addCoins', { amount: 1000 }) }, '+1000')),
+    el('h3', {}, 'Buildings'),
+    el('div.row', {}, bldSel, bldTier,
+      el('button.btn', { type: 'button', onclick: () => run('dev/setBuilding', { building: bldSel.value, tier: Number(bldTier.value) }) }, 'Set')),
+    el('button.btn.wide', {
+      type: 'button',
+      onclick: () => {
+        const grants = [['blueprint_sturdy', 5], ['blueprint_fine', 5], ['blueprint_grand', 5]];
+        for (const [item, q] of grants) run('dev/grant', { item, qty: q });
+        run('dev/addCoins', { amount: 10000 });
+      },
+    }, 'Blueprints x5 each + 10000 coins'),
+    el('div.row', {}, rankIn,
+      el('button.btn', { type: 'button', onclick: () => run('dev/setRenown', { rank: Number(rankIn.value) }) }, 'Set Renown rank')),
+    el('h3', {}, 'Time of day and weather'),
+    el('div.row', {}, hourSel, rainSel,
+      el('button.btn', { type: 'button', onclick: applyPolish }, 'Apply')),
     el('h3', {}, 'Pets'),
     el('div.row', {}, archSel, qualSel,
       el('button.btn', { type: 'button', onclick: () => run('dev/addPet', { archetype: archSel.value, quality: qualSel.value }) }, 'Add pet')),

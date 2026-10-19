@@ -52,7 +52,8 @@ export function validateState(s) {
   if (!isObj(s.settings)) return 'missing settings';
   if (!isCount(s.coins)) return 'bad coins';
   if (!s.renown || !Number.isInteger(s.renown.rank)) return 'bad renown';
-  if (!s.buildings || !s.buildings.cottage || !Number.isInteger(s.buildings.cottage.tier)) return 'bad buildings';
+  if (!isObj(s.buildings) || !s.buildings.cottage || !Number.isInteger(s.buildings.cottage.tier)) return 'bad buildings';
+  for (const b of Object.values(s.buildings)) if (!isObj(b) || !Number.isInteger(b.tier) || b.tier < 0) return 'bad building';
   if (s.version < 2) return null; // older saves are checked again after migration
   if (!isObj(s.skills)) return 'bad skills';
   for (const v of Object.values(s.skills)) {

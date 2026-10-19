@@ -23,6 +23,15 @@ export const commands = {
   'dev/addCoins': (state, { amount }) => {
     state.coins = Math.max(0, state.coins + Math.floor(amount || 0));
   },
+  // Buildings: any tier 0..max, ignoring costs and the Cottage cap (to look at every tier).
+  'dev/setBuilding': (state, { building, tier }, ctx) => {
+    if (!state.buildings[building]) throw new Error(`No such building: ${building}`);
+    const max = ctx.data.balance.buildings.maxTier;
+    state.buildings[building].tier = Math.min(max, Math.max(0, Math.floor(tier) || 0));
+  },
+  'dev/setRenown': (state, { rank }) => {
+    state.renown.rank = Math.max(1, Math.floor(rank) || 1);
+  },
   // Pets: a test pet of any archetype and quality (first free slot, else the Stable).
   'dev/addPet': (state, { archetype, quality = 'common', name }, ctx) => {
     if (!archetypeOf(ctx.data, archetype)) throw new Error(`No such archetype: ${archetype}`);

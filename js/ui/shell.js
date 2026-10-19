@@ -5,6 +5,7 @@ import { getPref, setPref } from './device.js';
 import { offlineCapMs, localDay } from '../core/time.js';
 import { needsStarter, petList, canPatToday } from '../systems/pets.js';
 import { craftNotice } from '../systems/crafting.js';
+import { canUpgradeAny } from '../systems/buildings.js';
 import * as home from './home.js';
 import * as world from './world.js';
 import * as pets from './pets.js';
@@ -74,6 +75,10 @@ export function mountShell(app) {
   const craftBadge = (state) => setBadge('craft', craftNotice(state));
   app.game.subscribe(craftBadge);
   craftBadge(app.game.getState());
+  // Home badge: a building can be upgraded right now.
+  const homeBadge = (state) => setBadge('home', canUpgradeAny(state, app.game.data));
+  app.game.subscribe(homeBadge);
+  homeBadge(app.game.getState());
 
   return { select, setBadge };
 }

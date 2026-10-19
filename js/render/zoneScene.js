@@ -12,6 +12,7 @@ import { loadSprites, createActor } from './sprites.js';
 import { actionMs, workerTask } from '../systems/harvest.js';
 import { petStatus } from '../systems/pets.js';
 import { petRole } from '../systems/petstats.js';
+import { createPolish } from './polish.js';
 
 TextureSource.defaultOptions.scaleMode = 'nearest';
 
@@ -53,7 +54,8 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
   const world = new Container();
   world.sortableChildren = true;
   const fx = new Container();
-  app.stage.addChild(ground, world, fx);
+  const polish = createPolish(app, { cfg: data.balance.render.polish, bank });
+  app.stage.addChild(ground, polish.shadows, world, polish.air, polish.tint, fx, polish.top);
 
   let scale = cfg.pixelScale;
   let running = true;
@@ -68,7 +70,10 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     const [ax, ay] = bank.anchor(roleId);
     sprite.anchor.set(ax, ay);
     world.addChild(sprite);
-    const p = { sprite, fx, fy, tappable: !!(skillId && onSpotTap) };
+    const p = { sprite, fx, fy, tappable: !!(skillId && onSpotTap), shadow: null };
+    if (!data.balance.render.polish.shadow.skipProps.includes(roleId)) {
+      p.shadow = polish.addShadow(sprite, tex.width * data.balance.render.polish.shadow.propWidthFrac);
+    }
     if (p.tappable) {
       sprite.eventMode = 'static';
       sprite.cursor = 'pointer';
@@ -110,6 +115,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
       bounceMs: Infinity, placed: false, standIdx: -1,
       wanderMs: lerp(pcfg.wanderMinPauseMs, pcfg.wanderMaxPauseMs, Math.random()),
       zMs: 0, frozen: false, heldSprite: null, heldRole: null,
+      shadow: null,
     };
     if (w.isPlayer) {
       w.heldSprite = new Sprite();
@@ -120,6 +126,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     const home = homeOf(w);
     w.x = home.x; w.y = home.y;
     w.placed = true;
+    w.shadow = polish.addShadow(actor.view, data.balance.render.home.shadowCharacterWidthPx);
     workers.set(id, w);
     placeView(w);
     return w;
@@ -178,6 +185,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     const { w, h } = sizeNow();
     scale = (w >= cfg.wideMinWidthPx && h >= cfg.wideMinHeightPx) ? cfg.pixelScaleWide : cfg.pixelScale;
     drawGround();
+    polish.resize(w, h, scale);
     for (const p of props) {
       const [x, y] = px(p.fx, p.fy);
       p.sprite.scale.set(scale);
@@ -400,6 +408,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     view.scale.set(sx, sy);
     view.position.set(Math.round(m.x), Math.round(m.y + bob));
     view.zIndex = workerZ(m);
+    if (m.shadow) m.shadow.groundY = m.y; // the shadow stays on the ground while the body hops
   }
 
   // ---- floating z's for resting pets ----
@@ -531,6 +540,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     }
     updatePops(ticker.deltaMS);
     updateZs(ticker.deltaMS);
+    polish.update(ticker.deltaMS);
   });
 
   return {
@@ -541,6 +551,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
       destroyed = true;
       unsubscribe();
       app.renderer.off('resize', layout);
+      polish.destroy();
       app.destroy(true, { children: true });
     },
   };

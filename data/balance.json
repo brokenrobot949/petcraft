@@ -56,6 +56,14 @@
       "legendary": { "growth": 1.75, "gifts": 2, "odds": 0.005 }
     }
   },
+  "buildings": {
+    "maxTier": 5,
+    "stableSpacesByTier": [2, 4, 6, 8, 10],
+    "gardenPlotsByTier": [2, 4, 6, 8, 10],
+    "nestEggSlotsByTier": [1, 1, 2, 2, 3],
+    "nestHatchCutPerTier": 0.1,
+    "renownXpPerTier": 30
+  },
   "crafting": {
     "queueSlotsByTier": [1, 1, 2, 2, 3],
     "stationSpeedPerTier": 0.05,
@@ -156,7 +164,111 @@
       "zOffsetXPx": 6,
       "zOffsetYPx": 14,
       "zColor": "0xdff3ff",
-      "maxZ": 8
+      "maxZ": 8,
+      "pixelScale": 2,
+      "pixelScaleWide": 3,
+      "wideMinWidthPx": 500,
+      "tapMinPx": 44,
+      "grassColor": "0x5a8a3c",
+      "grassDark": "0x4a7432",
+      "pathColor": "0xc7a26b",
+      "pathEdgeColor": "0xa88650",
+      "pathWidthPx": 10,
+      "paths": [
+        [[0.0, 0.37], [1.0, 0.37]],
+        [[0.1, 0.67], [0.9, 0.67]],
+        [[0.1, 0.96], [0.9, 0.96]],
+        [[0.34, 0.37], [0.34, 0.96]],
+        [[0.66, 0.37], [0.66, 0.96]]
+      ],
+      "footprintWidthFrac": 0.8,
+      "keepOutPadPx": 3,
+      "edgeMarginPx": 4,
+      "petAnchorDropPx": 14,
+      "petWanderRadiusPx": 46,
+      "shadowCharacterWidthPx": 12,
+      "hopChancePerSec": 0.12,
+      "hopPx": 5,
+      "hopMs": 320,
+      "hopStretch": 0.14,
+      "hopSquash": 0.12,
+      "hopLandFrac": 0.7,
+      "markerRefreshMs": 500,
+      "markerBobPx": 3,
+      "markerBobMs": 900,
+      "markerGapPx": 3,
+      "markerColor": "0xffe066",
+      "markerEdgeColor": "0x2a2433",
+      "popMs": 520,
+      "popAmp": 0.22,
+      "popCycles": 2,
+      "popSparks": 10,
+      "maxSparks": 24,
+      "sparkMs": 700,
+      "sparkSpreadPx": 26,
+      "sparkRisePx": 10,
+      "sparkColor": "0xfff3a0",
+      "placeholderBasePx": 24,
+      "placeholderPerTierPx": 4,
+      "placeholderColors": ["0xb5835a", "0x8f6bb0", "0x6b9fb0", "0xc9a24a", "0xb05a5a", "0x5ab08a", "0x7fb05a", "0xb0a05a"]
+    },
+    "polish": {
+      "shadow": {
+        "alpha": 0.4,
+        "yOffsetPx": 0,
+        "propWidthFrac": 0.8,
+        "skipProps": ["prop.pond", "prop.flower_yellow", "prop.flower_red", "prop.daisy", "prop.tuft"]
+      },
+      "tintUpdateMs": 250,
+      "tint": [
+        { "hour": 0, "color": "0x6672b4", "night": 1 },
+        { "hour": 5, "color": "0x6672b4", "night": 1 },
+        { "hour": 6.5, "color": "0xf0b8a8", "night": 0.35 },
+        { "hour": 8, "color": "0xffffff", "night": 0 },
+        { "hour": 17, "color": "0xffffff", "night": 0 },
+        { "hour": 18.5, "color": "0xf4a878", "night": 0.4 },
+        { "hour": 20, "color": "0x6672b4", "night": 1 },
+        { "hour": 24, "color": "0x6672b4", "night": 1 }
+      ],
+      "rain": {
+        "chancePerHour": 0.15,
+        "hourMs": 3600000,
+        "fadeMs": 4000,
+        "tint": "0xb0bacc",
+        "count": 70,
+        "speedPxPerSec": 230,
+        "slant": 0.22,
+        "lengthPx": 6,
+        "color": "0xcfe3ff",
+        "alpha": 0.6
+      },
+      "leaves": {
+        "count": 6,
+        "fallPxPerSec": 12,
+        "driftPxPerSec": 16,
+        "swayPx": 10,
+        "swayHz": 0.5,
+        "spinPerSec": 1.5,
+        "colors": ["0x8fbf4a", "0xc9a24a", "0x6fa83c"],
+        "alpha": 0.9
+      },
+      "motes": {
+        "count": 14,
+        "driftPxPerSec": 5,
+        "swayPx": 6,
+        "twinkleHz": 0.4,
+        "color": "0xfff6c4",
+        "alpha": 0.75
+      },
+      "fireflies": {
+        "count": 9,
+        "wanderPx": 26,
+        "wanderHz": 0.25,
+        "blinkHz": 0.35,
+        "sizePx": 12,
+        "color": "0xe8ff7a",
+        "alpha": 0.95
+      }
     }
   }
 }

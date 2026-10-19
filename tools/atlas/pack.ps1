@@ -90,6 +90,46 @@ function Add-Frame([string]$name, $region) {
   [void]$frames.Add(@{ Name = $name; Region = $region })
 }
 
+# ---- composite roles: "parts" are pasted (in order, later on top) onto a transparent frameWidth x frameHeight canvas ----
+function New-Composite($id, $role, [int]$fw, [int]$fh) {
+  $px = New-Object byte[] ($fw * $fh * 4)
+  $n = 0
+  foreach ($p in @($role.parts)) {
+    $n++
+    $what = "role $id part $n"
+    if (-not $p.src) { Fail "$what : missing src" }
+    $img = Get-Img $p.src $what
+    $sx = [int]$p.x; $sy = [int]$p.y; $w = [int]$p.w; $h = [int]$p.h; $dx = [int]$p.dx; $dy = [int]$p.dy
+    if ($w -le 0 -or $h -le 0) { Fail "$what : bad size ${w}x${h}" }
+    if ($sx -lt 0 -or $sy -lt 0 -or $sx + $w -gt $img.W -or $sy + $h -gt $img.H) {
+      Fail "$what : source rectangle x=$sx y=$sy w=$w h=$h is outside the image $($p.src) ($($img.W)x$($img.H))"
+    }
+    if ($dx -lt 0 -or $dy -lt 0 -or $dx + $w -gt $fw -or $dy + $h -gt $fh) {
+      Fail "$what : placed at dx=$dx dy=$dy size ${w}x${h} it is outside the ${fw}x${fh} canvas"
+    }
+    for ($y = 0; $y -lt $h; $y++) {
+      for ($x = 0; $x -lt $w; $x++) {
+        $so = (($sy + $y) * $img.W + $sx + $x) * 4
+        $a = $img.Px[$so + 3]
+        if ($a -eq 0) { continue }
+        $d = (($dy + $y) * $fw + $dx + $x) * 4
+        if ($a -eq 255 -or $px[$d + 3] -eq 0) {
+          [Array]::Copy($img.Px, $so, $px, $d, 4)
+        } else {
+          $da = $px[$d + 3]
+          $oa = $a + [int][Math]::Floor($da * (255 - $a) / 255)
+          for ($c = 0; $c -lt 3; $c++) {
+            $px[$d + $c] = [byte][int][Math]::Floor(($img.Px[$so + $c] * $a * 255 + $px[$d + $c] * $da * (255 - $a)) / ($oa * 255))
+          }
+          $px[$d + 3] = [byte]$oa
+        }
+      }
+    }
+  }
+  if ($n -eq 0) { Fail "role $id : 'parts' is empty" }
+  return @{ W = $fw; H = $fh; Px = $px; Key = "composite:$id" }
+}
+
 foreach ($rp in $spr.roles.PSObject.Properties) {
   $id = $rp.Name; $role = $rp.Value
   if (-not $role.src) { [void]$skipped.Add($id); Write-Host "note: $id not cast yet, skipped"; continue }
@@ -110,6 +150,12 @@ foreach ($rp in $spr.roles.PSObject.Properties) {
     if ($fw -gt $cw -or $fh -gt $ch) { Fail "role $id : picture ${fw}x${fh} is bigger than the ${cw}x${ch} cell of layout '$($role.layout)'" }
     $dx = [int][Math]::Floor(($cw - $fw) / 2); $dy = [int][Math]::Floor(($ch - $fh) / 2)
   }
+  $comp = $null
+  if ($role.PSObject.Properties['parts'] -and $role.parts) {
+    if (-not ($layout.PSObject.Properties['single'] -and $layout.single)) { Fail "role $id : 'parts' needs a single-picture layout (prop)" }
+    $comp = New-Composite $id $role $fw $fh
+    $ox = 0; $oy = 0
+  }
   $srcDir = ''
   if ($role.src.Contains('/')) { $srcDir = $role.src.Substring(0, $role.src.LastIndexOf('/') + 1) }
 
@@ -118,7 +164,7 @@ foreach ($rp in $spr.roles.PSObject.Properties) {
     $what = "role $id anim $an"
     $file = $role.src
     if ($a.PSObject.Properties['file'] -and $a.file) { $file = $srcDir + $a.file }
-    $img = Get-Img $file $what
+    if ($comp) { $img = $comp } else { $img = Get-Img $file $what }
     $sx = [int]$a.start[0]; $sy = [int]$a.start[1]; $n = [int]$a.frames
     $isDirs = [bool]$a.dirs
     $axis = 'row'
