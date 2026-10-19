@@ -79,8 +79,8 @@ Zones become materials, stations turn materials into outputs, and each output lo
 
 - Energy runs 0–100 (Stamina raises the max). Working drains about 33 per hour, so a full bar lasts about 3 hours.
 - At 0 a pet auto-rests until full. Base rest rate is 100 per hour, +20% per Stable tier.
-- With auto-feed on, a pet eats from the pantry when energy drops below 25%. Raw food restores 10–20, cooked meals 20–60.
-- Without food a pet works about 75% of the time; with food, close to 100%.
+- With auto-feed on, a pet eats from the pantry when energy drops below 25%. Auto-feed uses cooked food only (meals 20–60, pet tonics); raw food (10–20) can still be hand-fed. Pets bring back far more raw food than they could ever eat, so letting them eat it on their own would mean they never rest.
+- Without cooked food a pet works about 75% of the time; with meals stocked, close to 100%. Keeping the pantry stocked is a Kitchen job.
 
 **Session loop**
 
@@ -331,10 +331,10 @@ The homestead is a fixed set of building plots in one portrait scene. Each build
 | Old Sanctuary | Renown 12 | Grand Project site (5 projects × 3 stages) |
 
 - **Costs:** materials of the matching tier plus coins. Tiers 3–5 also need a blueprint bought in Mossbrook.
-- **Garden:** plant seeds bought at the market; fertilizer boosts yield. Garden food stocks the pantry for auto-feed and supplies Cooking.
+- **Garden:** plant seeds bought at the market; fertilizer boosts yield. Garden food supplies Cooking (and hand-feeding).
 - **What the scene shows:** buildings at their current tier, resting and stabled pets wandering or sleeping, assistant pets working at their stations, elders in the Grove, and the Sanctuary visibly restoring as projects finish.
 - **Workers in the field** are shown in each zone's scene on the World tab, animating at their tasks.
-- **Pantry:** cooked meals and raw food in the bag that auto-feed is allowed to use (a toggle per item).
+- **Pantry:** cooked meals and pet tonics in the bag that auto-feed is allowed to use (a toggle per item). Raw food is hand-fed only.
 
 ## Village and economy
 

@@ -41,7 +41,8 @@
       "restPerHour": 100,
       "stableRestBonusPerTier": 0.2,
       "stabledRestMult": 2,
-      "autoFeedBelowFrac": 0.25
+      "autoFeedBelowFrac": 0.25,
+      "autoFeedCategories": ["meal", "potion"]
     },
     "speed": { "base": 0.8, "perLevel": 0.02, "affinityBonus": 0.25, "bondPerHeart": 0.02 },
     "stamina": { "maxPerLevel": 0.01, "drainCutPerLevel": 0.005 },

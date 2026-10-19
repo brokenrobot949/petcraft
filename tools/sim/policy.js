@@ -5,7 +5,7 @@
 // Goal order (docs/handoff.md "Balance simulator", simplified for the systems that exist now):
 //   1. the copper tools (follow the recipe chain backwards to find the raw materials still short,
 //      and keep the gate skills (Carpentry / Smithing 10) climbing),
-//   2. keep food for the pets (meals and raw food),
+//   2. keep cooked food for the pets (auto-feed eats only meals and tonics),
 //   3. level the lowest skill.
 import { itemCount, parseKey } from '../../js/systems/bag.js';
 import { skillLevel } from '../../js/systems/skills.js';
@@ -13,11 +13,11 @@ import { nodeCheck } from '../../js/systems/harvest.js';
 import { stationList, recipeCheck, recipeDef, recipesFor, itemMs, itemXp, makesQuality } from '../../js/systems/crafting.js';
 import { isUpgrade } from '../../js/systems/tools.js';
 import { buffOf, buffSpeed } from '../../js/systems/buffs.js';
-import { petList, canPatToday, needsStarter } from '../../js/systems/pets.js';
+import { petList, canPatToday, needsStarter, canAutoFeed } from '../../js/systems/pets.js';
 import { localDay } from '../../js/core/time.js';
 
 // Policy knobs (how the simulated player behaves; these are not game numbers).
-const FOOD_TARGET = 20;     // keep about this many food items (raw food + meals) in the bag
+const FOOD_TARGET = 40;     // keep about this many cooked meals (what auto-feed eats) in the bag: a night for 2 pets
 const FOOD_RESERVE = 10;    // XP crafting never takes the last 10 of a food ingredient
 const GATE_STOCK = 40;      // spare raw input kept on hand while a gate skill is still climbing
 const STARTER = { archetype: 'sprout', name: 'Sim' };
@@ -106,11 +106,11 @@ export function createPolicy(data) {
 
   function foodCount(state) {
     let n = 0;
-    for (const [k, c] of Object.entries(state.bag)) if (items[parseKey(k).id]?.food) n += c;
+    for (const [k, c] of Object.entries(state.bag)) if (canAutoFeed(data, k)) n += c;
     for (const st of Object.values(state.crafting.stations)) {
       for (const b of st.queue) {
         const r = recipeDef(data, b.recipe);
-        if (r && items[r.output]?.food) n += (b.qty - b.done) * r.qty;
+        if (r && canAutoFeed(data, r.output)) n += (b.qty - b.done) * r.qty;
       }
     }
     return n;

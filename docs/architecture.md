@@ -200,7 +200,7 @@ of the scene size. Scene timing and sizes live in `balance.render.zone`.
   for pets; a pet can work any node the player can (`nodeCheck`). The harvest system advances
   only the player; the pets system advances pets and calls `harvest.completeAction()`.
 - Working drains energy; at or below `autoFeedBelowFrac` of max, an auto-feeding pet eats one
-  pantry item (smallest `food` first); at 0 it rests until full. An active pet with no task
+  pantry item (smallest `food` first; only `balance.pets.energy.autoFeedCategories`: meals and tonics, never raw food); at 0 it rests until full. An active pet with no task
   recovers at the rest rate; stabled pets rest `stabledRestMult` times faster and earn no XP.
 - Pet actions give pet XP (`xpPerSkillXp` x the action's skill XP), never player skill XP. Levels
   stop at the stage cap (10 / 20 / 30); extra XP banks.
@@ -233,6 +233,8 @@ From `js/systems/pets.js`: `petList(state)` (oldest first), `getPet`, `isActive`
 `canPatToday(state, petId, day)`, `petStatus(state, petId) -> 'working'|'resting'|'idle'|'stabled'`,
 `isFood(data, itemId)`, `pantryAllows`, `pantryList(state, data) -> [{ id, item, count, on }]`,
 `nextPantryFood`, `workHoursLeft(data, pet)`, `cleanName(name, data)`.
+Since Phase 4 `pantryList` holds only food auto-feed can use (`canAutoFeed(data, key)`); `foodList(state, data)`
+holds all food (hand-feeding), entries `{ id, item, label, food, count, auto, on }`.
 
 From `js/systems/petstats.js`: `archetypeOf(data, id)`, `isPet(state, workerId)`, `petStage`,
 `petLevelCap`, `petProgress(data, pet) -> { level, xp, next, capped, cap }`,
@@ -336,6 +338,6 @@ From `js/systems/pets.js`: `foodValue(data, key)`, `isFavoriteDish(data, pet, ke
 
 `crafting { queueSlotsByTier, stationSpeedPerTier, xpPerCraftSecond, xpPerRecipeLevel, maxBatch,
 quality { fineBase, finePerLevel, fineCap, fineFocusCap, masterworkBase, masterworkPerLevel, masterworkCap, masterworkFocusCap },
-focus { mult { good, perfect }, sweepMs, goodWidth, perfectWidth }, mealQuality }`, `pets.bond.favoriteDish`.
+focus { mult { good, perfect }, sweepMs, goodWidth, perfectWidth }, mealQuality }`, `pets.bond.favoriteDish`, `pets.energy.autoFeedCategories`.
 Focus bar: the marker sweeps 0..1 and back every `sweepMs`; Perfect = within `perfectWidth / 2` of
 the centre, Good = within `goodWidth / 2`.

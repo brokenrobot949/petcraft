@@ -6,7 +6,7 @@ import { el, toast, sheet } from './dom.js';
 import { itemIcon, faceIcon } from './icons.js';
 import { localDay } from '../core/time.js';
 import {
-  petList, getPet, needsStarter, canPatToday, petStatus, pantryList, workHoursLeft,
+  petList, getPet, needsStarter, canPatToday, petStatus, pantryList, foodList, workHoursLeft,
 } from '../systems/pets.js';
 import {
   archetypeOf, petProgress, petHearts, petMaxEnergy, petDrainPerHour, petRestPerHour, petSpeed, petRole,
@@ -224,7 +224,7 @@ function structKey(st, day) {
   const d = gdata();
   if (needsStarter(st)) return ui.hatch ? `hatch:${ui.hatch.arch}:${ui.hatch.step}` : `egg:${ui.sel}`;
   if (ui.page && !getPet(st, ui.page)) ui.page = null;
-  const pantry = pantryList(st, d).map((e) => e.id + (e.on ? '+' : '-')).join(',');
+  const pantry = foodList(st, d).map((e) => e.id + (e.on ? '+' : '-')).join(',');
   const pets = petList(st).map((p) => petKey(st, p, day)).join('|');
   return `${ui.page ? `pet:${ui.page}` : 'roster'}#${st.pets.active.join(',')}#${pantry}#${pets}`;
 }
@@ -382,9 +382,9 @@ function buildPantry(st, d) {
   const list = pantryList(st, d);
   const panel = el('div.panel', {},
     el('h2', {}, 'Pantry'),
-    el('p.small.muted', {}, 'Pets eat these on their own when their energy runs low.'));
+    el('p.small.muted', {}, 'Pets eat cooked meals and tonics on their own when their energy runs low. Raw food can be hand-fed from a pet\'s page.'));
   if (!list.length) {
-    panel.append(el('p', {}, 'No food yet. Forage berries, fish or hunt in Meadowfold.'));
+    panel.append(el('p', {}, 'No cooked food yet. Cook a meal in the Kitchen, or brew a tonic in the Alchemy Lab.'));
     return panel;
   }
   for (const e of list) {
@@ -507,7 +507,7 @@ function buildPage(st, day, pet) {
     else if (status === 'stabled') leftText.textContent = 'Resting in the Stable';
     else leftText.textContent = 'Not working right now';
   });
-  const foods = pantryList(st, d);
+  const foods = foodList(st, d);
   const feedRows = foods.map((e) => {
     const r = pantryRow(e, null);
     return el('button.pet-row.pet-feed', {
@@ -536,7 +536,7 @@ function buildPage(st, day, pet) {
     el('div.toggle-row', {},
       el('span', {}, 'Auto-feed'),
       autoBtn),
-    el('p.small.muted', {}, `Eats from the pantry when energy drops below ${pct}%.`)));
+    el('p.small.muted', {}, `Eats cooked meals and tonics from the pantry when energy drops below ${pct}%.`)));
 
   // Level
   const prog = petProgress(d, pet);

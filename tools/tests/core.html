@@ -18,6 +18,7 @@ import { createGame } from '../../js/core/game.js';
 import { parseSave } from '../../js/core/save.js';
 import { petMaxEnergy, petDrainPerHour } from '../../js/systems/petstats.js';
 import { qualityOdds } from '../../js/systems/crafting.js';
+import { pantryList } from '../../js/systems/pets.js';
 import { actionMs } from '../../js/systems/harvest.js';
 
 const out = document.getElementById('out');
@@ -108,21 +109,38 @@ try {
   check('rest took about 1 h', near(rested / H, petMaxEnergy(data, pet) / 100, 0.02));
   off();
 
-  // 4. Auto-feed from the pantry.
+  // 4. Auto-feed from the pantry: cooked meals and tonics only, never raw food.
   const gf = freshGame(777);
   gf.dispatch('pets/hatchStarter', { archetype: 'wild', name: 'Nib' });
   const fs = gf.getState();
   const fid = fs.pets.active[0];
   const fp = fs.pets.list[fid];
   gf.dispatch('dev/grant', { item: 'berries', qty: 30 });
-  gf.dispatch('dev/grant', { item: 'meadow_herb', qty: 30 });
-  gf.dispatch('pets/setPantry', { item: 'meadow_herb', on: false });
-  gf.dispatch('harvest/assign', { worker: fid, zone: 'meadowfold', skill: 'hunting', node: fs.workers.player && data.zones.zones[0].harvest.hunting[0].id });
+  gf.dispatch('dev/grant', { item: 'rabbit_roast', qty: 30 });
+  gf.dispatch('dev/grant', { item: 'vigor_tonic', qty: 30 });
+  gf.dispatch('pets/setPantry', { item: 'vigor_tonic', on: false });
+  threw = false;
+  try { gf.dispatch('pets/setPantry', { item: 'berries', on: true }); } catch { threw = true; }
+  check('raw food is not a pantry item', threw && !pantryList(fs, data).some((e) => e.id === 'berries'));
+  gf.dispatch('harvest/assign', { worker: fid, zone: 'meadowfold', skill: 'hunting', node: data.zones.zones[0].harvest.hunting[0].id });
   let ate = 0, restedF = false;
-  gf.onEvents((evs) => evs.forEach((e) => { if (e.type === 'petAte') ate++; if (e.type === 'petRest') restedF = true; }));
+  const eaten = new Set();
+  gf.onEvents((evs) => evs.forEach((e) => { if (e.type === 'petAte') { ate++; eaten.add(e.item); } if (e.type === 'petRest') restedF = true; }));
   runChunks(gf, 6 * H, 60000);
-  check('with food the pet never rests in 6 h', !restedF && !fp.resting);
-  check('it ate berries, not the turned-off herbs', ate > 0 && fs.bag.berries === 30 - ate && fs.bag.meadow_herb === 30, `ate ${ate}`);
+  check('with meals the pet never rests in 6 h', !restedF && !fp.resting);
+  check('it ate only meals: not raw berries or meat, not the turned-off tonic', ate > 0 && eaten.size === 1 && eaten.has('rabbit_roast')
+    && fs.bag.rabbit_roast === 30 - ate && fs.bag.berries === 30 && fs.bag.vigor_tonic === 30 && fs.bag.rabbit_meat > 0, `ate ${ate} ${[...eaten]}`);
+  // Raw food alone (even food the pet gathers itself) doesn't stop it resting.
+  const gr = freshGame(778);
+  gr.dispatch('pets/hatchStarter', { archetype: 'sprout', name: 'Bud' });
+  const rs = gr.getState();
+  const rid = rs.pets.active[0];
+  gr.dispatch('dev/grant', { item: 'berries', qty: 100 });
+  gr.dispatch('dev/setLevel', { skill: 'foraging', level: 2 });
+  gr.dispatch('harvest/assign', { worker: rid, zone: 'meadowfold', skill: 'foraging', node: 'berry_bush' });
+  const rawSum = gr.catchUp(6 * H).pets[rid];
+  check('with only raw food the pet still rests', rawSum.restMs > 0.5 * H && !Object.keys(rawSum.ate).length && rs.bag.berries > 100,
+    `rested ${(rawSum.restMs / H).toFixed(2)} h, berries ${rs.bag.berries}`);
   check('energy stays near the feed line', fp.energy > 0 && fp.energy <= petMaxEnergy(data, fp));
   threw = false;
   gf.dispatch('dev/petEnergy', { pet: fid, energy: 1e9 });
@@ -133,9 +151,9 @@ try {
   check('hand-feeding restores energy', near(fp.energy, 10 + data.items.items.berries.food, 1e-9));
   gf.dispatch('pets/setAutoFeed', { pet: fid, on: false });
   gf.dispatch('dev/petEnergy', { pet: fid, energy: 5 });
-  const b0 = fs.bag.berries;
+  const b0 = fs.bag.rabbit_roast;
   runChunks(gf, 0.5 * H, 60000);
-  check('auto-feed off: no eating', fs.bag.berries === b0 && fp.resting);
+  check('auto-feed off: no eating', fs.bag.rabbit_roast === b0 && fp.resting);
 
   // 5. Same results for live ticks and offline chunks (no shared food in play).
   const ga = freshGame(4242), gb = freshGame(4242);
@@ -183,7 +201,7 @@ try {
   go.dispatch('pets/hatchStarter', { archetype: 'sprout', name: 'Fast' });
   go.dispatch('dev/addPet', { archetype: 'tide', quality: 'common' });
   const so = go.getState();
-  go.dispatch('dev/grant', { item: 'berries', qty: 20 });
+  go.dispatch('dev/grant', { item: 'berry_compote', qty: 20 });
   go.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'chopping', node: 'pine' });
   go.dispatch('harvest/assign', { worker: so.pets.active[0], zone: 'meadowfold', skill: 'chopping', node: 'pine' });
   go.dispatch('harvest/assign', { worker: so.pets.active[1], zone: 'meadowfold', skill: 'mining', node: data.zones.zones[0].harvest.mining[0].id });

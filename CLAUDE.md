@@ -68,7 +68,7 @@ Phase 4: save schema v4 (station queues, player buffs, craft counts; migration 3
   5 meals + 3 potions/tonics: pets eat meals (+Bond for their archetype's favorite dish), the player
   eats them for a 1 h speed buff. Bag keys carry quality ("copper_axe:fine"). The tick splits time where
   a buff ends or a tool finishes, so live = offline. Craft tab badge when a queue runs empty.
-  Contract in docs/architecture.md "Phase 4: crafting". Core checks: 55 (tools/tests/core.html).
+  Contract in docs/architecture.md "Phase 4: crafting". Core checks: 57 (tools/tests/core.html).
   Balance simulator v1: tools/sim/ is a browser page (no Node), open http://localhost:8080/tools/sim/;
   30 days for both player types in ~1 s; milestones, flags, charts, CSV. See tools/sim/README.md.
 Phase 3: save schema v3 (pets, pantry, a random stream per worker; migration 2->3). Egg choice,
@@ -91,8 +91,9 @@ Known issues:
 - Pacing is far too fast (simulator, regular player): all six copper tools by day 2, every skill
   around level 52 by day 30, stockpiles in the hundreds of thousands. Tuned in Phase 10 by changing
   balance.json only; the XP curve and harvest yields are the main levers.
-- Pets never rest in the simulator (0% of their time): pets that fish, forage or hunt feed
-  themselves. Matches the spec but makes stocking food matter little. Rob to decide.
+- Auto-feed uses cooked meals and tonics only (Rob, 2026-10-19; balance.pets.energy.autoFeedCategories), so
+  pets no longer live on the raw food they gather. With the Kitchen kept busy pets still rest under 1%
+  of the time (simulator), because meals take 4-6 s each; making meals cost more is a Phase 10 lever.
 - All four stations are open from the start at tier 1; the Forge (Renown 2) and Alchemy Lab
   (Renown 5) unlocks and station tiers arrive with buildings (Phase 5) and Renown (Phase 6).
 - Copper tools only open Whisperwood, which arrives in Phase 6; until then they add nothing but a

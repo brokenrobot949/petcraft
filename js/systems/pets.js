@@ -90,17 +90,32 @@ export function isFavoriteDish(data, pet, key) {
   return !!dish && archetypeOf(data, pet.archetype)?.dish === dish;
 }
 
+// Can auto-feed use this item? Only cooked food (balance.pets.energy.autoFeedCategories: meals and
+// tonics). Raw food can still be hand-fed; pets that gather it would otherwise never need to rest.
+export function canAutoFeed(data, key) {
+  return isFood(data, key) && data.balance.pets.energy.autoFeedCategories.includes(itemDef(data, key).category);
+}
+
 // Is auto-feed allowed to use this item? (pantry toggle; on unless the player turned it off)
 export function pantryAllows(state, itemId) {
   return state.pantry[itemId] !== false;
 }
 
-// Food in the bag for the Pantry list: [{ id (bag key), item, label, food, count, on }], smallest first.
-export function pantryList(state, data) {
+// All food in the bag, for hand-feeding: [{ id (bag key), item, label, food, count, auto, on }], smallest
+// first. auto: auto-feed can use it; on: its pantry toggle.
+export function foodList(state, data) {
   return Object.entries(state.bag)
     .filter(([id, n]) => n > 0 && isFood(data, id))
-    .map(([id, count]) => ({ id, item: itemDef(data, id), label: itemLabel(data, id), food: foodValue(data, id), count, on: pantryAllows(state, id) }))
+    .map(([id, count]) => ({
+      id, item: itemDef(data, id), label: itemLabel(data, id), food: foodValue(data, id), count,
+      auto: canAutoFeed(data, id), on: pantryAllows(state, id),
+    }))
     .sort((a, b) => a.food - b.food || a.id.localeCompare(b.id));
+}
+
+// The Pantry: food auto-feed can use (same entries as foodList).
+export function pantryList(state, data) {
+  return foodList(state, data).filter((e) => e.auto);
 }
 
 // The item auto-feed would eat next, or null.
@@ -318,7 +333,7 @@ export const commands = {
     needPet(state, petId).autoFeed = !!on;
   },
   'pets/setPantry': (state, { item, on }, ctx) => {
-    if (!isFood(ctx.data, item)) throw new Error("That isn't food.");
+    if (!canAutoFeed(ctx.data, item)) throw new Error('Pets only eat cooked meals and tonics on their own.');
     if (on) delete state.pantry[item];
     else state.pantry[item] = false;
   },
