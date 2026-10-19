@@ -63,12 +63,14 @@ Live play, offline catch-up and the balance simulator must call the same system 
 Phase: 1 done (2026-10-19)
 Next: Phase 2 (core simulation).
 Art casting: data/sprites.json maps roles (player, pet.<archetype>.<form>, mythic.<archetype>) to pack
-  sprites; js/render/sprites.js loads the atlas and builds actors. The current picks are Claude's
+  sprites; js/render/sprites.js loads the atlas and builds actors. Rob picked the player (Hunter,
+  a 16x16 "character" sheet: 4-frame walk, 1 swing pose). The other picks are Claude's
   suggestions; Rob recasts in the catalog (http://localhost:8080/tools/catalog/ -> Casting -> Save),
   which writes sprites.json and runs tools/atlas/pack.ps1 via tools/serve.ps1. Then commit + bump version.
 Known issues:
 - Node is not installed. The atlas packer is PowerShell (tools/atlas/pack.ps1); the balance simulator
   (Phase 4) needs Node or a browser-page runner. Decide before Phase 4.
 - Item icons and homestead pieces are cast in the phases that add items (2) and buildings (5).
-- The player's tool overlays (Actor/CharacterAnimated/Weapon/*) are not packed yet; Phase 2 adds them.
+- Held tools: Phase 2 draws Items/Weapons/*/SpriteInHand in the player's hand, plus a code-made
+  wind-up/bounce, since the Hunter sheet has only one swing pose per direction.
 - Tab icons and app icon are still placeholder pack sprites.

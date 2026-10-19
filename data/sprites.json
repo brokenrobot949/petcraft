@@ -140,9 +140,9 @@
           "dirs": true,
           "start": [
             0,
-            4
+            3
           ],
-          "frames": 1,
+          "frames": 2,
           "fps": 4,
           "loop": true
         }
@@ -189,9 +189,9 @@
     "player": {
       "group": "player",
       "label": "Player",
-      "layout": "hero",
-      "src": "Actor/CharacterAnimated/NinjaGreen/SpriteSheet.png",
-      "face": "Actor/Character/NinjaGreen/Faceset.png"
+      "layout": "character",
+      "src": "Actor/Character/Hunter/SpriteSheet.png",
+      "face": "Actor/Character/Hunter/Faceset.png"
     },
     "pet.sprout.hatchling": {
       "group": "pets",
