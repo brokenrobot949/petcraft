@@ -14,3 +14,10 @@ export function elapsedOfflineMs(state, balance, now) {
   if (!(raw > 0)) return 0;
   return Math.min(raw, offlineCapMs(state, balance));
 }
+
+// The player's local calendar day as a whole number (days since 1970-01-01 in local time).
+// Daily things (the pat, later commissions) reset when this number changes, at local midnight.
+export function localDay(ms) {
+  const d = new Date(ms);
+  return Math.floor((ms - d.getTimezoneOffset() * 60000) / 86400000);
+}

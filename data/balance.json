@@ -26,6 +26,35 @@
     "toolQualitySpeed": { "normal": 0, "fine": 0.1, "masterwork": 0.2 },
     "toolQualityRare": { "normal": 0, "fine": 0.01, "masterwork": 0.02 }
   },
+  "pets": {
+    "activeSlots": 2,
+    "maxLevel": 30,
+    "stageLevelCaps": [10, 20, 30],
+    "xpCurve": { "a": 300, "exp": 1.6, "b": 300 },
+    "xpPerSkillXp": 1,
+    "starterQuality": "uncommon",
+    "callingActions": 150,
+    "nameMaxLength": 16,
+    "energy": {
+      "max": 100,
+      "drainPerHour": 33,
+      "restPerHour": 100,
+      "stableRestBonusPerTier": 0.2,
+      "stabledRestMult": 2,
+      "autoFeedBelowFrac": 0.25
+    },
+    "speed": { "base": 0.8, "perLevel": 0.02, "affinityBonus": 0.25, "bondPerHeart": 0.02 },
+    "stamina": { "maxPerLevel": 0.01, "drainCutPerLevel": 0.005 },
+    "luck": { "rarePerLevel": 0.0005 },
+    "bond": { "hearts": [40, 120, 250, 450, 700], "pat": 10, "workMinutesPerPoint": 30 },
+    "qualities": {
+      "common": { "growth": 1.0, "gifts": 0, "odds": 0.6 },
+      "uncommon": { "growth": 1.15, "gifts": 0, "odds": 0.28 },
+      "rare": { "growth": 1.3, "gifts": 1, "odds": 0.09 },
+      "epic": { "growth": 1.5, "gifts": 1, "odds": 0.025 },
+      "legendary": { "growth": 1.75, "gifts": 2, "odds": 0.005 }
+    }
+  },
   "render": {
     "pixelScale": 3,
     "pixelScaleWide": 4,
@@ -72,7 +101,42 @@
       },
       "groundColor": "0xadbc3a",
       "speckColor": "0x9aaa30",
-      "specks": 26
+      "specks": 26,
+      "pets": {
+        "standOffsets": [[0, 0], [-14, 4], [14, 4], [0, 9], [-26, -2], [26, -2]],
+        "idleOffsets": [[0, 0], [-24, 4], [24, 4], [0, 12], [-38, 0], [38, 0]],
+        "wanderRadiusPx": 26,
+        "wanderMinPauseMs": 1500,
+        "wanderMaxPauseMs": 4500,
+        "wanderSpeedPxPerSec": 14,
+        "hopPx": 5,
+        "hopMs": 320,
+        "stretch": 0.14,
+        "squash": 0.12,
+        "landFrac": 0.7,
+        "restFrame": 0,
+        "zIntervalMs": 1100,
+        "zRiseMs": 1800,
+        "zRisePx": 14,
+        "zSwayPx": 3,
+        "zFontSize": 12,
+        "zOffsetXPx": 6,
+        "zOffsetYPx": 14,
+        "zColor": "0xdff3ff",
+        "maxZ": 8
+      }
+    },
+    "home": {
+      "restFrame": 0,
+      "zIntervalMs": 1100,
+      "zRiseMs": 1800,
+      "zRisePx": 14,
+      "zSwayPx": 3,
+      "zFontSize": 12,
+      "zOffsetXPx": 6,
+      "zOffsetYPx": 14,
+      "zColor": "0xdff3ff",
+      "maxZ": 8
     }
   }
 }

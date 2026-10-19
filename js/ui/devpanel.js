@@ -1,6 +1,7 @@
 // Test mode panel (hidden; toggled by tapping the version line in Journal five times).
 // For testing only. Removed before release.
 import { el, toast } from './dom.js';
+import { petList } from '../systems/pets.js';
 
 export function createDevPanel(app) {
   const { game } = app;
@@ -24,6 +25,32 @@ export function createDevPanel(app) {
   const away = (label, ms) => el('button.btn', { type: 'button', onclick: () => app.simulateAway(ms) }, label);
   const H = 3600000;
 
+  // ---- pets ----
+  const archSel = el('select.field', { 'aria-label': 'Archetype' },
+    data.pets.archetypes.map((a) => el('option', { value: a.id }, a.name)));
+  const qualSel = el('select.field', { 'aria-label': 'Quality' },
+    data.pets.qualities.map((q) => el('option', { value: q.id }, q.name)));
+  const petSel = el('select.field', { 'aria-label': 'Pet' });
+  const petNum = (label, value) => el('input.field', { type: 'number', value, min: '0', inputMode: 'numeric', 'aria-label': label });
+  const energyIn = petNum('Energy', '100');
+  const petLevelIn = petNum('Pet level', '5');
+  const bondIn = petNum('Bond', '10');
+  let petKey = null;
+  const fillPets = () => {
+    const pets = petList(game.getState());
+    const key = pets.map((p) => `${p.id}:${p.name}`).join('|');
+    if (key === petKey) return;
+    petKey = key;
+    const prev = petSel.value;
+    petSel.replaceChildren(...pets.map((p) => el('option', { value: p.id }, p.name)));
+    if (pets.some((p) => p.id === prev)) petSel.value = prev;
+  };
+  fillPets();
+  // The panel is rebuilt each time it opens; drop the listener once this copy is gone.
+  const off = game.subscribe(() => (petSel.isConnected ? fillPets() : off()));
+  petSel.addEventListener('focus', fillPets);
+  const petCmd = (type, extra) => () => run(type, { pet: petSel.value, ...extra() });
+
   return el('div.panel.dev-panel', {},
     el('h2', {}, 'Test mode'),
     el('p.small.muted', {}, 'For testing. Removed before release.'),
@@ -37,6 +64,17 @@ export function createDevPanel(app) {
     el('div.row', {},
       el('button.btn', { type: 'button', onclick: () => run('dev/addCoins', { amount: 100 }) }, '+100'),
       el('button.btn', { type: 'button', onclick: () => run('dev/addCoins', { amount: 1000 }) }, '+1000')),
+    el('h3', {}, 'Pets'),
+    el('div.row', {}, archSel, qualSel,
+      el('button.btn', { type: 'button', onclick: () => run('dev/addPet', { archetype: archSel.value, quality: qualSel.value }) }, 'Add pet')),
+    el('div.row', {}, petSel),
+    el('div.row', {}, energyIn,
+      el('button.btn', { type: 'button', onclick: petCmd('dev/petEnergy', () => ({ energy: Number(energyIn.value) })) }, 'Set energy')),
+    el('div.row', {}, petLevelIn,
+      el('button.btn', { type: 'button', onclick: petCmd('dev/petLevel', () => ({ level: Number(petLevelIn.value) })) }, 'Set level')),
+    el('div.row', {}, bondIn,
+      el('button.btn', { type: 'button', onclick: petCmd('dev/petBond', () => ({ bond: Number(bondIn.value) })) }, 'Set Bond')),
+    el('button.btn.wide', { type: 'button', onclick: petCmd('dev/clearPat', () => ({})) }, 'Allow another pat today'),
     el('h3', {}, 'Pretend I was away'),
     el('div.row', {}, away('10 min', 600000), away('1 h', H), away('8 h', 8 * H), away('20 h', 20 * H)),
     el('h3', {}, 'Start over'),

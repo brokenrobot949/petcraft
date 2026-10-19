@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PetCraft core tests</title>
+<style>body{font:14px/1.4 system-ui,sans-serif;margin:16px;background:#fff;color:#111}.pass{color:#176b2c}.fail{color:#b00020;font-weight:bold}pre{white-space:pre-wrap}</style>
+</head>
+<body>
+<h1>PetCraft core tests (dev only)</h1>
+<pre id="out">running...</pre>
+<script type="module">
+// Dev-only checks of the simulation core: pets, energy, feeding, Bond, saves.
+// Open http://localhost:<port>/tools/tests/core.html. Not shipped.
+import { loadData } from '../../js/core/data.js';
+import { createInitialState, validateState } from '../../js/core/state.js';
+import { createGame } from '../../js/core/game.js';
+import { parseSave } from '../../js/core/save.js';
+import { petMaxEnergy, petDrainPerHour } from '../../js/systems/petstats.js';
+
+const out = document.getElementById('out');
+const lines = [];
+let failed = 0;
+const H = 3600000;
+function check(name, ok, detail = '') {
+  if (!ok) failed++;
+  lines.push(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`);
+}
+const sortedJson = (o) => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]]));
+const near = (a, b, tol) => Math.abs(a - b) <= tol;
+
+// The data files are fetched relative to the page, so load them from the repo root.
+const base = new URL('../../', location.href);
+const realFetch = window.fetch.bind(window);
+window.fetch = (u, o) => realFetch(typeof u === 'string' && u.startsWith('data/') ? new URL(u, base) : u, o);
+const data = await loadData();
+
+let clockNow = Date.UTC(2026, 9, 19, 12);
+const clock = () => clockNow;
+
+function freshGame(seed = 12345) {
+  const s = createInitialState(clockNow);
+  s.rng = seed;
+  s.workers.player.rng = seed + 1;
+  return createGame(data, JSON.parse(JSON.stringify(s)), { clock });
+}
+
+function runChunks(game, ms, stepMs) {
+  let left = ms;
+  while (left > 0) { const t = Math.min(stepMs, left); game.advance(t); left -= t; }
+}
+
+try {
+  // 1. Migration from a Phase 2 (v2) save.
+  const v2 = {
+    version: 2, meta: { createdAt: 1, lastSavedAt: 1, launches: 3 }, rng: 99, settings: { music: true, sound: true },
+    coins: 0, renown: { rank: 1, xp: 0 }, buildings: { cottage: { tier: 1 } }, skills: { chopping: { level: 4, xp: 10 } },
+    bag: { pine_log: 40 }, tools: { axe: { item: 'stone_axe', quality: 'normal' } },
+    workers: { player: { task: { zone: 'meadowfold', skill: 'chopping', node: 'pine' }, progressMs: 100 } }, stats: { actions: { chopping: 50 } },
+  };
+  const mig = parseSave(JSON.stringify(v2));
+  check('v2 save migrates to v3 and validates', !!mig.state && mig.state.version === 3, mig.error || '');
+  check('migration keeps progress', mig.state?.bag.pine_log === 40 && mig.state?.skills.chopping.level === 4 && mig.state?.workers.player.task?.node === 'pine');
+  const g0 = createGame(data, mig.state, { clock });
+  check('migrated save needs a starter egg', g0.getState().pets.active.length === 2 && !g0.getState().pets.starter);
+
+  // 2. Hatch the starter.
+  const g = freshGame();
+  let threw = false;
+  try { g.dispatch('pets/hatchStarter', { archetype: 'sprout', name: '   ' }); } catch { threw = true; }
+  check('a blank name is refused', threw);
+  g.dispatch('pets/hatchStarter', { archetype: 'sprout', name: '  Mossy  <b>  ' });
+  const st = g.getState();
+  const pid = st.pets.active[0];
+  const pet = st.pets.list[pid];
+  check('starter hatches Uncommon into slot 1 with a worker', pet && pet.quality === 'uncommon' && !!st.workers[pid] && st.pets.active[1] === null);
+  check('name is cleaned', pet.name === 'Mossy b', JSON.stringify(pet.name));
+  threw = false;
+  try { g.dispatch('pets/hatchStarter', { archetype: 'stone', name: 'Two' }); } catch { threw = true; }
+  check('only one starter', threw);
+
+  // 3. A full bar lasts about 3 hours of work, then the pet rests until full.
+  g.dispatch('harvest/assign', { worker: pid, zone: 'meadowfold', skill: 'chopping', node: 'pine' });
+  const drain = petDrainPerHour(data, pet);
+  const fullHours = petMaxEnergy(data, pet) / drain;
+  check('full bar = about 3 h of work', near(fullHours, 3, 0.2), `${fullHours.toFixed(2)} h`);
+  // No food in the bag: work until 0.
+  const logs0 = st.bag.pine_log || 0;
+  let worked = 0, rested = 0, wentToRest = false, woke = false;
+  const off = g.onEvents((evs) => {
+    for (const e of evs) {
+      if (e.type === 'petTime' && e.pet === pid) { worked += e.workMs; rested += e.restMs; }
+      if (e.type === 'petRest') wentToRest = true;
+      if (e.type === 'petWoke') woke = true;
+    }
+  });
+  runChunks(g, 3.2 * H, 60000);
+  check('pet goes to rest at 0 energy', wentToRest && pet.resting, `energy ${pet.energy.toFixed(2)}`);
+  check('worked about 3 h before resting', near(worked / H, fullHours, 0.15), `${(worked / H).toFixed(3)} h`);
+  check('pet harvested logs', (st.bag.pine_log || 0) > logs0, `${(st.bag.pine_log || 0) - logs0} logs`);
+  check('pet gained XP / levels', pet.level > 1 || pet.xp > 0, `level ${pet.level}`);
+  check('player skill XP untouched by pet work', st.skills.chopping.xp === 0 && st.skills.chopping.level === 1);
+  check('work earns Bond (+1 per 30 min)', pet.bond === 6, `bond ${pet.bond}`);
+  runChunks(g, 1.2 * H, 60000);
+  check('rests about 1 h, wakes full, works again', woke && !pet.resting, `rested ${(rested / H).toFixed(2)} h`);
+  check('rest took about 1 h', near(rested / H, petMaxEnergy(data, pet) / 100, 0.02));
+  off();
+
+  // 4. Auto-feed from the pantry.
+  const gf = freshGame(777);
+  gf.dispatch('pets/hatchStarter', { archetype: 'wild', name: 'Nib' });
+  const fs = gf.getState();
+  const fid = fs.pets.active[0];
+  const fp = fs.pets.list[fid];
+  gf.dispatch('dev/grant', { item: 'berries', qty: 30 });
+  gf.dispatch('dev/grant', { item: 'meadow_herb', qty: 30 });
+  gf.dispatch('pets/setPantry', { item: 'meadow_herb', on: false });
+  gf.dispatch('harvest/assign', { worker: fid, zone: 'meadowfold', skill: 'hunting', node: fs.workers.player && data.zones.zones[0].harvest.hunting[0].id });
+  let ate = 0, restedF = false;
+  gf.onEvents((evs) => evs.forEach((e) => { if (e.type === 'petAte') ate++; if (e.type === 'petRest') restedF = true; }));
+  runChunks(gf, 6 * H, 60000);
+  check('with food the pet never rests in 6 h', !restedF && !fp.resting);
+  check('it ate berries, not the turned-off herbs', ate > 0 && fs.bag.berries === 30 - ate && fs.bag.meadow_herb === 30, `ate ${ate}`);
+  check('energy stays near the feed line', fp.energy > 0 && fp.energy <= petMaxEnergy(data, fp));
+  threw = false;
+  gf.dispatch('dev/petEnergy', { pet: fid, energy: 1e9 });
+  try { gf.dispatch('pets/feed', { pet: fid, item: 'berries' }); } catch { threw = true; }
+  check('hand-feeding a full pet is refused', threw);
+  gf.dispatch('dev/petEnergy', { pet: fid, energy: 10 });
+  gf.dispatch('pets/feed', { pet: fid, item: 'berries' });
+  check('hand-feeding restores energy', near(fp.energy, 10 + data.items.items.berries.food, 1e-9));
+  gf.dispatch('pets/setAutoFeed', { pet: fid, on: false });
+  gf.dispatch('dev/petEnergy', { pet: fid, energy: 5 });
+  const b0 = fs.bag.berries;
+  runChunks(gf, 0.5 * H, 60000);
+  check('auto-feed off: no eating', fs.bag.berries === b0 && fp.resting);
+
+  // 5. Same results for live ticks and offline chunks (no shared food in play).
+  const ga = freshGame(4242), gb = freshGame(4242);
+  for (const gg of [ga, gb]) {
+    gg.dispatch('pets/hatchStarter', { archetype: 'stone', name: 'Rocky' });
+    gg.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'chopping', node: 'pine' });
+    gg.dispatch('harvest/assign', { worker: gg.getState().pets.active[0], zone: 'meadowfold', skill: 'mining', node: data.zones.zones[0].harvest.mining[0].id });
+  }
+  runChunks(ga, 5 * H, 250);
+  gb.catchUp(5 * H);
+  const sa = ga.getState(), sb = gb.getState();
+  const pa = sa.pets.list[sa.pets.active[0]], pb = sb.pets.list[sb.pets.active[0]];
+  check('live ticks and catch-up give the same bag', sortedJson(sa.bag) === sortedJson(sb.bag), `${JSON.stringify(sa.bag)} vs ${JSON.stringify(sb.bag)}`);
+  check('... and the same pet', pa.level === pb.level && near(pa.xp, pb.xp, 1e-6) && near(pa.energy, pb.energy, 1e-6) && pa.bond === pb.bond, `L${pa.level}/${pb.level} E${pa.energy.toFixed(4)}/${pb.energy.toFixed(4)}`);
+
+  // 6. Daily pat.
+  const gp = freshGame();
+  gp.dispatch('pets/hatchStarter', { archetype: 'tide', name: 'Drip' });
+  const pp = gp.getState().pets.list[gp.getState().pets.active[0]];
+  gp.dispatch('pets/pat', { pet: pp.id });
+  check('pat gives +10 Bond', pp.bond === data.balance.pets.bond.pat);
+  threw = false;
+  try { gp.dispatch('pets/pat', { pet: pp.id }); } catch { threw = true; }
+  check('second pat the same day is refused', threw && pp.bond === 10);
+  clockNow += 24 * H;
+  gp.dispatch('pets/pat', { pet: pp.id });
+  check('pat works again the next day', pp.bond === 20);
+
+  // 7. Two active pets, swap, stable rest.
+  gp.dispatch('dev/addPet', { archetype: 'wild', quality: 'rare' });
+  const s7 = gp.getState();
+  const second = s7.pets.active[1];
+  check('second pet takes slot 2', !!second && !!s7.workers[second]);
+  gp.dispatch('dev/addPet', { archetype: 'sprout', quality: 'common' });
+  const third = Object.keys(s7.pets.list).find((k) => !s7.pets.active.includes(k));
+  check('third pet goes to the Stable', !!third && !s7.workers[third]);
+  gp.dispatch('pets/setActive', { pet: third, slot: 1 });
+  check('swap moves the old pet to the Stable', s7.pets.active[1] === third && !s7.workers[second] && !!s7.workers[third]);
+  gp.dispatch('dev/petEnergy', { pet: second, energy: 0 });
+  gp.advance(0.25 * H);
+  check('stabled pets rest twice as fast', near(s7.pets.list[second].energy, 50, 1e-6), s7.pets.list[second].energy.toFixed(3));
+
+  // 8. Offline catch-up speed and summary, and a save round trip.
+  const go = freshGame(5);
+  go.dispatch('pets/hatchStarter', { archetype: 'sprout', name: 'Fast' });
+  go.dispatch('dev/addPet', { archetype: 'tide', quality: 'common' });
+  const so = go.getState();
+  go.dispatch('dev/grant', { item: 'berries', qty: 20 });
+  go.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'chopping', node: 'pine' });
+  go.dispatch('harvest/assign', { worker: so.pets.active[0], zone: 'meadowfold', skill: 'chopping', node: 'pine' });
+  go.dispatch('harvest/assign', { worker: so.pets.active[1], zone: 'meadowfold', skill: 'mining', node: data.zones.zones[0].harvest.mining[0].id });
+  const t0 = performance.now();
+  const sum = go.catchUp(16 * H);
+  const dt = performance.now() - t0;
+  check('16 h catch-up with 3 workers is fast', dt < 300, `${dt.toFixed(0)} ms`);
+  const ps = sum.pets[so.pets.active[1]];
+  check('summary has pet work, rest and meals', !!ps && ps.workMs > 0 && ps.restMs > 0 && sum.workers[so.pets.active[0]]?.actions > 0, ps ? `work ${(ps.workMs / H).toFixed(1)} h rest ${(ps.restMs / H).toFixed(1)} h` : '');
+  check('state still valid', validateState(so) === null, validateState(so) || '');
+  const rt = parseSave(JSON.stringify(so));
+  check('save round trip', !!rt.state && JSON.stringify(rt.state) === JSON.stringify(so));
+} catch (err) {
+  failed++;
+  lines.push(`FAIL  crashed: ${err.stack || err}`);
+}
+lines.push('', failed ? `${failed} FAILED` : 'ALL PASSED');
+out.innerHTML = lines.map((l) => `<span class="${l.startsWith('FAIL') || l.includes('FAILED') ? 'fail' : 'pass'}">${l.replace(/</g, '&lt;')}</span>`).join('\n');
+window.__testResult = { failed, lines };
+</script>
+</body>
+</html>

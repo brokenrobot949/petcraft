@@ -1,7 +1,9 @@
 // "While you were away" sheet, shown after offline catch-up (real or test-mode).
 import { el, sheet } from './dom.js';
 import { offlineCapMs } from '../core/time.js';
-import { itemIcon } from './icons.js';
+import { itemIcon, faceIcon } from './icons.js';
+import { getPet } from '../systems/pets.js';
+import { petRole } from '../systems/petstats.js';
 
 export function formatDuration(ms) {
   const totalMin = Math.floor(ms / 60000);
@@ -26,21 +28,47 @@ export function showAwaySummary(app, summary, { awayMs }) {
   }
 
   const scroll = el('div.away-scroll');
-  const workers = Object.entries(summary.workers || {}).filter(([, w]) => w.actions > 0);
-  for (const [workerId, w] of workers) {
-    const label = workerId === 'player' ? 'You' : workerId;
+  const petName = (id) => getPet(state, id)?.name || 'A pet';
+  const petsInfo = summary.pets || {};
+  const sectionIds = new Set();
+  for (const [id, w] of Object.entries(summary.workers || {})) if (w.actions > 0) sectionIds.add(id);
+  for (const [id, p] of Object.entries(petsInfo)) if (p.workMs > 0 || p.restMs > 0) sectionIds.add(id);
+  // The player first, then pets in the order they appear.
+  const ordered = [...sectionIds].sort((a, b) => (a === 'player' ? -1 : b === 'player' ? 1 : 0));
+  let anyWork = false;
+  for (const workerId of ordered) {
+    const isPlayer = workerId === 'player';
+    const w = summary.workers?.[workerId] || { actions: 0, items: {}, xp: {}, petXp: 0 };
+    const info = petsInfo[workerId];
+    if (isPlayer ? w.actions > 0 : (w.actions > 0 || info?.workMs > 0)) anyWork = true;
+    const pet = isPlayer ? null : getPet(state, workerId);
+    const name = isPlayer ? 'You' : petName(workerId);
     const rows = Object.entries(w.items || {}).map(([id, n]) =>
       el('div.away-item', {}, itemIcon24(id, itemName(id)), el('span.grow', {}, itemName(id)), el('b', {}, `+${n.toLocaleString()}`)));
     const xp = Object.entries(w.xp || {}).map(([s, n]) => el('p.small', {}, `+${Math.round(n).toLocaleString()} ${skillName(s)} XP`));
+    const extra = [];
+    if (!isPlayer) {
+      if (w.petXp > 0) extra.push(el('p.small', {}, `+${Math.round(w.petXp).toLocaleString()} pet XP`));
+      if (info) {
+        const times = [];
+        if (info.workMs > 0) times.push(`Worked ${formatDuration(info.workMs)}`);
+        if (info.restMs > 0) times.push(`${times.length ? 'rested' : 'Rested'} ${formatDuration(info.restMs)}`);
+        if (times.length) extra.push(el('p.small', {}, times.join(', ')));
+        const ate = Object.entries(info.ate || {}).map(([id, n]) => `${n} ${itemName(id)}`);
+        if (ate.length) extra.push(el('p.small', {}, `Ate ${ate.join(', ')}`));
+        if (info.level != null) extra.push(el('p.away-levelup', {}, `${name} reached level ${info.level}!`));
+        if (info.hearts != null) extra.push(el('p.away-levelup', {}, `${name} now has ${info.hearts} heart${info.hearts === 1 ? '' : 's'}!`));
+      }
+    }
     scroll.append(el('div.away-worker', {},
-      el('h3', {}, label),
-      el('p.small.muted', {}, `${w.actions.toLocaleString()} action${w.actions === 1 ? '' : 's'}`),
-      ...rows, ...xp));
+      el('h3', {}, pet ? faceIcon(petRole(pet), 24, name) : null, el('span', {}, name)),
+      w.actions > 0 ? el('p.small.muted', {}, `${w.actions.toLocaleString()} action${w.actions === 1 ? '' : 's'}`) : null,
+      ...rows, ...xp, ...extra));
   }
   for (const [s, level] of Object.entries(summary.levelUps || {})) {
     scroll.append(el('p.away-levelup', {}, `${skillName(s)} reached level ${level}!`));
   }
-  if (!workers.length) {
+  if (!anyWork) {
     scroll.append(el('p', {}, "Nobody was working. Pick a task on the World tab and the world keeps working while you're away."));
   }
   body.push(scroll);

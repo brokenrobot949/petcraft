@@ -284,6 +284,15 @@ textarea.code {
 .node-name { flex: 1; min-width: 0; }
 .node-drops { display: flex; gap: 2px; flex-shrink: 0; }
 .node-lv { color: var(--muted); font-size: 14px; flex-shrink: 0; }
+.node-workers { display: flex; gap: 2px; align-items: center; flex-shrink: 0; }
+.you-tag { padding: 0 4px; background: var(--ink); color: var(--cream); font-size: 12px; border-radius: 4px; }
+.worker-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; min-height: var(--tap); padding: 4px 12px; background: var(--wood-dark); color: var(--text); border: 3px solid var(--ink); border-radius: 6px; font: inherit; cursor: pointer; touch-action: manipulation; }
+.chip[aria-pressed="true"] { border-color: var(--orange); background: #5a4a30; }
+.worker-card h2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.worker-card.selected { border-color: var(--orange); }
+.bar .fill.energy { background: var(--pale); }
+.starter-panel p { margin: 0; color: var(--pale); }
 
 /* ---- bag (Craft tab) ---- */
 .bag-title { margin-top: 8px; }
@@ -301,9 +310,13 @@ textarea.code {
 .away-item { display: flex; align-items: center; gap: 8px; min-height: 28px; }
 .away-item .grow { flex: 1; min-width: 0; }
 .away-levelup { color: var(--pale); }
+.away-worker { margin-bottom: 8px; }
+.away-worker h3 { display: flex; align-items: center; gap: 8px; }
+.away-worker p { margin: 2px 0; }
 
 /* ---- test mode panel ---- */
 .dev-panel { border-color: var(--rust); }
 .dev-panel .row > .field { flex: 1 1 100px; min-width: 0; }
 .field { min-height: var(--tap); padding: 0 8px; background: var(--ink); color: var(--cream); border: 2px solid var(--tan); border-radius: 4px; }
 .dev-panel input.field { flex: 0 1 80px; }
+.dev-panel select.field { max-width: 100%; }

@@ -1,11 +1,12 @@
 // The save schema (docs/architecture.md). Only the lead (Opus) changes this. Every change bumps
 // SCHEMA_VERSION and adds a migration in migrations.js so existing saves keep working.
 // Per-skill and per-tool entries are filled from data by each system's init(), not here.
-import { newSeed } from './rng.js';
+import { newSeed, deriveSeed } from './rng.js';
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 export function createInitialState(now) {
+  const seed = newSeed();
   return {
     version: SCHEMA_VERSION,
     meta: {
@@ -13,7 +14,7 @@ export function createInitialState(now) {
       lastSavedAt: now,
       launches: 0,
     },
-    rng: newSeed(),
+    rng: seed,
     settings: {
       music: true,
       sound: true,
@@ -27,9 +28,11 @@ export function createInitialState(now) {
     bag: {},
     tools: {},
     workers: {
-      player: { task: null, progressMs: 0 },
+      player: { task: null, progressMs: 0, rng: deriveSeed(seed, 1) },
     },
     stats: { actions: {} },
+    pets: { nextId: 1, active: [], list: {} },
+    pantry: {},
   };
 }
 
@@ -62,5 +65,17 @@ export function validateState(s) {
     if (w.task !== null && !(isObj(w.task) && w.task.zone && w.task.skill && w.task.node)) return 'bad worker task';
   }
   if (!isObj(s.stats) || !isObj(s.stats.actions)) return 'bad stats';
+  if (s.version < 3) return null;
+  for (const w of Object.values(s.workers)) if (!Number.isInteger(w.rng)) return 'bad worker rng';
+  const p = s.pets;
+  if (!isObj(p) || !Number.isInteger(p.nextId) || !Array.isArray(p.active) || !isObj(p.list)) return 'bad pets';
+  for (const [id, pet] of Object.entries(p.list)) {
+    if (!isObj(pet) || pet.id !== id || typeof pet.name !== 'string' || !pet.archetype || !pet.quality) return 'bad pet';
+    if (!Number.isInteger(pet.level) || pet.level < 1 || !isCount(pet.xp) || !isCount(pet.energy) || !isCount(pet.bond)) return 'bad pet numbers';
+    if (!isObj(pet.actions)) return 'bad pet actions';
+  }
+  for (const id of p.active) if (id !== null && !p.list[id]) return 'active pet is missing';
+  for (const id of Object.keys(s.workers)) if (id !== 'player' && !p.list[id]) return 'worker for a missing pet';
+  if (!isObj(s.pantry)) return 'bad pantry';
   return null;
 }

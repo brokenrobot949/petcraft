@@ -11,12 +11,12 @@ let visible = false;
 
 export function mount(container, app) {
   const caption = el('div.home-caption.panel.small', {},
-    el('p', {}, 'Meet the cast'),
-    el('p.muted', {}, 'Your hero and the four starter pets. Your homestead grows here in later phases.'));
+    el('p', {}, 'Your homestead'),
+    el('p.muted', {}, 'Your pets come home to rest here. Buildings arrive in a later update.'));
   container.append(caption);
   // PixiJS is large, so it loads only when Home is first shown.
   import('../render/homeScene.js')
-    .then(({ createHomeScene }) => createHomeScene(container, app.game.data))
+    .then(({ createHomeScene }) => createHomeScene(container, app.game))
     .then((s) => {
       scene = s;
       container.append(caption); // keep the caption above the canvas

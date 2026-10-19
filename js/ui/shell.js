@@ -2,7 +2,8 @@
 // { id, label, icon, mount(container, app), show?(), hide?() }.
 import { el } from './dom.js';
 import { getPref, setPref } from './device.js';
-import { offlineCapMs } from '../core/time.js';
+import { offlineCapMs, localDay } from '../core/time.js';
+import { needsStarter, petList, canPatToday } from '../systems/pets.js';
 import * as home from './home.js';
 import * as world from './world.js';
 import * as pets from './pets.js';
@@ -57,13 +58,19 @@ export function mountShell(app) {
   topbar(app.game.getState());
   select(getPref('tab', 'home'));
 
-  return {
-    select,
-    setBadge(id, on) {
-      const e = entries.find((x) => x.tab.id === id);
-      if (e) e.badge.hidden = !on;
-    },
+  const setBadge = (id, on) => {
+    const e = entries.find((x) => x.tab.id === id);
+    if (e) e.badge.hidden = !on;
   };
+  // Pets badge: an egg is waiting, or a pet hasn't had today's pat.
+  const petsBadge = (state) => {
+    const today = localDay(Date.now());
+    setBadge('pets', needsStarter(state) || petList(state).some((p) => canPatToday(state, p.id, today)));
+  };
+  app.game.subscribe(petsBadge);
+  petsBadge(app.game.getState());
+
+  return { select, setBadge };
 }
 
 function mountTopbar(app) {

@@ -1,0 +1,114 @@
+/* Pets tab. Classes are prefixed pet- / egg- to avoid clashes with main.css. */
+.pets { max-width: 100%; min-width: 0; }
+.pets h3 { margin: 12px 0 6px; font-size: 16px; font-weight: normal; color: var(--cream); }
+
+/* ---- eggs ---- */
+.egg-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.egg-card {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  min-height: var(--tap); padding: 10px 8px; min-width: 0;
+  background: var(--wood); color: var(--text); text-align: center;
+  border: 3px solid var(--ink); border-radius: 6px; cursor: pointer; touch-action: manipulation;
+  overflow-wrap: anywhere;
+}
+.egg-card.selected { border-color: var(--orange); background: #5a4a30; box-shadow: 0 0 0 2px var(--pale); }
+.egg-name { color: var(--pale); font-weight: normal; font-size: 16px; }
+.egg-desc, .egg-blurb { color: var(--cream); }
+.egg-likes { color: var(--muted); }
+.egg-pic { display: inline-block; width: 64px; height: 64px; flex-shrink: 0; }
+.egg-pic svg { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.egg-pic.big { width: 128px; height: 128px; }
+.egg-crack { opacity: 0; }
+.hatch-stage { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.hatch-stage > * { max-width: 100%; }
+.hatch-stage .field { width: 100%; }
+.hatch-stage .btn { width: 100%; }
+.hatch-stage label { align-self: flex-start; }
+.egg-wobble { animation: egg-wobble 1.5s ease-in-out both; transform-origin: 50% 90%; }
+.egg-wobble .egg-crack { animation: egg-crack 1.5s steps(1) both; }
+@keyframes egg-wobble {
+  0% { transform: rotate(0); }
+  15% { transform: rotate(-8deg); }
+  30% { transform: rotate(8deg); }
+  45% { transform: rotate(-10deg); }
+  60% { transform: rotate(10deg); }
+  80% { transform: rotate(-4deg) scale(1.04); }
+  100% { transform: rotate(0) scale(1.08); }
+}
+@keyframes egg-crack { 0% { opacity: 0; } 55% { opacity: 1; } 100% { opacity: 1; } }
+.pet-name-input { width: 100%; font-size: 18px; }
+
+/* ---- stars and hearts ---- */
+.pet-gems { display: inline-flex; gap: 3px; align-items: center; }
+.pet-gem { width: 14px; height: 14px; display: block; }
+.pet-star.on { fill: var(--pale); }
+.pet-star.off { fill: var(--ink); }
+.pet-heart.on { fill: #e0475b; }
+.pet-heart.off { fill: var(--ink); }
+.pet-quality { display: flex; align-items: center; gap: 8px; }
+
+/* ---- pet cards ---- */
+.pet-card {
+  display: flex; align-items: flex-start; gap: 12px; width: 100%; min-height: 72px; min-width: 0;
+  text-align: left; color: var(--text); font: inherit; cursor: pointer; touch-action: manipulation;
+}
+.pet-card > .item-icon { border: 2px solid var(--ink); border-radius: 6px; background-color: var(--wood-dark); }
+.pet-card-body { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
+.pet-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pet-name { color: var(--pale); font-weight: normal; font-size: 18px; overflow-wrap: anywhere; }
+.pet-sub { overflow-wrap: anywhere; }
+.pet-pat-badge { flex-shrink: 0; padding: 2px 8px; background: var(--orange); color: var(--ink); border: 2px solid var(--ink); border-radius: 10px; font-size: 13px; }
+.pet-empty { min-height: 72px; border-style: dashed; opacity: 0.85; }
+.pet-card-hearts { display: flex; align-items: center; gap: 8px; }
+.pet-energy { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pet-energy .bar { flex: 1; min-width: 0; }
+.pet-energy-text { white-space: nowrap; }
+.pet-status { display: flex; align-items: center; gap: 8px; color: var(--cream); overflow-wrap: anywhere; }
+.pet-status-text { min-width: 0; }
+.pet-status-line { margin: 4px 0; }
+.pet-zzz { color: var(--pale); animation: pet-zzz 2.4s ease-in-out infinite; }
+.pet-zzz[hidden] { display: none; }
+@keyframes pet-zzz { 0%, 100% { opacity: 0.35; transform: translateY(2px); } 50% { opacity: 1; transform: translateY(-2px); } }
+
+/* ---- pantry and feed rows ---- */
+.pet-row {
+  display: flex; align-items: center; gap: 8px; min-height: var(--tap); width: 100%; margin-top: 6px; padding: 4px 8px;
+  background: var(--wood-dark); color: var(--text); border: 2px solid var(--ink); border-radius: 6px; font: inherit; text-align: left;
+}
+button.pet-row { cursor: pointer; touch-action: manipulation; min-height: 52px; }
+button.pet-row:active { background: #5a4a30; border-color: var(--orange); }
+.pet-row-name { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow-wrap: break-word; }
+.pet-count { color: var(--pale); flex-shrink: 0; }
+.pet-energy-gain { display: block; }
+.pet-toggle { flex: 0 0 auto; min-width: 64px; }
+.pet-toggle[aria-pressed='true'] { color: var(--ink); }
+.pet-toggle[aria-pressed='false'] { opacity: 0.7; }
+.pet-feed-list { display: flex; flex-direction: column; }
+.pet-sub-h { margin-top: 12px; }
+
+/* ---- pet page ---- */
+.pet-head { text-align: center; }
+.pet-portrait { position: relative; display: inline-block; margin: 4px auto 8px; min-width: 96px; min-height: 96px; }
+.pet-portrait > .item-icon { border: 3px solid var(--ink); border-radius: 6px; background-color: var(--wood-dark); }
+.pet-head-text { margin-bottom: 8px; }
+.pet-name-row { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.pet-title { margin: 0; overflow-wrap: anywhere; }
+.pet-head-text .pet-quality { justify-content: center; }
+.pet-pat { margin-top: 4px; }
+.pet-note { min-height: 1.35em; margin: 8px 0 0; color: var(--cream); }
+.pet-calling { margin-bottom: 8px; }
+.pet-float-heart {
+  position: absolute; bottom: 30%; width: 18px; height: 18px; fill: #e0475b; pointer-events: none;
+  animation: pet-float 1.5s ease-out both; opacity: 0;
+}
+@keyframes pet-float {
+  0% { transform: translateY(0) scale(0.8); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(-70px) scale(1.2); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .egg-wobble, .egg-wobble .egg-crack, .pet-zzz { animation: none; }
+  .egg-wobble .egg-crack { opacity: 1; }
+  .pet-float-heart { animation: none; opacity: 1; bottom: 60%; }
+}

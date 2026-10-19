@@ -25,10 +25,22 @@ export async function loadIcons(spritesData) {
 
 // A square element showing the item's 16x16 icon at `px` CSS pixels (use multiples of 16).
 export function itemIcon(itemId, px = 32, label = '') {
-  const f = atlas?.frames[`item.${itemId}/idle/0`]?.frame;
+  return frameIcon(`item.${itemId}/idle/0`, px, label);
+}
+
+// A pet's portrait (the pack's Faceset, 38x38) for a sprite role such as "pet.sprout.hatchling"
+// (see petRole in js/systems/petstats.js). Falls back to the first idle frame, then a letter tile.
+export function faceIcon(roleId, px = 48, label = '') {
+  const name = atlas?.frames[`${roleId}/face`] ? `${roleId}/face` : `${roleId}/idle_down/0`;
+  return frameIcon(name, px, label);
+}
+
+// Any atlas frame drawn `px` CSS pixels wide with crisp pixels.
+export function frameIcon(frameName, px = 32, label = '') {
+  const f = atlas?.frames[frameName]?.frame;
   if (!f) {
     return el('span.item-icon.placeholder', { 'aria-hidden': 'true', style: `width:${px}px;height:${px}px;font-size:${Math.round(px / 2)}px` },
-      (label || itemId).charAt(0).toUpperCase());
+      (label || frameName).charAt(0).toUpperCase());
   }
   const k = px / f.w;
   return el('span.item-icon.px', {

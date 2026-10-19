@@ -1,9 +1,11 @@
 // World tab: the zone map, and a page per zone with its scene, worker card and harvest nodes.
 import { el, toast } from './dom.js';
 import { getPref, setPref } from './device.js';
-import { itemIcon } from './icons.js';
+import { itemIcon, faceIcon } from './icons.js';
 import { skillProgress } from '../systems/skills.js';
 import { zoneUnlocked, nodeCheck, actionMs, workerTask, toolFor } from '../systems/harvest.js';
+import { getPet, needsStarter, petStatus } from '../systems/pets.js';
+import { petRole, petMaxEnergy, petRestPerHour } from '../systems/petstats.js';
 
 export const id = 'world';
 export const label = 'World';
@@ -16,9 +18,9 @@ let zoneId = null; // null = map
 let scene = null;
 let sceneToken = 0;
 let lastKey = '';
-let bar = null; // { fill, text } for the worker progress bar
+let bars = new Map(); // workerId -> { fill, text, pet, eFill, eText, status } for the worker cards
 let raf = 0;
-let prog = { value: -1, at: 0 };
+let progs = new Map(); // workerId -> { value, at } for smooth progress
 
 export function mount(container, a) {
   app = a;
@@ -83,7 +85,7 @@ function closeZone() {
 function buildPage() {
   destroyScene();
   root.replaceChildren();
-  bar = null;
+  bars = new Map();
   lastKey = '';
   if (zoneId) buildZonePage();
   if (!zoneId) root.append(el('h1', {}, 'World'), el('div.map-list'));
@@ -111,10 +113,29 @@ function updateXpBars() {
   }
 }
 
+// Everyone who can work: the player, then each pet in an active slot.
+function workerList(s) {
+  const list = [{ id: 'player', name: 'You', pet: null }];
+  for (const pid of s.pets.active) {
+    const pet = pid ? getPet(s, pid) : null;
+    if (pet && s.workers[pid]) list.push({ id: pid, name: pet.name, pet });
+  }
+  return list;
+}
+
+// The worker a tapped node is given to (falls back to the player if that pet is gone).
+function selectedWorker(s) {
+  const id = getPref('worldWorker', 'player');
+  return workerList(s).some((w) => w.id === id) ? id : 'player';
+}
+
+const taskKey = (t) => (t ? `${t.zone}/${t.skill}/${t.node}` : '-');
+
 function keyFor() {
   const s = state();
-  const t = s.workers.player.task;
-  const base = `${t ? `${t.zone}/${t.skill}/${t.node}` : '-'}|${s.renown.rank}`;
+  const ws = workerList(s);
+  const who = ws.map((w) => `${w.id}:${w.name}:${w.pet?.form || ''}:${taskKey(s.workers[w.id].task)}:${w.pet ? petStatus(s, w.id) : ''}`).join(',');
+  const base = `${who}|${selectedWorker(s)}|${s.renown.rank}|${needsStarter(s) ? 'starter' : ''}`;
   if (!zoneId) return base;
   // Levels only: XP changes every action and is updated in place (rebuilding the buttons that
   // often could swallow a tap).
@@ -129,8 +150,11 @@ function renderMap() {
   if (!list) return;
   const s = state();
   const d = data();
-  const task = workerTask(s, 'player');
-  list.replaceChildren(...d.zones.zones.map((z) => {
+  const ws = workerList(s);
+  const starter = needsStarter(s)
+    ? el('div.panel.starter-panel', {}, el('p', {}, 'Your first pet is waiting: open the Pets tab to choose an egg.'))
+    : null;
+  list.replaceChildren(...(starter ? [starter] : []), ...d.zones.zones.map((z) => {
     const open = zoneUnlocked(s, d, z.id);
     const nodes = Object.values(z.harvest || {}).reduce((n, a) => n + a.length, 0);
     let note = null;
@@ -139,10 +163,14 @@ function renderMap() {
     } else if (!nodes) {
       note = 'Nothing to do here yet';
     }
-    let working = null;
-    if (open && task && task.zone === z.id) {
-      const node = z.harvest[task.skill]?.find((n) => n.id === task.node);
-      working = `You: ${skillName(task.skill)} - ${node ? node.name : task.node}`;
+    const working = [];
+    if (open) {
+      for (const w of ws) {
+        const task = s.workers[w.id].task;
+        if (!task || task.zone !== z.id) continue;
+        const node = z.harvest[task.skill]?.find((n) => n.id === task.node);
+        working.push(`${w.name}: ${skillName(task.skill)} - ${node ? node.name : task.node}`);
+      }
     }
     return el(`button.zone-card.panel${open ? '' : '.locked'}`, {
       type: 'button',
@@ -151,7 +179,7 @@ function renderMap() {
       el('div.zone-head', {}, el('b', {}, z.name), el('span.tier', {}, `Tier ${z.tier}`)),
       el('p.small.muted', {}, z.blurb),
       note && el('p.small.zone-note', {}, note),
-      working && el('p.small.zone-working', {}, working));
+      ...working.map((line) => el('p.small.zone-working', {}, line)));
   }));
 }
 
@@ -193,26 +221,52 @@ function renderZone() {
   const s = state();
   const d = data();
   const z = d.zones.zones.find((x) => x.id === zoneId);
-  const task = workerTask(s, 'player');
+  const ws = workerList(s);
+  const sel = selectedWorker(s);
+  const selTask = workerTask(s, sel);
 
-  let card;
-  if (task) {
-    const node = d.zones.zones.find((x) => x.id === task.zone)?.harvest[task.skill]?.find((n) => n.id === task.node);
-    const fill = el('div.fill');
-    const text = el('span.small.muted');
-    bar = { fill, text };
-    card = el('div.panel', {},
-      el('h2', {}, 'You'),
-      el('p', {}, `${skillName(task.skill)}: ${node ? node.name : task.node}`),
-      el('div.bar.big', {}, fill),
-      text,
-      el('div.row', { style: 'margin-top:8px' },
-        el('button.btn', { type: 'button', onclick: () => send('harvest/stop', { worker: 'player' }) }, 'Stop')));
-  } else {
-    bar = null;
-    card = el('div.panel', {}, el('h2', {}, 'You'), el('p', {}, "You're resting. Pick something to do below."));
-  }
+  const chooser = el('div.panel', {},
+    el('h2', {}, 'Who works?'),
+    el('div.worker-chips', {}, ws.map((w) =>
+      el('button.chip', {
+        type: 'button',
+        'aria-pressed': w.id === sel ? 'true' : 'false',
+        onclick: () => {
+          setPref('worldWorker', w.id);
+          refresh();
+        },
+      }, w.pet ? faceIcon(petRole(w.pet), 24, w.name) : null, el('span', {}, w.name)))));
 
+  bars = new Map();
+  const cards = ws.map((w) => {
+    const task = workerTask(s, w.id);
+    const rec = { pet: w.pet };
+    const parts = [el('h2', {}, w.pet ? faceIcon(petRole(w.pet), 32, w.name) : null, el('span', {}, w.name),
+      w.id === sel ? el('span.small.muted', {}, ' (picking jobs)') : null)];
+    if (task) {
+      const tz = d.zones.zones.find((x) => x.id === task.zone);
+      const node = tz?.harvest[task.skill]?.find((n) => n.id === task.node);
+      const where = task.zone !== z.id && tz ? ` in ${tz.name}` : '';
+      rec.fill = el('div.fill');
+      rec.text = el('span.small.muted');
+      parts.push(el('p', {}, `${skillName(task.skill)}: ${node ? node.name : task.node}${where}`),
+        el('div.bar.big', {}, rec.fill), rec.text);
+    } else {
+      parts.push(el('p', {}, w.pet ? 'Not working yet.' : "You're resting. Pick something to do below."));
+    }
+    if (w.pet) {
+      rec.eFill = el('div.fill.energy');
+      rec.eText = el('span.small.muted');
+      rec.status = el('p.small');
+      parts.push(el('div.bar', {}, rec.eFill), rec.eText, rec.status);
+    }
+    if (task) {
+      parts.push(el('div.row', { style: 'margin-top:8px' },
+        el('button.btn', { type: 'button', onclick: () => send('harvest/stop', { worker: w.id }) }, 'Stop')));
+    }
+    bars.set(w.id, rec);
+    return el(`div.panel.worker-card${w.id === sel ? '.selected' : ''}`, {}, ...parts);
+  });
   const sections = [];
   xpBars = new Map();
   for (const sk of d.skills.skills) {
@@ -230,19 +284,23 @@ function renderZone() {
       xpText,
       ...nodes.map((n) => {
         const chk = nodeCheck(s, d, z.id, sk.id, n.id);
-        const active = !!task && task.zone === z.id && task.skill === sk.id && task.node === n.id;
+        const on = (t) => !!t && t.zone === z.id && t.skill === sk.id && t.node === n.id;
+        const active = on(selTask);
+        const here = ws.filter((w) => on(workerTask(s, w.id)));
         return el(`button.node-btn${active ? '.active' : ''}${chk.ok ? '' : '.blocked'}`, {
           type: 'button',
           'aria-pressed': active ? 'true' : 'false',
-          onclick: () => (chk.ok ? send('harvest/assign', { worker: 'player', zone: z.id, skill: sk.id, node: n.id }) : toast(chk.reason)),
+          onclick: () => (chk.ok ? send('harvest/assign', { worker: sel, zone: z.id, skill: sk.id, node: n.id }) : toast(chk.reason)),
         },
           el('span.node-name', {}, n.name),
+          here.length ? el('span.node-workers', {}, here.map((w) =>
+            (w.pet ? faceIcon(petRole(w.pet), 20, w.name) : el('span.you-tag', {}, 'You')))) : null,
           el('span.node-drops', {}, [...new Set(n.drops.map((x) => x.item))].map((i) => itemIcon(i, 24, d.items.items[i]?.name))),
           el('span.node-lv', {}, `Lv ${n.level || 1}`));
       })));
   }
   if (!sections.length) sections.push(el('div.panel', {}, el('p', {}, 'Nothing to do here yet.')));
-  body.replaceChildren(card, ...sections);
+  body.replaceChildren(chooser, ...cards, ...sections);
   updateXpBars();
   tickBar();
 }
@@ -260,15 +318,41 @@ function startLoop() {
 }
 
 function tickBar() {
-  if (!bar || !zoneId) return;
+  if (!bars.size || !zoneId) return;
   const s = state();
-  const task = workerTask(s, 'player');
-  if (!task) return;
-  const dur = actionMs(s, data(), 'player', task);
-  const w = s.workers.player;
+  const d = data();
   const now = performance.now();
-  if (w.progressMs !== prog.value) prog = { value: w.progressMs, at: now };
-  const shown = Math.min(dur, w.progressMs + (now - prog.at));
-  bar.fill.style.width = `${(shown / dur) * 100}%`;
-  bar.text.textContent = `${(dur / 1000).toFixed(1)} s per action`;
+  for (const [wid, rec] of bars) {
+    const w = s.workers[wid];
+    const task = w?.task;
+    if (rec.fill && task) {
+      const dur = actionMs(s, d, wid, task);
+      let p = progs.get(wid);
+      if (!p || w.progressMs !== p.value) {
+        p = { value: w.progressMs, at: now };
+        progs.set(wid, p);
+      }
+      // A resting pet is not making progress, so only a working one is smoothed forward.
+      const moving = !rec.pet || petStatus(s, wid) === 'working';
+      const shown = Math.min(dur, w.progressMs + (moving ? now - p.at : 0));
+      rec.fill.style.width = `${(shown / dur) * 100}%`;
+      rec.text.textContent = `${(dur / 1000).toFixed(1)} s per action`;
+    }
+    if (rec.pet) {
+      const pet = getPet(s, wid);
+      if (!pet) continue;
+      const max = petMaxEnergy(d, pet);
+      rec.eFill.style.width = `${Math.min(100, (pet.energy / max) * 100)}%`;
+      rec.eText.textContent = `Energy ${Math.floor(pet.energy)} / ${Math.round(max)}`;
+      const st = petStatus(s, wid);
+      if (st === 'working') {
+        rec.status.textContent = 'Working';
+      } else if (st === 'resting') {
+        const mins = Math.max(1, Math.ceil(((max - pet.energy) / petRestPerHour(s, d, pet)) * 60));
+        rec.status.textContent = `Resting - back to work in about ${mins} min`;
+      } else {
+        rec.status.textContent = 'Idle - pick a job below';
+      }
+    }
+  }
 }

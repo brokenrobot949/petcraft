@@ -23,3 +23,12 @@ export function randomInt(state, min, max) {
 export function chance(state, p) {
   return random(state) < p;
 }
+
+// A separate, reproducible seed for one stream (each worker rolls from its own stream, so the
+// order workers are advanced in never changes anyone's results).
+export function deriveSeed(seed, salt) {
+  let t = (seed ^ Math.imul(salt + 1, 0x9e3779b1)) >>> 0;
+  t = Math.imul(t ^ (t >>> 16), 0x85ebca6b);
+  t = Math.imul(t ^ (t >>> 13), 0xc2b2ae35);
+  return (t ^ (t >>> 16)) >>> 0;
+}

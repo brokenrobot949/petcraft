@@ -1,0 +1,97 @@
+{
+  "archetypes": [
+    {
+      "id": "sprout",
+      "name": "Sprout",
+      "species": "Sporelet",
+      "affinity": ["foraging", "chopping"],
+      "favoriteFood": "fruit and berry dishes",
+      "blurb": "Loves gathering berries and tidying up fallen branches.",
+      "egg": { "name": "Mossy Egg", "desc": "Soft and speckled green, it feels warm, as if something inside is dreaming of sun.", "colors": ["#8bc34a", "#4e7d2a", "#f4e9a8"] },
+      "branches": [
+        { "id": "bloom", "name": "Bloom", "calling": "foraging" },
+        { "id": "timber", "name": "Timber", "calling": "chopping" }
+      ]
+    },
+    {
+      "id": "stone",
+      "name": "Stone",
+      "species": "Pebblemole",
+      "affinity": ["mining"],
+      "favoriteFood": "roasted nut and root dishes",
+      "blurb": "Loves digging gently through the soil for shiny stones.",
+      "egg": { "name": "Pebbly Egg", "desc": "Heavy and grey with flecks of quartz, it hums softly like a sleepy cave.", "colors": ["#a3a3a3", "#5f5f6b", "#e0d6c2"] },
+      "branches": [
+        { "id": "gem", "name": "Gem", "calling": "mining" },
+        { "id": "boulder", "name": "Boulder", "calling": "chopping" }
+      ]
+    },
+    {
+      "id": "tide",
+      "name": "Tide",
+      "species": "Bloblet",
+      "affinity": ["fishing"],
+      "favoriteFood": "fish dishes",
+      "blurb": "Loves paddling by the water and fishing for little fish.",
+      "egg": { "name": "Ripple Egg", "desc": "Cool and smooth as river glass, it gurgles gently when you hold it close.", "colors": ["#5ab4e0", "#2d6f9a", "#e8f6ff"] },
+      "branches": [
+        { "id": "deep", "name": "Deep", "calling": "fishing" },
+        { "id": "current", "name": "Current", "calling": "foraging" }
+      ]
+    },
+    {
+      "id": "wild",
+      "name": "Wild",
+      "species": "Whiskit",
+      "affinity": ["hunting"],
+      "favoriteFood": "meat dishes",
+      "blurb": "Loves quietly tracking small game through the tall grass.",
+      "egg": { "name": "Tawny Egg", "desc": "Warm tawny shell with soft freckles, and a faint rustle comes from within.", "colors": ["#d9894a", "#8a4b26", "#f7e1c4"] },
+      "branches": [
+        { "id": "fang", "name": "Fang", "calling": "hunting" },
+        { "id": "scout", "name": "Scout", "calling": "foraging" }
+      ]
+    }
+  ],
+  "forms": [
+    { "id": "hatchling", "stage": 1, "name": "Hatchling" },
+    { "id": "juvenile", "stage": 2, "name": "Juvenile" },
+    { "id": "adult", "stage": 3, "name": "Adult" }
+  ],
+  "qualities": [
+    { "id": "common", "name": "Common", "stars": 1 },
+    { "id": "uncommon", "name": "Uncommon", "stars": 2 },
+    { "id": "rare", "name": "Rare", "stars": 3 },
+    { "id": "epic", "name": "Epic", "stars": 4 },
+    { "id": "legendary", "name": "Legendary", "stars": 5 }
+  ],
+  "suggestedNames": [
+    "Pip", "Bramble", "Mochi", "Biscuit", "Clover", "Noodle",
+    "Pebble", "Tofu", "Fern", "Dumpling", "Muffin", "Nibbles",
+    "Sprig", "Juniper", "Willow", "Pickle", "Bean", "Acorn",
+    "Marzipan", "Honey", "Pudding", "Dewdrop", "Hazel", "Moss"
+  ],
+  "lines": {
+    "hatch": "The shell cracks and a sleepy little face peeks out!",
+    "patted": [
+      "{name} wiggles happily.",
+      "{name} leans in for more pats.",
+      "{name} gives a contented little hum.",
+      "{name} blinks slowly and smiles.",
+      "{name} bounces with joy.",
+      "{name} nuzzles your hand."
+    ],
+    "resting": [
+      "{name} is curled up, napping.",
+      "{name} snores a tiny snore.",
+      "{name} dreams of a sunny meadow.",
+      "{name} rests quietly by the hearth."
+    ],
+    "ate": [
+      "{name} munches the {food}.",
+      "{name} savors every bite of the {food}.",
+      "{name} looks delighted by the {food}.",
+      "{name} licks the last crumbs of the {food}."
+    ]
+  }
+}

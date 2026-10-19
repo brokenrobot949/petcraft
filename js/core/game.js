@@ -5,6 +5,7 @@
 import { SYSTEMS } from '../systems/index.js';
 import { advance, catchUp } from './tick.js';
 import { createReport } from './report.js';
+import { localDay } from './time.js';
 
 const COMMANDS = {};
 for (const sys of SYSTEMS) {
@@ -20,8 +21,10 @@ export function initState(state, ctx) {
   return state;
 }
 
-export function createGame(data, initialState) {
-  const ctx = { data, emit: null };
+// options.clock: () => ms timestamp (the balance simulator passes its own). Commands read the time
+// from ctx.now and the local calendar day from ctx.day; advance() never needs the clock.
+export function createGame(data, initialState, { clock = () => Date.now() } = {}) {
+  const ctx = { data, emit: null, now: 0, day: 0 };
   let state = initState(initialState, ctx);
   const listeners = new Set();
   const eventListeners = new Set();
@@ -54,6 +57,8 @@ export function createGame(data, initialState) {
     dispatch(type, payload = {}) {
       const handler = COMMANDS[type];
       if (!handler) throw new Error(`unknown command ${type}`);
+      ctx.now = clock();
+      ctx.day = localDay(ctx.now);
       withLiveEvents(() => handler(state, payload, ctx));
     },
     advance(ms) {

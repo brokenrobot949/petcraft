@@ -9,6 +9,7 @@ import { initPwa } from './ui/pwa.js';
 import { loadIcons } from './ui/icons.js';
 import { showAwaySummary } from './ui/away.js';
 import { el, toast } from './ui/dom.js';
+import { needsStarter } from './systems/pets.js';
 
 async function boot() {
   const data = await loadData();
@@ -96,11 +97,14 @@ async function boot() {
     resetGame() {
       saveNow();
       game.replaceState(createInitialState(Date.now()));
+      shell.select('pets');
       return saveNow();
     },
     pwa: initPwa({ beforeReload: saveNow }),
   };
-  mountShell(app);
+  const shell = mountShell(app);
+  // A new player starts at the four eggs.
+  if (needsStarter(game.getState())) shell.select('pets');
 
   if (loaded.source === 'backup') toast('Your last save was damaged, so your backup was loaded.', 5000);
   if (loaded.error) toast(`Started a new game: ${loaded.error}.`, 5000);

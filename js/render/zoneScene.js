@@ -1,14 +1,17 @@
 // Zone scene (PixiJS): the strip of countryside at the top of a zone page. Draws the zone's harvest
-// spots (tree, rock, bush, burrow, pond) and decor from data/zones.json "scene", puts the player at
-// the spot for the current task and animates the work (wind-up and strike synced to the action
-// progress), and floats "+N <item>" pops when the simulation reports a harvest.
-// Read-only: it never changes game state. Every number comes from data.balance.render.zone and
-// the zone's scene data. Render-only randomness uses Math.random (like homeScene).
+// spots (tree, rock, bush, burrow, pond) and decor from data/zones.json "scene", puts the player and
+// the active pets at the spot for their current task and animates the work (the player's wind-up
+// and strike synced to the action progress, a pet's squash-and-stretch hop on each finished action),
+// and floats "+N <item>" pops when the simulation reports a harvest. Resting pets nap with floating "z"s.
+// Read-only: it never changes game state. Every number comes from data.balance.render.zone
+// (pets: render.zone.pets) and the zone's scene data. Render-only randomness uses Math.random.
 // createZoneScene(host, game, zoneId) -> { start(), stop(), destroy() }. It is created and destroyed
 // each time the zone page opens and closes, so destroy() must release everything.
 import { Application, Container, Graphics, Sprite, Text, TextureSource } from '../../lib/pixi.mjs';
 import { loadSprites, createActor } from './sprites.js';
 import { actionMs, workerTask } from '../systems/harvest.js';
+import { petStatus } from '../systems/pets.js';
+import { petRole } from '../systems/petstats.js';
 
 TextureSource.defaultOptions.scaleMode = 'nearest';
 
@@ -17,10 +20,12 @@ const lerp = (a, b, t) => a + (b - a) * t;
 const clamp01 = (t) => Math.min(1, Math.max(0, t));
 const easeInOut = (t) => t * t * (3 - 2 * t);
 const easeIn = (t) => t * t * t;
+const easeOutRise = (t) => 1 - (1 - t) * (1 - t);
 
 export async function createZoneScene(host, game, zoneId) {
   const data = game.data;
   const cfg = data.balance.render.zone;
+  const pcfg = cfg.pets;
   const zone = data.zones.zones.find((z) => z.id === zoneId);
   const scene = zone?.scene || { spots: {}, decor: [], idle: [0.5, 0.9] };
   const colorOf = (v) => Number(v); // balance.json stores colors as "0xrrggbb" strings
@@ -65,27 +70,73 @@ export async function createZoneScene(host, game, zoneId) {
   for (const spot of Object.values(scene.spots || {})) addProp(spot.prop, spot.x, spot.y);
   for (const d of scene.decor || []) addProp(d.prop, d.x, d.y);
 
-  // ---- the player ----
-  const player = createActor(bank, 'player', { anim: 'idle', dir: 'down' });
-  world.addChild(player.view);
-  const heldSprite = new Sprite();
-  heldSprite.visible = false;
-  // Behind the character's body, so the tool reads as held rather than pasted on top.
-  player.view.addChildAt(heldSprite, 0);
-  let heldRole = null;
-
-  const me = {
-    x: 0, y: 0,
-    mode: 'idle',       // 'idle' | 'walk' | 'work' | 'away'
-    dir: 'down',
-    target: null,       // { x, y, face } in screen px while walking
-    spot: null,         // spot data while working
-    bounceMs: cfg.bounceMs, // time since the last completed action
-    placed: false,
-  };
-
   function sizeNow() { return { w: app.screen.width, h: app.screen.height }; }
   const px = (fx, fy) => { const { w, h } = sizeNow(); return [Math.round(fx * w), Math.round(fy * h)]; };
+
+  // ---- workers: the player and each active pet ----
+  // w = { id, role, isPlayer, actor, index, x, y, mode: 'idle'|'walk'|'work'|'away', dir,
+  //       target: { x, y, face, wander } while walking, spot, bounceMs (time since the last finished
+  //       action), placed, standIdx, wanderMs, zMs, frozen, heldSprite/heldRole (player only) }
+  const workers = new Map();
+
+  function addWorker(id, role, index) {
+    const actor = createActor(bank, role, { anim: 'idle', dir: 'down' });
+    actor.view.scale.set(scale);
+    world.addChild(actor.view);
+    const w = {
+      id, role, isPlayer: id === 'player', actor, index,
+      x: 0, y: 0, mode: 'idle', dir: 'down', target: null, spot: null,
+      bounceMs: Infinity, placed: false, standIdx: -1,
+      wanderMs: lerp(pcfg.wanderMinPauseMs, pcfg.wanderMaxPauseMs, Math.random()),
+      zMs: 0, frozen: false, heldSprite: null, heldRole: null,
+    };
+    if (w.isPlayer) {
+      w.heldSprite = new Sprite();
+      w.heldSprite.visible = false;
+      // Behind the character's body, so the tool reads as held rather than pasted on top.
+      actor.view.addChildAt(w.heldSprite, 0);
+    }
+    const home = homeOf(w);
+    w.x = home.x; w.y = home.y;
+    w.placed = true;
+    workers.set(id, w);
+    placeView(w);
+    return w;
+  }
+
+  // Keep the set of workers equal to the player plus the pets in the active slots.
+  function syncWorkers(state) {
+    const want = ['player'];
+    for (const id of state.pets.active) if (id && state.pets.list[id]) want.push(id);
+    for (const [id, w] of [...workers]) {
+      if (!want.includes(id)) { w.actor.destroy(); workers.delete(id); }
+    }
+    want.forEach((id, i) => {
+      let w = workers.get(id);
+      const role = id === 'player' ? 'player' : petRole(state.pets.list[id]);
+      if (w && w.role !== role) { w.actor.destroy(); workers.delete(id); w = null; }
+      if (!w) w = addWorker(id, role, i);
+      w.index = i;
+    });
+  }
+
+  function offsetOf(list, w) {
+    const o = list[w.index] || list[list.length - 1] || [0, 0];
+    return [o[0] * scale, o[1] * scale];
+  }
+  function standOf(spot, w) {
+    const [x, y] = px(spot.stand[0], spot.stand[1]);
+    const [ox, oy] = offsetOf(pcfg.standOffsets, w);
+    return { x: x + ox, y: y + oy, face: spot.face };
+  }
+  function homeOf(w) {
+    const [x, y] = px(...scene.idle);
+    const [ox, oy] = offsetOf(pcfg.idleOffsets, w);
+    return { x: x + ox, y: y + oy, face: 'down' };
+  }
+  function spotFor(task) {
+    return task && task.zone === zoneId ? scene.spots?.[task.skill] || null : null;
+  }
 
   function drawGround() {
     const { w, h } = sizeNow();
@@ -112,77 +163,73 @@ export async function createZoneScene(host, game, zoneId) {
       p.sprite.position.set(x, y);
       p.sprite.zIndex = y;
     }
-    player.view.scale.set(scale);
-    // Re-aim the player at its (rescaled) place.
-    if (me.mode === 'walk' && me.target) {
-      const s = spotFor(workerTask(game.getState(), 'player'));
-      if (s) me.target = standOf(s);
-    } else if (me.mode === 'work' && me.spot) {
-      const t = standOf(me.spot);
-      me.x = t.x; me.y = t.y;
-    } else if (me.mode === 'idle' || !me.placed) {
-      const [x, y] = px(...scene.idle);
-      me.x = x; me.y = y;
+    const state = game.getState();
+    for (const m of workers.values()) {
+      m.actor.view.scale.set(scale);
+      // Re-aim at the (rescaled) place.
+      if (m.mode === 'walk' && m.target) {
+        const s = spotFor(workerTask(state, m.id));
+        m.target = s ? standOf(s, m) : { ...homeOf(m), wander: false };
+      } else if (m.mode === 'work' && m.spot) {
+        const t = standOf(m.spot, m);
+        m.x = t.x; m.y = t.y;
+      } else if (m.mode === 'idle' || !m.placed) {
+        const t = homeOf(m);
+        m.x = t.x; m.y = t.y;
+      }
+      m.placed = true;
+      placeView(m);
     }
-    me.placed = true;
-    placeView();
   }
 
-  function standOf(spot) {
-    const [x, y] = px(spot.stand[0], spot.stand[1]);
-    return { x, y, face: spot.face };
-  }
-  function spotFor(task) {
-    return task && task.zone === zoneId ? scene.spots?.[task.skill] || null : null;
-  }
-
-  function placeView() {
-    player.view.position.set(Math.round(me.x), Math.round(me.y));
-    player.view.zIndex = playerZ();
+  function placeView(m) {
+    m.actor.view.position.set(Math.round(m.x), Math.round(m.y));
+    m.actor.view.zIndex = workerZ(m);
   }
   // While working, draw in front of the spot's prop so the held tool (a rod over the pond)
   // is never hidden behind it.
-  function playerZ() {
-    const front = me.mode === 'work' && me.spot ? px(me.spot.x, me.spot.y)[1] + 1 : 0;
-    return Math.max(Math.round(me.y), front);
+  function workerZ(m) {
+    const front = m.mode === 'work' && m.spot ? px(m.spot.x, m.spot.y)[1] + 1 : 0;
+    return Math.max(Math.round(m.y), front);
   }
 
-  // ---- held tool ----
-  function setHeld(kind) {
+  // ---- held tool (player only) ----
+  function setHeld(m, kind) {
     const role = kind ? `held.${kind}` : null;
-    if (role === heldRole) return;
-    heldRole = role;
+    if (role === m.heldRole) return;
+    m.heldRole = role;
     const tex = role && bank.texture(role);
-    if (!tex) { heldSprite.visible = false; heldRole = null; return; }
-    heldSprite.texture = tex;
+    if (!tex) { m.heldSprite.visible = false; m.heldRole = null; return; }
+    m.heldSprite.texture = tex;
     const [ax, ay] = bank.anchor(role);
-    heldSprite.anchor.set(ax, ay);
+    m.heldSprite.anchor.set(ax, ay);
   }
 
   // ---- state -> behaviour ----
-  function chooseMode(state) {
-    const task = workerTask(state, 'player');
+  function chooseMode(m, state) {
+    const task = workerTask(state, m.id);
     if (task && task.zone !== zoneId) {
-      me.mode = 'away'; me.spot = null; me.target = null;
+      m.mode = 'away'; m.spot = null; m.target = null; m.standIdx = -1;
       return task;
     }
     const spot = spotFor(task);
     if (!spot) {
-      if (me.mode === 'work' || me.mode === 'away' || me.spot) {
+      if (m.mode === 'work' || m.mode === 'away' || m.spot) {
         // Stopped working: walk back to the middle.
-        const [x, y] = px(...scene.idle);
-        me.spot = null;
-        me.target = { x, y, face: 'down' };
-        me.mode = me.mode === 'away' ? 'idle' : 'walk';
-        if (me.mode === 'idle') { me.x = x; me.y = y; me.target = null; }
+        const home = homeOf(m);
+        m.spot = null; m.standIdx = -1;
+        m.target = { ...home, wander: false };
+        m.mode = m.mode === 'away' ? 'idle' : 'walk';
+        if (m.mode === 'idle') { m.x = home.x; m.y = home.y; m.target = null; }
       }
       return task;
     }
-    if (me.spot !== spot) {
-      me.spot = spot;
-      const t = standOf(spot);
-      if (!me.placed || me.mode === 'away') { me.x = t.x; me.y = t.y; me.mode = 'work'; me.target = null; }
-      else { me.target = t; me.mode = 'walk'; }
+    if (m.spot !== spot || m.standIdx !== m.index) {
+      m.spot = spot;
+      m.standIdx = m.index;
+      const t = standOf(spot, m);
+      if (!m.placed || m.mode === 'away') { m.x = t.x; m.y = t.y; m.mode = 'work'; m.target = null; }
+      else { m.target = t; m.mode = 'walk'; }
     }
     return task;
   }
@@ -191,86 +238,181 @@ export async function createZoneScene(host, game, zoneId) {
     return Math.abs(dx) >= Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
   }
 
-  function stepWalk(ms) {
-    const dx = me.target.x - me.x;
-    const dy = me.target.y - me.y;
+  function stepWalk(m, ms) {
+    const dx = m.target.x - m.x;
+    const dy = m.target.y - m.y;
     const dist = Math.hypot(dx, dy);
-    const step = cfg.walkSpeedPxPerSec * scale * ms / 1000;
+    const speed = m.target.wander ? pcfg.wanderSpeedPxPerSec : cfg.walkSpeedPxPerSec;
+    const step = speed * scale * ms / 1000;
     if (dist <= step) {
-      me.x = me.target.x; me.y = me.target.y;
-      me.dir = me.target.face || me.dir;
-      me.mode = me.spot ? 'work' : 'idle';
-      me.target = null;
+      m.x = m.target.x; m.y = m.target.y;
+      m.dir = m.target.face || m.dir;
+      m.mode = m.spot ? 'work' : 'idle';
+      m.target = null;
+      m.wanderMs = lerp(pcfg.wanderMinPauseMs, pcfg.wanderMaxPauseMs, Math.random());
       return;
     }
-    me.x += (dx / dist) * step;
-    me.y += (dy / dist) * step;
-    me.dir = dirToward(dx, dy);
+    m.x += (dx / dist) * step;
+    m.y += (dy / dist) * step;
+    m.dir = dirToward(dx, dy);
+  }
+
+  // An idle pet takes a short walk to a random spot near its home point now and then.
+  function maybeWander(m, ms) {
+    m.wanderMs -= ms;
+    if (m.wanderMs > 0) return;
+    const home = homeOf(m);
+    const r = pcfg.wanderRadiusPx * scale;
+    const { w, h } = sizeNow();
+    const ang = Math.random() * Math.PI * 2;
+    const dist = Math.sqrt(Math.random()) * r;
+    m.target = {
+      x: Math.min(w, Math.max(0, Math.round(home.x + Math.cos(ang) * dist))),
+      y: Math.min(h, Math.max(0, Math.round(home.y + Math.sin(ang) * dist))),
+      face: null,
+      wander: true,
+    };
+    m.mode = 'walk';
   }
 
   // Tool angle (radians) for progress p (0..1) of the current action.
-  function toolAngle(pose, p) {
+  function toolAngle(m, pose, p) {
     let a;
     if (p < cfg.windupFrac) a = lerp(pose.rest, pose.windup, easeInOut(p / cfg.windupFrac)); // slow wind-up
     else a = lerp(pose.windup, pose.strike, easeIn(clamp01((p - cfg.windupFrac) / (1 - cfg.windupFrac)))); // snap
-    if (me.bounceMs < cfg.blendMs) a = lerp(pose.strike, a, easeInOut(me.bounceMs / cfg.blendMs)); // ease back after a hit
+    if (m.bounceMs < cfg.blendMs) a = lerp(pose.strike, a, easeInOut(m.bounceMs / cfg.blendMs)); // ease back after a hit
     return a * DEG;
   }
 
-  function render(state, task, ms, ticker) {
-    me.bounceMs += ms;
-    const view = player.view;
-    view.visible = me.mode !== 'away';
-    if (!view.visible) return;
-
-    if (me.mode === 'walk') stepWalk(ms);
-
+  function renderPlayer(m, state, task, ticker) {
+    const actor = m.actor;
     let bob = 0;
     let sx = scale;
     let sy = scale;
-    if (me.mode === 'walk') {
-      heldSprite.visible = false;
-      player.play('walk', me.dir);
-      player.update(ticker);
-    } else if (me.mode === 'work' && task && me.spot) {
+    if (m.mode === 'walk') {
+      m.heldSprite.visible = false;
+      actor.play('walk', m.dir);
+      actor.update(ticker);
+    } else if (m.mode === 'work' && task && m.spot) {
       const kind = data.skills.skills.find((s) => s.id === task.skill)?.tool;
-      setHeld(kind);
-      const w = state.workers.player;
+      setHeld(m, kind);
+      const wk = state.workers.player;
       const dur = actionMs(state, data, 'player', task);
-      const p = clamp01(w.progressMs / dur);
+      const p = clamp01(wk.progressMs / dur);
       const hasSwing = bank.animNames('player').includes('swing');
-      me.dir = me.spot.face || me.dir;
+      m.dir = m.spot.face || m.dir;
       if (hasSwing) {
-        player.play('swing', me.dir);
-        player.sprite.gotoAndStop(p < cfg.windupFrac ? 0 : Math.min(1, player.sprite.totalFrames - 1));
+        actor.play('swing', m.dir);
+        actor.sprite.gotoAndStop(p < cfg.windupFrac ? 0 : Math.min(1, actor.sprite.totalFrames - 1));
       } else {
-        player.play('idle', me.dir);
+        actor.play('idle', m.dir);
       }
       const pose = cfg.held[kind];
-      if (heldRole && pose) {
-        const sign = me.dir === 'left' ? -1 : 1;
-        const hand = cfg.hand[me.dir];
-        heldSprite.visible = true;
-        heldSprite.position.set(hand[0], hand[1]);
-        heldSprite.scale.x = sign;
-        heldSprite.rotation = sign * toolAngle(pose, p);
+      if (m.heldRole && pose) {
+        const sign = m.dir === 'left' ? -1 : 1;
+        const hand = cfg.hand[m.dir];
+        m.heldSprite.visible = true;
+        m.heldSprite.position.set(hand[0], hand[1]);
+        m.heldSprite.scale.x = sign;
+        m.heldSprite.rotation = sign * toolAngle(m, pose, p);
       } else {
-        heldSprite.visible = false;
+        m.heldSprite.visible = false;
       }
-      if (me.bounceMs < cfg.bounceMs) {
-        const k = Math.sin(Math.PI * me.bounceMs / cfg.bounceMs);
+      if (m.bounceMs < cfg.bounceMs) {
+        const k = Math.sin(Math.PI * m.bounceMs / cfg.bounceMs);
         bob = -cfg.bouncePx * scale * k;
         sy = scale * (1 - cfg.squash * k);
         sx = scale * (1 + cfg.squash * k * 0.5);
       }
     } else {
-      heldSprite.visible = false;
-      player.play('idle', me.dir);
-      player.update(ticker);
+      m.heldSprite.visible = false;
+      actor.play('idle', m.dir);
+      actor.update(ticker);
     }
+    return { bob, sx, sy };
+  }
+
+  function renderPet(m, state, ms, ticker) {
+    const actor = m.actor;
+    const resting = petStatus(state, m.id) === 'resting';
+    let bob = 0;
+    let sx = scale;
+    let sy = scale;
+    if (m.frozen && !(resting && m.mode !== 'walk')) { actor.sprite.play(); m.frozen = false; }
+    if (m.mode === 'walk') {
+      actor.play('walk', m.dir);
+      actor.update(ticker);
+    } else if (resting) {
+      if (m.spot) m.dir = m.spot.face || m.dir;
+      actor.play('idle', m.dir);
+      actor.sprite.gotoAndStop(pcfg.restFrame);
+      m.frozen = true;
+      m.zMs += ms;
+      if (m.zMs >= pcfg.zIntervalMs) { m.zMs = 0; addZ(m); }
+    } else {
+      if (m.mode === 'work' && m.spot) m.dir = m.spot.face || m.dir;
+      else if (m.mode === 'idle') maybeWander(m, ms);
+      actor.play('idle', m.dir);
+      actor.update(ticker);
+    }
+    if (!resting) m.zMs = 0;
+    if (m.bounceMs < pcfg.hopMs) {
+      const t = m.bounceMs / pcfg.hopMs;
+      const air = Math.sin(Math.PI * t);
+      const land = Math.sin(Math.PI * clamp01((t - pcfg.landFrac) / (1 - pcfg.landFrac)));
+      const f = pcfg.stretch * air - pcfg.squash * land; // tall in the air, squashed on landing
+      bob = -pcfg.hopPx * scale * air;
+      sy = scale * (1 + f);
+      sx = scale * (1 - f * 0.5);
+    }
+    return { bob, sx, sy };
+  }
+
+  function renderWorker(m, state, task, ms, ticker) {
+    m.bounceMs += ms;
+    const view = m.actor.view;
+    view.visible = m.mode !== 'away';
+    if (!view.visible) return;
+    if (m.mode === 'walk') stepWalk(m, ms);
+    const { bob, sx, sy } = m.isPlayer ? renderPlayer(m, state, task, ticker) : renderPet(m, state, ms, ticker);
     view.scale.set(sx, sy);
-    view.position.set(Math.round(me.x), Math.round(me.y + bob));
-    view.zIndex = playerZ();
+    view.position.set(Math.round(m.x), Math.round(m.y + bob));
+    view.zIndex = workerZ(m);
+  }
+
+  // ---- floating z's for resting pets ----
+  const zs = []; // { t, age, x0, y0, phase }
+  function addZ(m) {
+    if (zs.length >= pcfg.maxZ) removeZ(zs.shift());
+    const t = new Text({
+      text: 'z',
+      style: {
+        fontFamily: 'NormalFont',
+        fontSize: pcfg.zFontSize,
+        fill: colorOf(pcfg.zColor),
+        stroke: { color: 0x2a2433, width: 3, join: 'round' },
+      },
+    });
+    t.anchor.set(0.5);
+    fx.addChild(t);
+    zs.push({
+      t, age: 0, phase: Math.random() * Math.PI * 2,
+      x0: m.x + pcfg.zOffsetXPx * scale,
+      y0: m.y - pcfg.zOffsetYPx * scale,
+    });
+  }
+  function removeZ(z) { z.t.destroy(); }
+  function updateZs(ms) {
+    for (let i = zs.length - 1; i >= 0; i--) {
+      const z = zs[i];
+      z.age += ms;
+      const k = z.age / pcfg.zRiseMs;
+      if (k >= 1) { removeZ(z); zs.splice(i, 1); continue; }
+      z.t.position.set(
+        Math.round(z.x0 + Math.sin(z.phase + k * Math.PI * 2) * pcfg.zSwayPx * scale),
+        Math.round(z.y0 - easeOutRise(k) * pcfg.zRisePx * scale));
+      z.t.alpha = 1 - k;
+    }
   }
 
   // ---- harvest pops ----
@@ -282,7 +424,7 @@ export async function createZoneScene(host, game, zoneId) {
     const ang = (i / n) * Math.PI * 2 + Math.random();
     return { g, vx: Math.cos(ang), vy: Math.sin(ang) - 0.4, phase: Math.random() };
   }
-  function addPop(itemId, qty, rare, index, count) {
+  function addPop(m, itemId, qty, rare, index, count) {
     const c = new Container();
     const tex = bank.texture(`item.${itemId}`);
     const iconScale = scale >= cfg.pixelScaleWide ? cfg.popIconScaleWide : cfg.popIconScale;
@@ -308,8 +450,8 @@ export async function createZoneScene(host, game, zoneId) {
     c.addChild(label);
     c.pivot.set(Math.round((iconW + label.width) / 2), 0); // centred on the pop's x
     const spacing = cfg.popSpacingPx * (iconScale);
-    const x0 = me.x + (index - (count - 1) / 2) * spacing + (Math.random() * 2 - 1) * cfg.popJitterPx;
-    const y0 = me.y - 16 * scale - 6;
+    const x0 = m.x + (index - (count - 1) / 2) * spacing + (Math.random() * 2 - 1) * cfg.popJitterPx;
+    const y0 = m.y - 16 * scale - 6;
     const pop = { c, age: 0, x0, y0, sparkles: [] };
     if (rare) {
       for (let i = 0; i < cfg.rareSparkles; i++) {
@@ -341,26 +483,32 @@ export async function createZoneScene(host, game, zoneId) {
       }
     }
   }
-  const easeOutRise = (t) => 1 - (1 - t) * (1 - t);
 
   const unsubscribe = game.onEvents((events) => {
     if (!running || destroyed) return;
     for (const e of events) {
-      if (e.type !== 'harvest' || e.worker !== 'player' || e.zone !== zoneId) continue;
-      me.bounceMs = 0;
+      if (e.type !== 'harvest' || e.zone !== zoneId) continue;
+      const m = workers.get(e.worker);
+      if (!m || m.mode === 'away') continue;
+      m.bounceMs = 0;
       const entries = Object.entries(e.items || {}).filter(([, n]) => n > 0);
-      entries.forEach(([id, n], i) => addPop(id, n, !!e.rare, i, entries.length));
+      entries.forEach(([id, n], i) => addPop(m, id, n, !!e.rare, i, entries.length));
     }
   });
 
+  syncWorkers(game.getState());
   layout();
   app.renderer.on('resize', layout);
 
   app.ticker.add((ticker) => {
     const state = game.getState();
-    const task = chooseMode(state);
-    render(state, task, ticker.deltaMS, ticker);
+    syncWorkers(state);
+    for (const m of workers.values()) {
+      const task = chooseMode(m, state);
+      renderWorker(m, state, task, ticker.deltaMS, ticker);
+    }
     updatePops(ticker.deltaMS);
+    updateZs(ticker.deltaMS);
   });
 
   return {

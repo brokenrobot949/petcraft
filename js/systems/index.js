@@ -11,6 +11,7 @@ import * as settings from './settings.js';
 import * as skills from './skills.js';
 import * as bag from './bag.js';
 import * as harvest from './harvest.js';
+import * as pets from './pets.js';
 import * as dev from './dev.js';
 
-export const SYSTEMS = [meta, settings, skills, bag, harvest, dev];
+export const SYSTEMS = [meta, settings, skills, bag, harvest, pets, dev];

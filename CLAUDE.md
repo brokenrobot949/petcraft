@@ -60,13 +60,19 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 2 done (2026-10-19)
-Next: Phase 3 (pets).
-Phase 2: save schema v2 (skills, bag, tools, workers, stats; migration 1->2). The contract for
-  systems, events, selectors and data shapes is docs/architecture.md (lead-owned). Harvesting in
+Phase: 3 done (2026-10-19)
+Next: Phase 4 (crafting + balance simulator v1).
+Phase 3: save schema v3 (pets, pantry, a random stream per worker; migration 2->3). Egg choice,
+  hatch and name, 2 active slots (+ Stable swap), energy (~3 h per bar), rest, auto-feed from the
+  pantry (per-item toggles), hand-feeding, pet XP (stage caps 10/20/30, extra XP banks), Bond with
+  hearts, daily pat (local midnight), pets harvesting with the player on the World tab, pets in the
+  zone and home scenes, pet lines in "While you were away", Pets tab badge. Contract in
+  docs/architecture.md "Phase 3: pets". Pets never give the player skill XP.
+  Core checks: tools/tests/core.html (open it on the local server; 35 checks incl. live = offline).
+  Test mode (Journal -> tap the version line 5 times) can add pets, set energy/level/Bond, re-allow the pat.
+Phase 2: save schema v2 (skills, bag, tools, workers, stats; migration 1->2). Harvesting in
   Meadowfold for all 5 skills, skill XP, bag, "While you were away", zone scene with held tools and
   pops, item icons (js/ui/icons.js reads the atlas). 16 h offline catch-up runs in ~16 ms.
-  Test mode: Journal -> tap the version line 5 times.
   XP pacing is a placeholder: 16 h offline chopping reaches level 22; the simulator (Phase 4) tunes it.
 Art casting: data/sprites.json maps roles (player, pet.<archetype>.<form>, mythic.<archetype>) to pack
   sprites; js/render/sprites.js loads the atlas and builds actors. Rob picked the player (Hunter,
@@ -74,6 +80,9 @@ Art casting: data/sprites.json maps roles (player, pet.<archetype>.<form>, mythi
   suggestions; Rob recasts in the catalog (http://localhost:8080/tools/catalog/ -> Casting -> Save),
   which writes sprites.json and runs tools/atlas/pack.ps1 via tools/serve.ps1. Then commit + bump version.
 Known issues:
+- Pets that fish, forage or hunt catch raw food and then eat it from the pantry, so they rarely
+  need to rest. Matches the spec, but makes stocking food matter less. Rob to decide (Phase 4 simulator).
+- Pet XP is a placeholder: a pet reaches the hatchling cap (level 10) in about a day of work.
 - Node is not installed. The atlas packer is PowerShell (tools/atlas/pack.ps1); the balance simulator
   (Phase 4) needs Node or a browser-page runner. Decide before Phase 4.
 - Homestead pieces are cast in Phase 5.
