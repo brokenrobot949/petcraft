@@ -1,0 +1,11 @@
+# Raw art pack: never shipped (only packed atlases in assets/ ship)
+assets-source/
+
+# Generated dev-only file list for the art catalog (points into assets-source/)
+tools/catalog/files.json
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/

@@ -1,0 +1,14 @@
+{
+  "save": {
+    "autosaveSeconds": 30
+  },
+  "offline": {
+    "baseCapHours": 8,
+    "capHoursPerCottageTierAbove1": 2,
+    "catchupStepSeconds": 60
+  },
+  "tick": {
+    "liveTickMs": 250,
+    "maxLiveStepMs": 5000
+  }
+}

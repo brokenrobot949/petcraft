@@ -1,0 +1,17 @@
+{
+  "name": "PetCraft",
+  "short_name": "PetCraft",
+  "description": "A cozy idle game: raise evolving monster pets, harvest, craft and grow a homestead.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#131b1b",
+  "theme_color": "#131b1b",
+  "icons": [
+    { "src": "assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

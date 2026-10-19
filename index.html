@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>PetCraft</title>
+  <meta name="description" content="A cozy idle game: raise evolving monster pets, harvest, craft and grow a homestead.">
+  <meta name="theme-color" content="#131b1b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PetCraft">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="assets/icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="preload" href="assets/fonts/NormalFont.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="stylesheet" href="css/main.css">
+  <script src="version.js"></script>
+  <script type="module" src="js/main.js"></script>
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <div class="stat" id="stat-coins"><img src="assets/ui/coin.png" alt="" class="px icon-coin"><span>0</span></div>
+      <div class="stat" id="stat-renown">
+        <span class="label">Renown <b>1</b></span>
+        <div class="bar"><div class="fill"></div></div>
+      </div>
+      <div class="stat" id="stat-cap" title="Longest time the world keeps working while you're away"><span>Away 8h</span></div>
+    </header>
+    <main id="screens"></main>
+    <nav id="tabbar" aria-label="Main"></nav>
+  </div>
+  <div id="update-bar" hidden><button type="button">New version, tap to reload</button></div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <noscript>PetCraft needs JavaScript turned on.</noscript>
+</body>
+</html>
