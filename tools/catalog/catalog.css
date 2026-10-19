@@ -32,3 +32,52 @@ img { image-rendering: pixelated; display: block; }
 .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 button, .btn { min-height: 44px; min-width: 44px; padding: 0 14px; font-size: 15px; color: var(--fg); background: #2f3540; border: 1px solid var(--line); border-radius: 6px; cursor: pointer; display: inline-flex; align-items: center; text-decoration: none; }
 button:hover, .btn:hover { border-color: var(--accent); }
+
+/* ---- Casting mode ---- */
+[hidden] { display: none !important; }
+:root { --tb: 61px; --panel-w: 400px; }
+button.primary { background: #2a5d9f; border-color: #3d7bc7; }
+button.primary:disabled { opacity: .45; cursor: default; }
+button:disabled { opacity: .5; cursor: default; }
+.badge { margin-left: 6px; padding: 1px 6px; border-radius: 10px; background: #c9852b; color: #111; font-size: 12px; }
+.banner { position: sticky; top: var(--tb); z-index: 9; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; background: #2a5d9f; border-bottom: 1px solid #3d7bc7; font-weight: 600; }
+.banner .banner-text { flex: 1 1 200px; }
+.chip { border-radius: 22px; }
+.chip.on { background: var(--accent); color: #0b1a2b; border-color: var(--accent); }
+.cast-panel { position: fixed; z-index: 20; top: var(--tb); right: 0; bottom: 0; width: var(--panel-w); display: flex; flex-direction: column; background: #20232a; border-left: 1px solid var(--line); overflow-y: auto; padding: 8px 12px 24px; }
+body.cast-open main, body.cast-open .banner { margin-right: var(--panel-w); }
+.cast-head { display: flex; align-items: center; gap: 8px; }
+.cast-head h2 { font-size: 16px; margin: 0; flex: 1; }
+.cast-state { color: var(--muted); font-size: 13px; }
+.cast-state.dirty { color: #f0b050; font-weight: 600; }
+.cast-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.cast-msg { margin: 6px 0; padding: 8px 10px; border-radius: 6px; background: #2b2f38; word-break: break-word; }
+.cast-msg:empty { display: none; }
+.cast-msg.good { background: #1f3a2a; }
+.cast-msg.warn { background: #3d3320; }
+.cast-msg.bad { background: #4a2626; }
+#cast-log { max-height: 180px; overflow: auto; white-space: pre-wrap; background: #14161a; padding: 8px; border-radius: 6px; font-size: 12px; }
+#cast-json { width: 100%; background: #14161a; color: var(--fg); }
+.cast-group h3 { font-size: 14px; margin: 16px 0 6px; color: var(--accent); }
+.cast-row { display: flex; align-items: center; gap: 10px; padding: 6px; margin-bottom: 6px; border: 1px solid var(--line); border-radius: 6px; background: #23262d; }
+.cast-row.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+.cast-box { flex: none; width: 80px; height: 80px; display: flex; align-items: center; justify-content: center; background-color: #555; background-image: linear-gradient(45deg, #444 25%, transparent 25%, transparent 75%, #444 75%), linear-gradient(45deg, #444 25%, transparent 25%, transparent 75%, #444 75%); background-size: 16px 16px; background-position: 0 0, 8px 8px; }
+.cast-box canvas, .anim-wrap canvas { image-rendering: pixelated; display: block; }
+.cast-info { flex: 1; min-width: 0; }
+.cast-label { font-weight: 600; }
+.cast-file { font-family: ui-monospace, Consolas, monospace; font-size: 12px; word-break: break-all; }
+.cast-file.none { color: #f0b050; font-family: inherit; font-style: italic; }
+.cast-dir { color: var(--muted); font-size: 11px; word-break: break-all; }
+.ov-cast { margin: 8px 0; }
+.anim-wrap { display: flex; align-items: center; justify-content: center; min-height: 64px; margin-bottom: 6px; }
+.cast-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cast-form label { display: inline-flex; align-items: center; gap: 6px; }
+.cast-form select, .cast-form input { min-height: 44px; font-size: 15px; background: #14161a; color: var(--fg); border: 1px solid var(--line); border-radius: 6px; padding: 0 8px; max-width: 100%; }
+.cast-form input[type=number] { width: 80px; }
+.cast-form select { max-width: 280px; }
+/* narrow screens: the casting panel is a full-width drawer under the toolbar */
+@media (max-width: 899px) {
+  :root { --panel-w: 100%; }
+  .cast-panel { border-left: 0; }
+  body.cast-open main, body.cast-open .banner { margin-right: 0; }
+}

@@ -10,5 +10,21 @@
   "tick": {
     "liveTickMs": 250,
     "maxLiveStepMs": 5000
+  },
+  "render": {
+    "pixelScale": 3,
+    "pixelScaleWide": 4,
+    "wideMinWidthPx": 500,
+    "maxResolution": 3,
+    "tilePx": 16,
+    "wander": {
+      "walkSpeedPxPerSec": 14,
+      "minPauseMs": 1200,
+      "maxPauseMs": 4000,
+      "minStepPx": 12,
+      "maxStepPx": 48,
+      "swingChance": 0.35,
+      "swingMs": 1600
+    }
   }
 }

@@ -1,4 +1,6 @@
-const PACK = '../../assets-source/ninja-adventure/Ninja%20Adventure%20-%20Asset%20Pack/';
+import { initCast } from './cast.js';
+
+const PACK ='../../assets-source/ninja-adventure/Ninja%20Adventure%20-%20Asset%20Pack/';
 const BOX = 96;
 const $ = (id) => document.getElementById(id);
 const main = $('main');
@@ -8,6 +10,7 @@ const intScale = (w, h, box) => Math.max(1, Math.floor(Math.min(box / w, box / h
 
 let files = [];
 let sections = []; // {catDet, subDet, tiles:[{el, e, hay}]}
+let cast = null;   // casting helpers from cast.js (extra filter, overlay hook)
 
 function showMessage(html) {
   main.innerHTML = `<div class="msg">${html}</div>`;
@@ -25,6 +28,12 @@ async function load() {
     return;
   }
   build();
+  // Casting mode (data/sprites.json); the catalog still works if this fails.
+  try {
+    cast = await initCast({ files, urlFor, $, refilter: applyFilter });
+  } catch (err) {
+    console.error('Casting unavailable', err);
+  }
 }
 
 function makeTile(e) {
@@ -102,7 +111,7 @@ function build() {
       const tiles = list.map((e) => {
         const el = makeTile(e);
         grid.appendChild(el);
-        return { el, hay: e.path.toLowerCase() };
+        return { el, e, hay: e.path.toLowerCase() };
       });
       group.subs.push({ sub, subDet, subSum, tiles });
     }
@@ -115,6 +124,7 @@ function build() {
 function applyFilter() {
   const q = $('filter').value.trim().toLowerCase();
   const cat = $('category').value;
+  const extra = cast ? cast.filter() : null; // quick-filter chip while picking a role
   let visible = 0;
   for (const g of sections) {
     let catCount = 0;
@@ -122,13 +132,14 @@ function applyFilter() {
     for (const s of g.subs) {
       let n = 0;
       for (const t of s.tiles) {
-        const show = catOk && (!q || t.hay.includes(q));
+        const show = catOk && (!q || t.hay.includes(q)) && (!extra || extra(t.e));
         t.el.hidden = !show;
         t.el.style.display = show ? '' : 'none';
         if (show) n++;
       }
       catCount += n;
       if (s.subDet) {
+        if (extra && n) s.subDet.open = true; // show matches of a chip filter
         s.subDet.style.display = n ? '' : 'none';
         s.subSum.innerHTML = '';
         s.subSum.append(s.sub + ' ', countSpan(n, s.tiles.length));
@@ -163,6 +174,7 @@ function openOverlay(e) {
   $('ov-open').href = urlFor(e.path);
   $('ov-copy').textContent = 'Copy path';
   $('overlay').hidden = false;
+  if (cast) cast.onOpen(e); // casting section of the overlay
 }
 function closeOverlay() { $('overlay').hidden = true; }
 

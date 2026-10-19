@@ -60,10 +60,15 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 0 done (2026-10-19)
-Next: Phase 1 (art casting). Rob picks sprites in the catalog at http://localhost:8080/tools/catalog/
-  (regenerate the list with tools/catalog/build-index.ps1).
+Phase: 1 done (2026-10-19)
+Next: Phase 2 (core simulation).
+Art casting: data/sprites.json maps roles (player, pet.<archetype>.<form>, mythic.<archetype>) to pack
+  sprites; js/render/sprites.js loads the atlas and builds actors. The current picks are Claude's
+  suggestions; Rob recasts in the catalog (http://localhost:8080/tools/catalog/ -> Casting -> Save),
+  which writes sprites.json and runs tools/atlas/pack.ps1 via tools/serve.ps1. Then commit + bump version.
 Known issues:
-- Node is not installed. The atlas packer (Phase 1) can run as a browser page; the balance simulator
+- Node is not installed. The atlas packer is PowerShell (tools/atlas/pack.ps1); the balance simulator
   (Phase 4) needs Node or a browser-page runner. Decide before Phase 4.
-- Tab icons and app icon are placeholder pack sprites until Rob casts art in Phase 1.
+- Item icons and homestead pieces are cast in the phases that add items (2) and buildings (5).
+- The player's tool overlays (Actor/CharacterAnimated/Weapon/*) are not packed yet; Phase 2 adds them.
+- Tab icons and app icon are still placeholder pack sprites.

@@ -12,13 +12,44 @@
   <input id="filter" type="search" placeholder="Filter by path..." autocomplete="off">
   <select id="category" aria-label="Category"><option value="">All categories</option></select>
   <span id="counts" class="counts"></span>
+  <button id="cast-toggle" type="button" aria-expanded="false">Casting <span id="cast-badge" class="badge" hidden>unsaved</span></button>
 </header>
+<div id="pick-banner" class="banner" hidden></div>
+<aside id="cast-panel" class="cast-panel" hidden aria-label="Casting">
+  <div class="cast-head">
+    <h2>Casting</h2>
+    <span id="cast-state" class="cast-state"></span>
+    <button id="cast-close" type="button">Close</button>
+  </div>
+  <div class="cast-actions">
+    <button id="cast-save" type="button" class="primary">Save casting &amp; build atlas</button>
+    <button id="cast-revert" type="button">Revert</button>
+    <button id="cast-copy" type="button" hidden>Copy casting JSON</button>
+  </div>
+  <p id="cast-msg" class="cast-msg" role="status" hidden></p>
+  <details id="cast-log-wrap" hidden open><summary>Log</summary><pre id="cast-log"></pre></details>
+  <textarea id="cast-json" readonly hidden rows="6"></textarea>
+  <div id="cast-list" class="cast-list"></div>
+</aside>
 <main id="main"><p class="msg">Loading...</p></main>
 <div id="overlay" class="overlay" hidden>
   <div class="panel">
     <div class="viewer"><img id="ov-img" alt=""></div>
     <p id="ov-path" class="path"></p>
     <p id="ov-dim" class="dim"></p>
+    <div id="ov-cast" class="ov-cast">
+      <div id="ov-anim-wrap" class="viewer anim-wrap" hidden><canvas id="ov-anim"></canvas></div>
+      <p id="ov-cast-msg" class="cast-msg"></p>
+      <div class="cast-form">
+        <label>Layout <select id="ov-layout"><option value="">Auto-detect</option></select></label>
+        <span id="ov-frame" hidden>
+          <label>Frame width <input id="ov-fw" type="number" min="1" inputmode="numeric"></label>
+          <label>height <input id="ov-fh" type="number" min="1" inputmode="numeric"></label>
+        </span>
+        <label id="ov-role-label">Use for... <select id="ov-role"></select></label>
+        <button id="ov-cast-btn" type="button" class="primary">Cast</button>
+      </div>
+    </div>
     <div class="actions">
       <button id="ov-copy" type="button">Copy path</button>
       <a id="ov-open" class="btn" target="_blank" rel="noopener">Open full size</a>
