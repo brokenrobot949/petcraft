@@ -7,7 +7,7 @@
 // (pets: render.zone.pets) and the zone's scene data. Render-only randomness uses Math.random.
 // createZoneScene(host, game, zoneId) -> { start(), stop(), destroy() }. It is created and destroyed
 // each time the zone page opens and closes, so destroy() must release everything.
-import { Application, Container, Graphics, Sprite, Text, TextureSource } from '../../lib/pixi.mjs';
+import { Application, Container, Graphics, Rectangle, Sprite, Text, TextureSource } from '../../lib/pixi.mjs';
 import { loadSprites, createActor } from './sprites.js';
 import { actionMs, workerTask } from '../systems/harvest.js';
 import { petStatus } from '../systems/pets.js';
@@ -22,7 +22,9 @@ const easeInOut = (t) => t * t * (3 - 2 * t);
 const easeIn = (t) => t * t * t;
 const easeOutRise = (t) => 1 - (1 - t) * (1 - t);
 
-export async function createZoneScene(host, game, zoneId) {
+// options.onSpotTap(skillId): called when the player taps a harvest spot (the tree, the pond...).
+// The scene never acts on it itself; the World tab decides who gets the job.
+export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
   const data = game.data;
   const cfg = data.balance.render.zone;
   const pcfg = cfg.pets;
@@ -40,6 +42,9 @@ export async function createZoneScene(host, game, zoneId) {
     autoDensity: true,
   });
   host.append(app.canvas);
+  // Taps on spots are handled, but a drag that starts on the picture still scrolls the page.
+  app.renderer.events.autoPreventDefault = false;
+  app.canvas.style.touchAction = 'pan-y';
   try { await document.fonts.load(`${cfg.popFontSize}px NormalFont`); } catch { /* fall back to the default font */ }
 
   const bank = await loadSprites(data.sprites);
@@ -55,19 +60,35 @@ export async function createZoneScene(host, game, zoneId) {
   let destroyed = false;
 
   // ---- props: spots and decor, positioned in fractions of the scene ----
-  const props = []; // { sprite, fx, fy }
-  function addProp(roleId, fx, fy) {
+  const props = []; // { sprite, fx, fy, tappable }
+  function addProp(roleId, fx, fy, skillId = null) {
     const tex = bank.texture(roleId);
     if (!tex) return null; // not cast yet: leave it out
     const sprite = new Sprite(tex);
     const [ax, ay] = bank.anchor(roleId);
     sprite.anchor.set(ax, ay);
     world.addChild(sprite);
-    const p = { sprite, fx, fy };
+    const p = { sprite, fx, fy, tappable: !!(skillId && onSpotTap) };
+    if (p.tappable) {
+      sprite.eventMode = 'static';
+      sprite.cursor = 'pointer';
+      sprite.on('pointertap', () => { if (running && !destroyed) onSpotTap(skillId); });
+    }
     props.push(p);
     return p;
   }
-  for (const spot of Object.values(scene.spots || {})) addProp(spot.prop, spot.x, spot.y);
+  // A spot's tap area is at least render.zone.tapMinPx across (CSS pixels), however small its picture.
+  function sizeHitArea(p) {
+    const { sprite } = p;
+    const tex = sprite.texture;
+    const min = cfg.tapMinPx / scale;
+    const w = Math.max(tex.width, min);
+    const h = Math.max(tex.height, min);
+    const cx = (0.5 - sprite.anchor.x) * tex.width;
+    const cy = (0.5 - sprite.anchor.y) * tex.height;
+    sprite.hitArea = new Rectangle(cx - w / 2, cy - h / 2, w, h);
+  }
+  for (const [skillId, spot] of Object.entries(scene.spots || {})) addProp(spot.prop, spot.x, spot.y, skillId);
   for (const d of scene.decor || []) addProp(d.prop, d.x, d.y);
 
   function sizeNow() { return { w: app.screen.width, h: app.screen.height }; }
@@ -162,6 +183,7 @@ export async function createZoneScene(host, game, zoneId) {
       p.sprite.scale.set(scale);
       p.sprite.position.set(x, y);
       p.sprite.zIndex = y;
+      if (p.tappable) sizeHitArea(p);
     }
     const state = game.getState();
     for (const m of workers.values()) {

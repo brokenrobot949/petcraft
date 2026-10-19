@@ -8,7 +8,7 @@
         "idle": [0.46, 0.9],
         "spots": {
           "chopping": { "prop": "prop.tree", "x": 0.11, "y": 0.6, "stand": [0.22, 0.72], "face": "left" },
-          "mining": { "prop": "prop.rock", "x": 0.36, "y": 0.52, "stand": [0.36, 0.8], "face": "up" },
+          "mining": { "prop": "prop.rock", "x": 0.36, "y": 0.52, "stand": [0.36, 0.66], "face": "up" },
           "foraging": { "prop": "prop.bush", "x": 0.54, "y": 0.6, "stand": [0.54, 0.82], "face": "up" },
           "hunting": { "prop": "prop.burrow", "x": 0.69, "y": 0.58, "stand": [0.69, 0.82], "face": "up" },
           "fishing": { "prop": "prop.pond", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" }

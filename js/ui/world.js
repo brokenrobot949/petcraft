@@ -1,5 +1,5 @@
 // World tab: the zone map, and a page per zone with its scene, worker card and harvest nodes.
-import { el, toast } from './dom.js';
+import { el, toast, sheetWithClose } from './dom.js';
 import { getPref, setPref } from './device.js';
 import { itemIcon, faceIcon } from './icons.js';
 import { skillProgress } from '../systems/skills.js';
@@ -201,7 +201,7 @@ function buildZonePage() {
   (async () => {
     try {
       const { createZoneScene } = await import('../render/zoneScene.js');
-      const sc = await createZoneScene(host, app.game, z.id);
+      const sc = await createZoneScene(host, app.game, z.id, { onSpotTap: (skillId) => tapSpot(z.id, skillId) });
       if (token !== sceneToken) {
         sc?.destroy?.();
         return;
@@ -213,6 +213,53 @@ function buildZonePage() {
       if (token === sceneToken) host.append(el('div.scene-placeholder', {}, z.name));
     }
   })();
+}
+
+// A spot tapped in the scene (the tree, the pond...): give that job to the worker picked under
+// "Who works?". One thing to do there starts at once; several open a short list to pick from.
+function tapSpot(zid, skillId) {
+  const s = state();
+  const d = data();
+  const z = d.zones.zones.find((x) => x.id === zid);
+  const nodes = z?.harvest?.[skillId] || [];
+  if (!nodes.length) {
+    toast('Nothing to do there yet.');
+    return;
+  }
+  const sel = selectedWorker(s);
+  const who = workerList(s).find((w) => w.id === sel);
+  const assign = (n) => send('harvest/assign', { worker: sel, zone: zid, skill: skillId, node: n.id });
+  if (nodes.length === 1) {
+    const chk = nodeCheck(s, d, zid, skillId, nodes[0].id);
+    if (chk.ok) assign(nodes[0]);
+    else toast(chk.reason);
+    return;
+  }
+  const task = workerTask(s, sel);
+  const sk = d.skills.skills.find((x) => x.id === skillId);
+  let close = null;
+  const rows = nodes.map((n) => {
+    const chk = nodeCheck(s, d, zid, skillId, n.id);
+    const active = !!task && task.zone === zid && task.skill === skillId && task.node === n.id;
+    return el(`button.node-btn${active ? '.active' : ''}${chk.ok ? '' : '.blocked'}`, {
+      type: 'button',
+      'aria-pressed': active ? 'true' : 'false',
+      onclick: () => {
+        if (!chk.ok) {
+          toast(chk.reason);
+          return;
+        }
+        assign(n);
+        close();
+      },
+    },
+      el('span.node-name', {}, n.name),
+      el('span.node-drops', {}, [...new Set(n.drops.map((x) => x.item))].map((i) => itemIcon(i, 24, d.items.items[i]?.name))),
+      el('span.node-lv', {}, `Lv ${n.level || 1}`));
+  });
+  close = sheetWithClose('Cancel', `${sk ? sk.verb : skillName(skillId)} where?`,
+    el('p.small.muted', {}, who && who.pet ? `For ${who.name}` : 'For you'),
+    ...rows);
 }
 
 function renderZone() {
@@ -227,6 +274,7 @@ function renderZone() {
 
   const chooser = el('div.panel', {},
     el('h2', {}, 'Who works?'),
+    el('p.small.muted', {}, 'Then tap a spot in the picture, or pick a job below.'),
     el('div.worker-chips', {}, ws.map((w) =>
       el('button.chip', {
         type: 'button',

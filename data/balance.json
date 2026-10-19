@@ -102,6 +102,7 @@
       "groundColor": "0xadbc3a",
       "speckColor": "0x9aaa30",
       "specks": 26,
+      "tapMinPx": 44,
       "pets": {
         "standOffsets": [[0, 0], [-14, 4], [14, 4], [0, 9], [-26, -2], [26, -2]],
         "idleOffsets": [[0, 0], [-24, 4], [24, 4], [0, 12], [-38, 0], [38, 0]],

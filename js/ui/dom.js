@@ -31,12 +31,17 @@ export function toast(message, ms = 2200) {
 
 // Bottom sheet with a title, body nodes and a close button. Returns a close function.
 export function sheet(title, ...body) {
+  return sheetWithClose('Got it', title, ...body);
+}
+
+// The same sheet with its own label on the close button (e.g. 'Cancel').
+export function sheetWithClose(closeLabel, title, ...body) {
   const close = () => backdrop.remove();
   const backdrop = el('div.sheet-backdrop', { onclick: (e) => e.target === backdrop && close() },
     el('div.sheet', { role: 'dialog', 'aria-modal': 'true' },
       el('h2', { text: title }),
       ...body,
-      el('button.btn.wide', { type: 'button', onclick: close }, 'Got it')));
+      el('button.btn.wide', { type: 'button', onclick: close }, closeLabel)));
   document.body.append(backdrop);
   return close;
 }
