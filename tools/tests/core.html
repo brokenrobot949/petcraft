@@ -17,6 +17,8 @@ import { createInitialState, validateState } from '../../js/core/state.js';
 import { createGame } from '../../js/core/game.js';
 import { parseSave } from '../../js/core/save.js';
 import { petMaxEnergy, petDrainPerHour } from '../../js/systems/petstats.js';
+import { qualityOdds } from '../../js/systems/crafting.js';
+import { actionMs } from '../../js/systems/harvest.js';
 
 const out = document.getElementById('out');
 const lines = [];
@@ -59,7 +61,7 @@ try {
     workers: { player: { task: { zone: 'meadowfold', skill: 'chopping', node: 'pine' }, progressMs: 100 } }, stats: { actions: { chopping: 50 } },
   };
   const mig = parseSave(JSON.stringify(v2));
-  check('v2 save migrates to v3 and validates', !!mig.state && mig.state.version === 3, mig.error || '');
+  check('v2 save migrates to the current version and validates', !!mig.state && mig.state.version === 4, mig.error || '');
   check('migration keeps progress', mig.state?.bag.pine_log === 40 && mig.state?.skills.chopping.level === 4 && mig.state?.workers.player.task?.node === 'pine');
   const g0 = createGame(data, mig.state, { clock });
   check('migrated save needs a starter egg', g0.getState().pets.active.length === 2 && !g0.getState().pets.starter);
@@ -194,6 +196,102 @@ try {
   check('state still valid', validateState(so) === null, validateState(so) || '');
   const rt = parseSave(JSON.stringify(so));
   check('save round trip', !!rt.state && JSON.stringify(rt.state) === JSON.stringify(so));
+
+  // 9. Crafting (Phase 4): the copper axe chain end to end, queues offline, quality, buffs.
+  const v3 = JSON.parse(JSON.stringify(so));
+  v3.version = 3; delete v3.crafting; delete v3.buffs; delete v3.stats.crafts;
+  const m3 = parseSave(JSON.stringify(v3));
+  check('v3 save migrates to v4 and keeps pets', !!m3.state && m3.state.version === 4 && Object.keys(m3.state.pets.list).length === Object.keys(so.pets.list).length, m3.error || '');
+  const gc = freshGame(777);
+  const sc = gc.getState();
+  const refused = (type, payload) => { try { gc.dispatch(type, payload); return false; } catch { return true; } };
+  check('no materials: refused', refused('crafting/start', { recipe: 'pine_plank', qty: 1 }));
+  gc.dispatch('dev/grant', { item: 'copper_ore', qty: 6 });
+  gc.dispatch('dev/grant', { item: 'pine_log', qty: 4 });
+  gc.dispatch('crafting/start', { recipe: 'copper_bar', qty: 2 });
+  check('materials leave the bag when queued', sc.bag.copper_ore === 2);
+  check('queue full at 1 slot', refused('crafting/start', { recipe: 'copper_bar', qty: 1 }) && sc.bag.copper_ore === 2);
+  gc.dispatch('crafting/start', { recipe: 'pine_plank', qty: 2 });
+  gc.catchUp(H);
+  check('queues finish offline', sc.bag.copper_bar === 2 && sc.bag.pine_plank === 2 && sc.crafting.stations.forge.notice, JSON.stringify(sc.bag));
+  check('crafting gives skill XP', sc.skills.smithing.xp > 0 && sc.skills.carpentry.xp > 0);
+  check('tool head is level-gated', refused('crafting/start', { recipe: 'copper_axe_head', qty: 1 }));
+  gc.dispatch('dev/setLevel', { skill: 'smithing', level: 10 });
+  gc.dispatch('crafting/start', { recipe: 'copper_axe_head', qty: 1 });
+  gc.dispatch('dev/setLevel', { skill: 'carpentry', level: 2 });
+  gc.dispatch('crafting/start', { recipe: 'tool_handle', qty: 1 });
+  gc.catchUp(H);
+  check('axe head and handle made', sc.bag.copper_axe_head === 1 && sc.bag.tool_handle === 1);
+  check('copper axe needs Carpentry 10', refused('crafting/start', { recipe: 'copper_axe', qty: 1 }));
+  gc.dispatch('dev/setLevel', { skill: 'carpentry', level: 10 });
+  gc.dispatch('crafting/start', { recipe: 'copper_axe', qty: 1, focus: 'perfect' });
+  gc.catchUp(H);
+  check('copper axe crafted and equipped', sc.tools.axe.item === 'copper_axe' && !!sc.bag.stone_axe, JSON.stringify(sc.tools.axe));
+  // Cancel returns materials for unmade items.
+  gc.dispatch('dev/grant', { item: 'pine_log', qty: 20 });
+  gc.dispatch('crafting/start', { recipe: 'pine_plank', qty: 10 });
+  gc.advance(4100);
+  gc.dispatch('crafting/cancel', { station: 'workbench', index: 0 });
+  check('cancel refunds unmade items', sc.bag.pine_log === 18 && sc.bag.pine_plank === 2, `logs ${sc.bag.pine_log} planks ${sc.bag.pine_plank}`);
+  // Quality odds rise with level and Focus.
+  const meal = data.recipes.recipes.find((r) => r.id === 'berry_compote');
+  gc.dispatch('dev/setLevel', { skill: 'cooking', level: 30 });
+  const o0 = qualityOdds(sc, data, meal, null);
+  const o2 = qualityOdds(sc, data, meal, 'perfect');
+  check('quality odds follow level and caps', near(o0.fine, 0.39, 1e-9) && near(o0.masterwork, 0.165, 1e-9), JSON.stringify(o0));
+  check('Perfect focus raises odds (capped)', near(o2.masterwork, 0.4125, 1e-9) && o2.fine <= 0.8 && o2.fine + o2.masterwork <= 1, JSON.stringify(o2));
+  gc.dispatch('dev/grant', { item: 'berries', qty: 300 });
+  gc.dispatch('crafting/start', { recipe: 'berry_compote', qty: 100, focus: 'perfect' });
+  gc.catchUp(2 * H);
+  const fine = sc.bag['berry_compote:fine'] || 0;
+  const mw = sc.bag['berry_compote:masterwork'] || 0;
+  check('meals roll quality', fine > 15 && mw > 20 && (sc.bag.berry_compote || 0) + fine + mw === 100, `normal ${sc.bag.berry_compote} fine ${fine} mw ${mw}`);
+  // Buffs: the player eats a meal; it speeds up harvesting and wears off after its time.
+  gc.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'foraging', node: 'herb_patch' });
+  const task = sc.workers.player.task;
+  const before = actionMs(sc, data, 'player', task);
+  gc.dispatch('buffs/use', { item: 'berry_compote:masterwork' });
+  const during = actionMs(sc, data, 'player', task);
+  check('a meal buff speeds up the player', near(before / during, 1 + 0.08 * 1.5, 1e-9), `${before} / ${during}`);
+  gc.catchUp(61 * 60000);
+  check('the buff wears off after an hour', !sc.buffs.berry_compote && near(actionMs(sc, data, 'player', task), before, 1e-9));
+  // Pets eat meals; a favorite dish adds Bond.
+  gc.dispatch('pets/hatchStarter', { archetype: 'sprout', name: 'Crafty' });
+  const cp = sc.pets.list[sc.pets.active[0]];
+  cp.energy = 10;
+  const bond0 = cp.bond;
+  gc.dispatch('pets/feed', { pet: cp.id, item: 'berry_compote:fine' });
+  check('fine meal restores more and favorite dish adds Bond', near(cp.energy, 10 + 25 * 1.25, 1e-9) && cp.bond === bond0 + data.balance.pets.bond.favoriteDish, `E ${cp.energy} bond ${cp.bond}`);
+
+  // Live ticks and catch-up agree with a buff ending and a tool finishing mid-span.
+  const twin = (fn) => {
+    const a = freshGame(4242);
+    fn(a);
+    return a;
+  };
+  const setup = (gx) => {
+    gx.dispatch('pets/hatchStarter', { archetype: 'wild', name: 'Twin' });
+    gx.dispatch('dev/setLevel', { skill: 'smithing', level: 10 });
+    gx.dispatch('dev/setLevel', { skill: 'carpentry', level: 10 });
+    gx.dispatch('dev/grant', { item: 'copper_axe_head', qty: 1 });
+    gx.dispatch('dev/grant', { item: 'tool_handle', qty: 1 });
+    gx.dispatch('dev/grant', { item: 'meadow_draught', qty: 1 });
+    gx.dispatch('dev/grant', { item: 'pine_log', qty: 60 });
+    gx.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'chopping', node: 'pine' });
+    gx.dispatch('harvest/assign', { worker: gx.getState().pets.active[0], zone: 'meadowfold', skill: 'chopping', node: 'pine' });
+    gx.dispatch('buffs/use', { item: 'meadow_draught' });
+    gx.dispatch('crafting/start', { recipe: 'copper_axe', qty: 1 });
+    gx.dispatch('crafting/start', { recipe: 'pine_plank', qty: 30 });
+  };
+  const cLive = twin(setup);
+  runChunks(cLive, 3 * H, 250);
+  const cOff = twin(setup);
+  cOff.catchUp(3 * H);
+  const ls = cLive.getState();
+  const os = cOff.getState();
+  check('crafting: live ticks and catch-up give the same bag', sortedJson(ls.bag) === sortedJson(os.bag), `${sortedJson(ls.bag)} vs ${sortedJson(os.bag)}`);
+  check('... the same skills', JSON.stringify(ls.skills) === JSON.stringify(os.skills));
+  check('crafted state still valid', validateState(os) === null && validateState(sc) === null, validateState(os) || validateState(sc) || '');
 } catch (err) {
   failed++;
   lines.push(`FAIL  crashed: ${err.stack || err}`);

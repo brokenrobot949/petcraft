@@ -44,7 +44,8 @@
                        { "item": "plant_fiber", "qty": [1, 1], "chance": 0.1 } ] },
           { "id": "berry_bush", "name": "Berry Bush", "level": 2,
             "drops": [ { "item": "berries", "qty": [1, 2], "chance": 1 },
-                       { "item": "meadow_herb", "qty": [1, 1], "chance": 0.1 } ] },
+                       { "item": "meadow_herb", "qty": [1, 1], "chance": 0.1 },
+                       { "item": "hazelnut", "qty": [1, 1], "chance": 0.12 } ] },
           { "id": "fiber_grass", "name": "Fiber Grass", "level": 1,
             "drops": [ { "item": "plant_fiber", "qty": [1, 2], "chance": 1 },
                        { "item": "berries", "qty": [1, 1], "chance": 0.08 } ] }

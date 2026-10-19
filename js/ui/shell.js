@@ -4,6 +4,7 @@ import { el } from './dom.js';
 import { getPref, setPref } from './device.js';
 import { offlineCapMs, localDay } from '../core/time.js';
 import { needsStarter, petList, canPatToday } from '../systems/pets.js';
+import { craftNotice } from '../systems/crafting.js';
 import * as home from './home.js';
 import * as world from './world.js';
 import * as pets from './pets.js';
@@ -69,6 +70,10 @@ export function mountShell(app) {
   };
   app.game.subscribe(petsBadge);
   petsBadge(app.game.getState());
+  // Craft badge: a station's queue ran empty since the Craft tab was last opened.
+  const craftBadge = (state) => setBadge('craft', craftNotice(state));
+  app.game.subscribe(craftBadge);
+  craftBadge(app.game.getState());
 
   return { select, setBadge };
 }

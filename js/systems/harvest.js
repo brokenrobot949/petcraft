@@ -7,6 +7,7 @@ import { chance, random, randomInt, deriveSeed } from '../core/rng.js';
 import { addItem } from './bag.js';
 import { addXp, skillLevel } from './skills.js';
 import { isPet, petSpeed, petRareBonus } from './petstats.js';
+import { buffSpeed } from './buffs.js';
 
 export const id = 'harvest';
 
@@ -95,6 +96,7 @@ export function actionMs(state, data, workerId, task) {
   const b = data.balance.harvest;
   const tool = toolFor(state, data, task.skill);
   let speed = 1 + (tool ? b.toolQualitySpeed[tool.quality] || 0 : 0);
+  if (workerId === 'player') speed += buffSpeed(state, task.skill); // meals and potions
   if (isPet(state, workerId)) speed *= petSpeed(data, state.pets.list[workerId], task.skill);
   return baseActionMs(data, task) / speed;
 }

@@ -1,6 +1,9 @@
 {
   "categories": [
     { "id": "tool", "name": "Tools" },
+    { "id": "part", "name": "Parts" },
+    { "id": "meal", "name": "Meals" },
+    { "id": "potion", "name": "Potions" },
     { "id": "wood", "name": "Wood" },
     { "id": "ore", "name": "Ore" },
     { "id": "stone", "name": "Stone" },
@@ -37,6 +40,31 @@
     "small_quartz": { "name": "Small Quartz", "category": "gem", "tier": 1, "sell": 25, "desc": "A clear crystal that catches the light and scatters little rainbows." },
     "four_leaf_clover": { "name": "Four-Leaf Clover", "category": "curio", "tier": 1, "sell": 18, "desc": "A rare four-leaf clover, said to bring a bit of good fortune." },
     "small_pearl": { "name": "Small Pearl", "category": "gem", "tier": 1, "sell": 30, "desc": "A little pearl with a soft glow, treasured by the pond folk." },
-    "lucky_rabbit_foot": { "name": "Lucky Rabbit Foot", "category": "curio", "tier": 1, "sell": 22, "desc": "A charm that feels wonderfully lucky, a gentle keepsake of the warren." }
+    "lucky_rabbit_foot": { "name": "Lucky Rabbit Foot", "category": "curio", "tier": 1, "sell": 22, "desc": "A charm that feels wonderfully lucky, a gentle keepsake of the warren." },
+    "hazelnut": { "name": "Hazelnut", "category": "plant", "tier": 1, "sell": 2, "food": 10, "desc": "A round, crunchy nut that the berry bushes drop for patient foragers." },
+    "pine_plank": { "name": "Pine Plank", "category": "part", "tier": 1, "sell": 6, "desc": "A smooth, sweet-smelling plank, sanded until it feels like silk." },
+    "tool_handle": { "name": "Tool Handle", "category": "part", "tier": 1, "sell": 8, "desc": "A comfy wooden handle that fits snugly in a happy hand." },
+    "fiber_string": { "name": "Fiber String", "category": "part", "tier": 1, "sell": 5, "desc": "Soft plant string, twisted tight and ready for a fishing line." },
+    "sinew_string": { "name": "Sinew String", "category": "part", "tier": 1, "sell": 7, "desc": "A springy, sturdy string that hums when plucked." },
+    "copper_bar": { "name": "Copper Bar", "category": "part", "tier": 1, "sell": 12, "desc": "A warm, rosy bar of copper, still glowing faintly from the forge." },
+    "copper_fittings": { "name": "Copper Fittings", "category": "part", "tier": 1, "sell": 7, "desc": "Tiny copper rings and hooks that make everything fit together." },
+    "copper_axe_head": { "name": "Copper Axe Head", "category": "part", "tier": 2, "sell": 30, "desc": "A bright, sharp-edged axe head, eager for a handle." },
+    "copper_pickaxe_head": { "name": "Copper Pickaxe Head", "category": "part", "tier": 2, "sell": 30, "desc": "A curved copper head that sings a little when it taps stone." },
+    "copper_sickle_blade": { "name": "Copper Sickle Blade", "category": "part", "tier": 2, "sell": 16, "desc": "A thin, gently curved blade made for tidy meadow harvests." },
+    "copper_shovel_head": { "name": "Copper Shovel Head", "category": "part", "tier": 2, "sell": 30, "desc": "A broad copper scoop, ready to turn the friendliest soil." },
+    "copper_axe": { "name": "Copper Axe", "category": "tool", "tier": 2, "sell": 0, "tool": "axe", "quality": true, "desc": "A shiny copper axe that bites into pine with a happy thunk." },
+    "copper_pickaxe": { "name": "Copper Pickaxe", "category": "tool", "tier": 2, "sell": 0, "tool": "pickaxe", "quality": true, "desc": "A rosy pickaxe that coaxes ore out of the hillside with ease." },
+    "copper_sickle": { "name": "Copper Sickle", "category": "tool", "tier": 2, "sell": 0, "tool": "sickle", "quality": true, "desc": "A bright little sickle that glides through grass and herbs." },
+    "copper_rod": { "name": "Copper Fishing Rod", "category": "tool", "tier": 2, "sell": 0, "tool": "rod", "quality": true, "desc": "A springy rod with a copper-bright reel, perfect for lazy afternoons." },
+    "copper_bow": { "name": "Copper Bow", "category": "tool", "tier": 2, "sell": 0, "tool": "bow", "quality": true, "desc": "A graceful bow with copper fittings and a sweet, steady string." },
+    "copper_shovel": { "name": "Copper Shovel", "category": "tool", "tier": 2, "sell": 0, "tool": "shovel", "quality": true, "desc": "A cheerful shovel that digs up buried treasures with a shine." },
+    "berry_compote": { "name": "Berry Compote", "category": "meal", "tier": 1, "sell": 10, "food": 25, "dish": "fruit", "quality": true, "buff": { "skills": ["foraging"], "speed": 0.08, "minutes": 60 }, "desc": "Warm, jammy berries that make every bush look friendlier." },
+    "roasted_hazelnuts": { "name": "Roasted Hazelnuts", "category": "meal", "tier": 1, "sell": 11, "food": 24, "dish": "nut", "quality": true, "buff": { "skills": ["mining"], "speed": 0.08, "minutes": 60 }, "desc": "Toasty nuts with a pinch of herbs, crunchy and comforting." },
+    "minnow_stew": { "name": "Minnow Stew", "category": "meal", "tier": 1, "sell": 12, "food": 35, "dish": "fish", "quality": true, "buff": { "skills": ["fishing"], "speed": 0.10, "minutes": 60 }, "desc": "A gentle, herby stew that makes the pond feel extra welcoming." },
+    "rabbit_roast": { "name": "Rabbit Roast", "category": "meal", "tier": 1, "sell": 14, "food": 40, "dish": "meat", "quality": true, "buff": { "skills": ["hunting"], "speed": 0.10, "minutes": 60 }, "desc": "A golden roast with meadow herbs, hearty enough for a long walk." },
+    "woodcutters_stew": { "name": "Woodcutter's Stew", "category": "meal", "tier": 1, "sell": 20, "food": 50, "dish": "meat", "quality": true, "buff": { "skills": ["chopping"], "speed": 0.12, "minutes": 60 }, "desc": "A thick, nutty stew that keeps your arms swinging all morning." },
+    "vigor_tonic": { "name": "Vigor Tonic", "category": "potion", "tier": 1, "sell": 14, "food": 50, "desc": "A sweet golden tonic that perks up sleepy pets in a hurry." },
+    "meadow_draught": { "name": "Meadow Draught", "category": "potion", "tier": 1, "sell": 24, "buff": { "skills": ["chopping", "mining", "foraging", "fishing", "hunting"], "speed": 0.10, "minutes": 30 }, "desc": "A fresh green drink that puts a spring in every harvester's step." },
+    "tinkerers_tea": { "name": "Tinkerer's Tea", "category": "potion", "tier": 1, "sell": 28, "buff": { "skills": ["carpentry", "smithing", "cooking", "alchemy"], "speed": 0.15, "minutes": 30 }, "desc": "A bright, minty tea that keeps clever hands busy at the stations." }
   }
 }

@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PetCraft balance simulator</title>
+<style>
+  :root { --bg:#fbfaf6; --fg:#222; --muted:#666; --line:#d9d4c7; --card:#fff; --warn:#a4380b; --ok:#176b2c; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1d1b17; --fg:#eee; --muted:#aaa; --line:#403b31; --card:#27241e; --warn:#ff9a66; --ok:#7fd68f; } }
+  body { font:14px/1.45 system-ui,sans-serif; margin:16px; background:var(--bg); color:var(--fg); }
+  h1 { font-size:20px; margin:0 0 4px; } h2 { font-size:17px; margin:24px 0 6px; } h3 { font-size:15px; margin:16px 0 4px; }
+  .muted { color:var(--muted); }
+  .controls { display:flex; flex-wrap:wrap; gap:10px; align-items:end; margin:12px 0; }
+  label { display:flex; flex-direction:column; font-size:12px; color:var(--muted); gap:2px; }
+  input, select, button { font:inherit; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--fg); }
+  button { cursor:pointer; } button.primary { background:#2f6f3e; color:#fff; border-color:#2f6f3e; }
+  table { border-collapse:collapse; margin:6px 0; background:var(--card); }
+  th, td { border:1px solid var(--line); padding:3px 8px; text-align:left; white-space:nowrap; }
+  th { background:rgba(128,128,128,.12); } td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .scroll { overflow:auto; max-width:100%; }
+  .flag { margin:3px 0; } .flag b { color:var(--warn); } .flag.info b { color:var(--muted); }
+  .legend { display:flex; flex-wrap:wrap; gap:4px 14px; font-size:12px; margin:4px 0 12px; }
+  .legend i { display:inline-block; width:12px; height:3px; margin-right:4px; vertical-align:middle; }
+  svg text { fill:var(--muted); font-size:11px; }
+  .nyet { color:var(--muted); }
+  section.run { border-top:2px solid var(--line); margin-top:28px; padding-top:4px; }
+</style>
+</head>
+<body>
+<h1>PetCraft balance simulator <span class="muted">(dev only, v1)</span></h1>
+<div class="muted">Plays the real game with a scripted player. Nothing here is shipped. See tools/sim/README.md.</div>
+<div class="controls">
+  <label>Days <input id="days" type="number" min="1" max="120" value="30" style="width:80px"></label>
+  <label>Seed <input id="seed" type="number" value="12345" style="width:110px"></label>
+  <label>Player <select id="player"><option value="both">Both</option><option value="regular">Regular (4 check-ins)</option><option value="light">Light (2 check-ins)</option></select></label>
+  <button id="run" class="primary">Run</button>
+  <span id="status" class="muted"></span>
+</div>
+<div id="out"></div>
+
+<script type="module">
+import { loadData } from '../../js/core/data.js';
+import { runSim, buildCsv, fmtWhen, PLAYERS } from './sim.js';
+
+// The data files are fetched relative to the page, so load them from the repo root.
+const base = new URL('../../', location.href);
+const realFetch = window.fetch.bind(window);
+window.fetch = (u, o) => realFetch(typeof u === 'string' && u.startsWith('data/') ? new URL(u, base) : u, o);
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const COLORS = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02', '#1f78b4', '#a6761d', '#b2182b', '#555555', '#17becf', '#8c564b'];
+const H = 3600000;
+
+let data;
+try { data = await loadData(); } catch (err) { $('status').textContent = `Could not load game data: ${err.message}`; throw err; }
+$('status').textContent = 'Ready.';
+
+function lineChart(title, xs, series, { w = 760, h = 260 } = {}) {
+  const pad = { l: 44, r: 12, t: 10, b: 26 };
+  const maxY = Math.max(1, ...series.flatMap((s) => s.values));
+  const niceMax = Math.ceil(maxY / 5) * 5 || 1;
+  const X = (i) => pad.l + (xs.length < 2 ? 0 : (i / (xs.length - 1)) * (w - pad.l - pad.r));
+  const Y = (v) => h - pad.b - (v / niceMax) * (h - pad.t - pad.b);
+  let g = '';
+  for (let k = 0; k <= 4; k++) {
+    const v = (niceMax / 4) * k;
+    g += `<line x1="${pad.l}" x2="${w - pad.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="currentColor" opacity=".15"/><text x="${pad.l - 4}" y="${Y(v) + 4}" text-anchor="end">${Math.round(v)}</text>`;
+  }
+  const step = Math.max(1, Math.ceil(xs.length / 10));
+  xs.forEach((x, i) => { if (i % step === 0 || i === xs.length - 1) g += `<text x="${X(i)}" y="${h - 8}" text-anchor="middle">${x}</text>`; });
+  for (const s of series) {
+    const pts = s.values.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+    g += `<polyline fill="none" stroke="${s.color}" stroke-width="2" points="${pts}"><title>${esc(s.name)}</title></polyline>`;
+  }
+  const legend = series.map((s) => `<span><i style="background:${s.color}"></i>${esc(s.name)}</span>`).join('');
+  return `<h3>${esc(title)}</h3><svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px;color:var(--fg)" role="img" aria-label="${esc(title)}">${g}</svg><div class="legend">${legend}</div>`;
+}
+
+function table(head, rows, numFrom = 1) {
+  return `<div class="scroll"><table><thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead><tbody>${
+    rows.map((r) => `<tr>${r.map((c, i) => `<td class="${i >= numFrom ? 'num' : ''}">${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+}
+
+function itemName(key) {
+  const [id, q] = key.split(':');
+  const n = data.items.items[id]?.name || id;
+  return q ? `${q === 'fine' ? 'Fine' : 'Masterwork'} ${n}` : n;
+}
+
+function render(r) {
+  const el = document.createElement('section');
+  el.className = 'run';
+  const snaps = r.snapshots;
+  let html = `<h2>${esc(PLAYERS[r.player].label)} - ${r.days} days, seed ${r.seed}</h2>`;
+  html += `<div class="muted">Simulated in <b>${Math.round(r.elapsedMs)} ms</b> - ${r.sessions} check-ins, ${r.dispatches} commands sent.</div>`;
+
+  // (a) milestones
+  html += '<h3>Milestones (first time hit)</h3>';
+  html += table(['Milestone', 'When', 'Since start'], r.milestones.map((m) => [m.label, m.at == null ? 'not reached' : fmtWhen(m.at), m.at == null ? '' : fmtSince(m.minutes)]), 3);
+  html += '<h3>Design-doc milestones not in the game yet</h3>';
+  html += table(['Milestone', 'Regular-player target', 'Status'], r.notYet.map(([n, t]) => [n, t, 'not in the game yet']), 9);
+
+  // (c) flags
+  html += '<h3>Flags</h3>';
+  html += r.flags.length ? r.flags.map((f) => `<div class="flag ${f.kind === 'info' ? 'info' : ''}"><b>${f.kind === 'info' ? 'note' : 'flag'}</b> ${esc(f.text)}</div>`).join('') : '<div class="muted">None.</div>';
+
+  // (b) charts
+  const xs = snaps.map((s) => s.day);
+  html += lineChart('Skill levels by day', xs, r.skillIds.map((id, i) => ({ name: r.skillNames[id], color: COLORS[i % COLORS.length], values: snaps.map((s) => s.levels[id]) })));
+  const peak = {};
+  for (const s of snaps) for (const [k, c] of Object.entries(s.bag)) peak[k] = Math.max(peak[k] || 0, c);
+  const top = Object.entries(peak).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k]) => k);
+  html += lineChart('Bag stockpiles by day (top 10 items)', xs, top.map((k, i) => ({ name: itemName(k), color: COLORS[i % COLORS.length], values: snaps.map((s) => s.bag[k] || 0) })));
+
+  // (d) daily table
+  html += '<h3>Daily table (23:59)</h3>';
+  const head = ['Day', ...r.skillIds.map((id) => r.skillNames[id].slice(0, 5)), 'Coins', 'Top stockpiles'];
+  html += table(head, snaps.map((s) => [s.day, ...r.skillIds.map((id) => s.levels[id]), s.coins,
+    Object.entries(s.bag).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, c]) => `${itemName(k)} ${c}`).join(', ')]), 1);
+
+  // refusals
+  html += '<h3>Refused commands</h3>';
+  const tot = r.refusals.reduce((n, [, c]) => n + c, 0);
+  html += `<div class="muted">${tot} of ${r.dispatches} commands were refused (normal).</div>`;
+  if (r.refusals.length) html += table(['Message', 'Count'], r.refusals, 1);
+
+  // final state + CSV
+  html += `<h3>Final state</h3><div class="muted">Tools: ${esc(Object.entries(r.final.tools).map(([k, v]) => `${k}=${v}`).join(', '))}. Pets: ${esc(r.final.pets.map((p) => `${p.name} L${p.level}, Bond ${p.bond}`).join('; ') || 'none')}.</div>`;
+  html += '<p><button data-csv>Download CSV</button></p>';
+  el.innerHTML = html;
+  el.querySelector('[data-csv]').addEventListener('click', () => {
+    const blob = new Blob([buildCsv(r)], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `petcraft-sim-${r.player}-${r.days}d-seed${r.seed}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  return el;
+}
+
+function fmtSince(min) {
+  if (min < 120) return `${min} min`;
+  if (min < 48 * 60) return `${(min / 60).toFixed(1)} h`;
+  return `${(min / 1440).toFixed(1)} days`;
+}
+
+const results = {};
+async function go() {
+  const days = Math.max(1, Math.min(120, parseInt($('days').value, 10) || 30));
+  const seed = parseInt($('seed').value, 10) || 12345;
+  const which = $('player').value;
+  const players = which === 'both' ? ['regular', 'light'] : [which];
+  $('run').disabled = true;
+  $('out').innerHTML = '';
+  window.__simResults = results;
+  for (const p of players) {
+    $('status').textContent = `Running ${p}...`;
+    await new Promise((r) => setTimeout(r, 20));
+    try {
+      const res = runSim(data, { days, seed, player: p });
+      results[p] = res;
+      $('out').appendChild(render(res));
+    } catch (err) {
+      $('out').insertAdjacentHTML('beforeend', `<pre style="color:var(--warn)">${esc(p)} crashed: ${esc(err.stack || err)}</pre>`);
+      console.error(err);
+    }
+  }
+  $('status').textContent = 'Done.';
+  $('run').disabled = false;
+  window.__simDone = true;
+}
+$('run').addEventListener('click', go);
+if (new URLSearchParams(location.search).has('auto')) go();
+</script>
+</body>
+</html>

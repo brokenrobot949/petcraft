@@ -2,10 +2,24 @@
 // advance the game through these two functions, so they always agree.
 import { SYSTEMS } from '../systems/index.js';
 
-// Advance every system by ms of game time.
+const EPS = 1e-6;
+
+// Advance every system by ms of game time. A system may export nextBoundaryMs(state, ctx): the
+// time until something it owns changes another system (a buff running out, a crafted tool being
+// equipped). The span is split there, so every system sees that change at the same moment
+// whether time arrives in small live ticks or big offline chunks.
 export function advance(state, ms, ctx) {
-  if (!(ms > 0)) return;
-  for (const sys of SYSTEMS) if (sys.advance) sys.advance(state, ms, ctx);
+  let left = ms;
+  while (left > EPS) {
+    let t = left;
+    for (const sys of SYSTEMS) {
+      if (!sys.nextBoundaryMs) continue;
+      const b = sys.nextBoundaryMs(state, ctx);
+      if (b > EPS && b < t) t = b;
+    }
+    for (const sys of SYSTEMS) if (sys.advance) sys.advance(state, t, ctx);
+    left -= t;
+  }
 }
 
 // Advance a long span in fixed chunks (balance.offline.catchupStepSeconds) rather than

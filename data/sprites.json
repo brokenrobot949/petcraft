@@ -624,6 +624,188 @@
       "layout": "icon",
       "src": "Items/Food/FortuneCookie.png"
     },
+    "item.hazelnut": {
+      "group": "items",
+      "label": "Hazelnut",
+      "layout": "icon",
+      "src": "Items/Food/SeedLarge.png",
+      "frameWidth": 14,
+      "frameHeight": 13
+    },
+    "item.pine_plank": {
+      "group": "items",
+      "label": "Pine Plank",
+      "layout": "icon",
+      "src": "Items/Object/CrateEmpty.png",
+      "frameWidth": 16,
+      "frameHeight": 15
+    },
+    "item.tool_handle": {
+      "group": "items",
+      "label": "Tool Handle",
+      "layout": "icon",
+      "src": "Items/Weapons/Stick/Sprite.png",
+      "frameWidth": 3,
+      "frameHeight": 16
+    },
+    "item.fiber_string": {
+      "group": "items",
+      "label": "Fiber String",
+      "layout": "icon",
+      "src": "Items/Weapons/Whip/Sprite.png",
+      "frameWidth": 9,
+      "frameHeight": 13
+    },
+    "item.sinew_string": {
+      "group": "items",
+      "label": "Sinew String",
+      "layout": "icon",
+      "src": "Items/Weapons/Whip/Sprite.png",
+      "frameWidth": 9,
+      "frameHeight": 13
+    },
+    "item.copper_bar": {
+      "group": "items",
+      "label": "Copper Bar",
+      "layout": "icon",
+      "src": "Items/Resource/BarCopper.png",
+      "frameWidth": 16,
+      "frameHeight": 15
+    },
+    "item.copper_fittings": {
+      "group": "items",
+      "label": "Copper Fittings",
+      "layout": "icon",
+      "src": "Items/Tool/Anvil.png"
+    },
+    "item.copper_axe_head": {
+      "group": "items",
+      "label": "Copper Axe Head",
+      "layout": "icon",
+      "src": "Items/Weapons/Axe/Sprite.png",
+      "frameWidth": 11,
+      "frameHeight": 13
+    },
+    "item.copper_pickaxe_head": {
+      "group": "items",
+      "label": "Copper Pickaxe Head",
+      "layout": "icon",
+      "src": "Items/Resource/Branch.png"
+    },
+    "item.copper_sickle_blade": {
+      "group": "items",
+      "label": "Copper Sickle Blade",
+      "layout": "icon",
+      "src": "Items/Tool/Sickle.png"
+    },
+    "item.copper_shovel_head": {
+      "group": "items",
+      "label": "Copper Shovel Head",
+      "layout": "icon",
+      "src": "Items/Tool/Hoe.png"
+    },
+    "item.copper_axe": {
+      "group": "items",
+      "label": "Copper Axe",
+      "layout": "icon",
+      "src": "Items/Weapons/AxeTool/Sprite.png",
+      "frameWidth": 9,
+      "frameHeight": 14
+    },
+    "item.copper_pickaxe": {
+      "group": "items",
+      "label": "Copper Pickaxe",
+      "layout": "icon",
+      "src": "Items/Weapons/Pickaxe/Sprite.png",
+      "frameWidth": 11,
+      "frameHeight": 13
+    },
+    "item.copper_sickle": {
+      "group": "items",
+      "label": "Copper Sickle",
+      "layout": "icon",
+      "src": "Items/Tool/Sickle.png"
+    },
+    "item.copper_rod": {
+      "group": "items",
+      "label": "Copper Fishing Rod",
+      "layout": "icon",
+      "src": "Items/Weapons/Fishing Rod/Sprite.png",
+      "frameWidth": 10,
+      "frameHeight": 14
+    },
+    "item.copper_bow": {
+      "group": "items",
+      "label": "Copper Bow",
+      "layout": "icon",
+      "src": "Items/Weapons/Bow2/Sprite.png",
+      "frameWidth": 15,
+      "frameHeight": 7
+    },
+    "item.copper_shovel": {
+      "group": "items",
+      "label": "Copper Shovel",
+      "layout": "icon",
+      "src": "Items/Tool/Shovel.png"
+    },
+    "item.berry_compote": {
+      "group": "items",
+      "label": "Berry Compote",
+      "layout": "icon",
+      "src": "Items/Food/Seed3.png",
+      "frameWidth": 8,
+      "frameHeight": 8
+    },
+    "item.roasted_hazelnuts": {
+      "group": "items",
+      "label": "Roasted Hazelnuts",
+      "layout": "icon",
+      "src": "Items/Food/SeedBig3.png",
+      "frameWidth": 10,
+      "frameHeight": 13
+    },
+    "item.minnow_stew": {
+      "group": "items",
+      "label": "Minnow Stew",
+      "layout": "icon",
+      "src": "Items/Food/Noodle.png"
+    },
+    "item.rabbit_roast": {
+      "group": "items",
+      "label": "Rabbit Roast",
+      "layout": "icon",
+      "src": "Items/Food/Yakitori.png"
+    },
+    "item.woodcutters_stew": {
+      "group": "items",
+      "label": "Woodcutter's Stew",
+      "layout": "icon",
+      "src": "Items/Food/Beaf.png"
+    },
+    "item.vigor_tonic": {
+      "group": "items",
+      "label": "Vigor Tonic",
+      "layout": "icon",
+      "src": "Items/Potion/LifePot.png",
+      "frameWidth": 9,
+      "frameHeight": 11
+    },
+    "item.meadow_draught": {
+      "group": "items",
+      "label": "Meadow Draught",
+      "layout": "icon",
+      "src": "Items/Potion/WaterPot.png",
+      "frameWidth": 9,
+      "frameHeight": 11
+    },
+    "item.tinkerers_tea": {
+      "group": "items",
+      "label": "Tinkerer's Tea",
+      "layout": "icon",
+      "src": "Items/Potion/MilkPot.png",
+      "frameWidth": 9,
+      "frameHeight": 11
+    },
     "held.axe": {
       "group": "held",
       "label": "Held axe",

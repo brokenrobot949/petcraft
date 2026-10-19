@@ -1,0 +1,37 @@
+{
+  "stations": [
+    { "id": "workbench", "name": "Workbench", "skill": "carpentry", "blurb": "A sturdy bench where fresh pine becomes planks, handles and bows." },
+    { "id": "forge", "name": "Forge", "skill": "smithing", "blurb": "A warm, glowing forge where ore turns into bright, useful things." },
+    { "id": "kitchen", "name": "Kitchen", "skill": "cooking", "blurb": "A snug kitchen that always smells of herbs and something baking." },
+    { "id": "alchemyLab", "name": "Alchemy Lab", "skill": "alchemy", "blurb": "A bubbly corner of jars and glowing drops, brewing tonics and teas." }
+  ],
+  "recipes": [
+    { "id": "pine_plank", "station": "workbench", "level": 1, "seconds": 4, "inputs": { "pine_log": 2 }, "output": "pine_plank", "qty": 1 },
+    { "id": "tool_handle", "station": "workbench", "level": 2, "seconds": 4, "inputs": { "pine_plank": 1 }, "output": "tool_handle", "qty": 1 },
+    { "id": "fiber_string", "station": "workbench", "level": 3, "seconds": 4, "inputs": { "plant_fiber": 3 }, "output": "fiber_string", "qty": 1 },
+    { "id": "sinew_string", "station": "workbench", "level": 4, "seconds": 4, "inputs": { "sinew": 2 }, "output": "sinew_string", "qty": 1 },
+    { "id": "copper_rod", "station": "workbench", "level": 10, "seconds": 12, "inputs": { "pine_plank": 1, "copper_fittings": 1, "fiber_string": 2 }, "output": "copper_rod", "qty": 1, "needs": { "smithing": 10 } },
+    { "id": "copper_bow", "station": "workbench", "level": 10, "seconds": 12, "inputs": { "pine_plank": 2, "copper_fittings": 1, "sinew_string": 2 }, "output": "copper_bow", "qty": 1, "needs": { "smithing": 10 } },
+
+    { "id": "copper_bar", "station": "forge", "level": 1, "seconds": 5, "inputs": { "copper_ore": 2 }, "output": "copper_bar", "qty": 1 },
+    { "id": "copper_fittings", "station": "forge", "level": 2, "seconds": 4, "inputs": { "copper_bar": 1 }, "output": "copper_fittings", "qty": 2 },
+    { "id": "copper_sickle_blade", "station": "forge", "level": 3, "seconds": 5, "inputs": { "copper_bar": 1 }, "output": "copper_sickle_blade", "qty": 1 },
+    { "id": "copper_axe_head", "station": "forge", "level": 4, "seconds": 6, "inputs": { "copper_bar": 2 }, "output": "copper_axe_head", "qty": 1 },
+    { "id": "copper_shovel_head", "station": "forge", "level": 5, "seconds": 6, "inputs": { "copper_bar": 2 }, "output": "copper_shovel_head", "qty": 1 },
+    { "id": "copper_pickaxe_head", "station": "forge", "level": 6, "seconds": 6, "inputs": { "copper_bar": 2 }, "output": "copper_pickaxe_head", "qty": 1 },
+    { "id": "copper_axe", "station": "forge", "level": 10, "seconds": 12, "inputs": { "copper_axe_head": 1, "tool_handle": 1 }, "output": "copper_axe", "qty": 1, "needs": { "carpentry": 10 } },
+    { "id": "copper_pickaxe", "station": "forge", "level": 10, "seconds": 12, "inputs": { "copper_pickaxe_head": 1, "tool_handle": 1 }, "output": "copper_pickaxe", "qty": 1, "needs": { "carpentry": 10 } },
+    { "id": "copper_sickle", "station": "forge", "level": 10, "seconds": 10, "inputs": { "copper_sickle_blade": 1, "tool_handle": 1 }, "output": "copper_sickle", "qty": 1, "needs": { "carpentry": 10 } },
+    { "id": "copper_shovel", "station": "forge", "level": 10, "seconds": 12, "inputs": { "copper_shovel_head": 1, "tool_handle": 1 }, "output": "copper_shovel", "qty": 1, "needs": { "carpentry": 10 } },
+
+    { "id": "berry_compote", "station": "kitchen", "level": 1, "seconds": 4, "inputs": { "berries": 3 }, "output": "berry_compote", "qty": 1 },
+    { "id": "roasted_hazelnuts", "station": "kitchen", "level": 2, "seconds": 4, "inputs": { "hazelnut": 3, "meadow_herb": 1 }, "output": "roasted_hazelnuts", "qty": 1 },
+    { "id": "minnow_stew", "station": "kitchen", "level": 3, "seconds": 5, "inputs": { "minnow": 2, "meadow_herb": 1 }, "output": "minnow_stew", "qty": 1 },
+    { "id": "rabbit_roast", "station": "kitchen", "level": 4, "seconds": 5, "inputs": { "rabbit_meat": 2, "meadow_herb": 1 }, "output": "rabbit_roast", "qty": 1 },
+    { "id": "woodcutters_stew", "station": "kitchen", "level": 6, "seconds": 6, "inputs": { "rabbit_meat": 1, "hazelnut": 2, "meadow_herb": 1 }, "output": "woodcutters_stew", "qty": 1 },
+
+    { "id": "vigor_tonic", "station": "alchemyLab", "level": 1, "seconds": 5, "inputs": { "meadow_herb": 2, "pine_sap": 1 }, "output": "vigor_tonic", "qty": 1 },
+    { "id": "meadow_draught", "station": "alchemyLab", "level": 4, "seconds": 6, "inputs": { "meadow_herb": 2, "berries": 2, "river_shell": 1 }, "output": "meadow_draught", "qty": 1 },
+    { "id": "tinkerers_tea", "station": "alchemyLab", "level": 6, "seconds": 6, "inputs": { "pine_sap": 1, "meadow_herb": 2, "plant_fiber": 2, "river_shell": 1 }, "output": "tinkerers_tea", "qty": 1 }
+  ]
+}

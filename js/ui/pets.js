@@ -375,7 +375,7 @@ function petCard(st, pet, day) {
 function pantryRow(entry, extra) {
   const count = el('span.pet-count', {}, `x${entry.count}`);
   live((st) => { count.textContent = `x${st.bag[entry.id] || 0}`; });
-  return { count, parts: [itemIcon(entry.id, 32, entry.item.name), el('span.pet-row-name', {}, entry.item.name, el('span.small.muted.pet-energy-gain', {}, `+${entry.item.food} energy`)), count, extra] };
+  return { count, parts: [itemIcon(entry.id, 32, entry.label), el('span.pet-row-name', {}, entry.label, el('span.small.muted.pet-energy-gain', {}, `+${Math.round(entry.food)} energy`)), count, extra] };
 }
 
 function buildPantry(st, d) {
@@ -391,7 +391,7 @@ function buildPantry(st, d) {
     const toggle = el('button.btn.pet-toggle', {
       type: 'button',
       'aria-pressed': e.on ? 'true' : 'false',
-      'aria-label': `Allow pets to eat ${e.item.name}`,
+      'aria-label': `Allow pets to eat ${e.label}`,
       onclick: () => act('pets/setPantry', { item: e.id, on: !e.on }),
     }, e.on ? 'On' : 'Off');
     panel.append(el('div.pet-row', {}, pantryRow(e, toggle).parts));
@@ -512,10 +512,10 @@ function buildPage(st, day, pet) {
     const r = pantryRow(e, null);
     return el('button.pet-row.pet-feed', {
       type: 'button',
-      'aria-label': `Feed ${e.item.name} to ${pet.name}`,
+      'aria-label': `Feed ${e.label} to ${pet.name}`,
       onclick: () => {
         if (act('pets/feed', { pet: pid, item: e.id })) {
-          setNote(fmt(pick(lines.ate), { name: pet.name, food: e.item.name }));
+          setNote(fmt(pick(lines.ate), { name: pet.name, food: e.label }));
         }
       },
     }, r.parts);

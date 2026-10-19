@@ -24,8 +24,9 @@ export async function loadIcons(spritesData) {
 }
 
 // A square element showing the item's 16x16 icon at `px` CSS pixels (use multiples of 16).
+// Accepts a bag key: a quality suffix (":fine") shows the same icon.
 export function itemIcon(itemId, px = 32, label = '') {
-  return frameIcon(`item.${itemId}/idle/0`, px, label);
+  return frameIcon(`item.${itemId.split(':')[0]}/idle/0`, px, label);
 }
 
 // A pet's portrait (the pack's Faceset, 38x38) for a sprite role such as "pet.sprout.hatchling"

@@ -25,6 +25,15 @@ const MIGRATIONS = {
     s.version = 3;
     return s;
   },
+  // 3 -> 4 (Phase 4): crafting station queues, player buffs, lifetime craft counts. Stations are
+  // filled in from data/recipes.json by the crafting system's init().
+  3: (s) => {
+    s.crafting = s.crafting || { stations: {} };
+    s.buffs = s.buffs || {};
+    s.stats.crafts = s.stats.crafts || {};
+    s.version = 4;
+    return s;
+  },
 };
 
 export function migrate(save) {

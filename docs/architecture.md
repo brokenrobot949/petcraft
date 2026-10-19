@@ -4,11 +4,11 @@ The contract between the simulation core and everything else. Only the lead chan
 schema, the system interfaces or the structure of `data/balance.json`. Subagents build against
 this file.
 
-## Save state (schema version 3)
+## Save state (schema version 4)
 
 ```js
 {
-  version: 2,
+  version: 4,
   meta: { createdAt, lastSavedAt, launches },     // ms timestamps
   rng: 123456789,                                  // seeded RNG state (js/core/rng.js)
   settings: { music: true, sound: true },
@@ -22,23 +22,27 @@ this file.
     player: { task: null | { zone, skill, node }, progressMs: 0, rng },  // rng: the worker's own random stream (v3)
     pet1: { ... },                                 // one entry per ACTIVE pet, keyed by pet id (v3)
   },
-  stats: { actions: { chopping: 0, ... } },        // lifetime harvest actions per skill (player + pets)
+  stats: { actions: { chopping: 0, ... }, crafts: { recipeId: n } }, // lifetime harvest actions per skill; crafts per recipe (v4)
   pets: {                                          // v3
     nextId: 2, starter: 'sprout' | null,           // starter = archetype of the first egg chosen
     active: ['pet1', null],                       // balance.pets.activeSlots slots; others live in the Stable
     list: { pet1: Pet },
   },
-  pantry: { meadow_herb: false },                  // v3: food auto-feed may NOT use (missing = allowed)
+  pantry: { meadow_herb: false },                  // v3: food (bag keys) auto-feed may NOT use (missing = allowed)
+  crafting: { stations: { workbench: Station } },  // v4
+  buffs: { berry_compote: { skills: ["foraging"], speed: 0.1, msLeft } },  // v4: keyed by base item id
 }
 // Pet: { id, name, archetype, quality, form: 'hatchling'|'juvenile'|'adult', branch: null|id,
 //   level, xp, energy, resting, autoFeed, bond, workMs (toward the next work Bond point),
 //   lastPatDay: null|localDay, bornAt, actions: { skill: n }, gifts: [], talents: [] }
+// Station: { queue: [Batch], progressMs (into the front item), notice (queue ran empty, unseen), rng }
+// Batch: { recipe, qty, done, focus: null|'good'|'perfect', inputs: { itemId: perItem }, made: { key: n } }
 ```
 
 - Missing entries in `skills`, `tools` and `stats.actions` are filled from data by each system's
   `init` (run on every load), so adding a skill or tool kind later needs no migration.
-- Bag keys are plain item ids. Items with quality (tools, meals, Phase 4) will use `id:fine` and
-  `id:masterwork` for the better copies.
+- Bag keys are plain item ids for Normal copies; items with quality (tools, meals) use `id:fine` and
+  `id:masterwork` for the better copies (`itemKey`, `parseKey`, `itemDef`, `itemLabel` in js/systems/bag.js).
 
 ## Systems (js/systems)
 
@@ -262,3 +266,76 @@ Egg pictures are drawn in code from `egg.colors` (no egg sprite in the pack).
 autoFeedBelowFrac }`, `speed { base, perLevel, affinityBonus, bondPerHeart }`,
 `stamina { maxPerLevel, drainCutPerLevel }`, `luck { rarePerLevel }`, `bond { hearts, pat, workMinutesPerPoint }`,
 `qualities.<id> { growth, gifts, odds }`. Level growth terms are `(level - 1) x quality growth`.
+
+## Phase 4: crafting
+
+### Rules (js/systems/crafting.js, tools.js, buffs.js)
+
+- Four stations from `data/recipes.json`. Every station is open and tier 1 until buildings arrive
+  (Phase 5: `state.buildings[stationId].tier`). Queue slots = `balance.crafting.queueSlotsByTier`.
+- `crafting/start` takes the materials for the whole batch out of the bag at once; the front batch
+  makes items one at a time; leftover time carries into the next batch; an empty station banks no
+  time and sets `notice` (the Craft tab badge) until `crafting/seen`.
+- Item time = `seconds / (1 + stationSpeedPerTier x (tier - 1) + buff)`. XP per item =
+  `seconds x xpPerCraftSecond x (1 + level x xpPerRecipeLevel)`.
+- Quality (outputs with `quality: true`): Fine = min(fineCap, fineBase + finePerLevel x levels above
+  the recipe), Masterwork likewise; Focus multiplies both (`focus.mult`), then `fineFocusCap` /
+  `masterworkFocusCap` apply. One roll per item from the station's own stream.
+- A finished tool better than the equipped one (higher tier, then better quality) is equipped at once;
+  the old tool goes to the bag. `tools/equip` swaps by hand.
+- Meals: pets eat them like raw food (`food` x `mealQuality`), +`pets.bond.favoriteDish` Bond when the
+  dish matches the archetype's `dish`. The player eating one (`buffs/use`) gets its `buff`
+  (x `mealQuality` for quality items); the strongest active buff per skill applies to the player's
+  harvesting and to crafting in that skill. Buffs count down in game time.
+- `nextBoundaryMs(state, ctx)`: the tick splits time where a buff ends or a tool finishes, so live play
+  and offline catch-up agree. Remaining exception: crafted food reaching the pantry inside a chunk.
+
+### Events (Phase 4)
+
+```js
+{ type: 'craft', station, recipe, item: key, qty, quality, xp, skill }
+{ type: 'batchDone', station, recipe, made: { key: n } }   { type: 'stationIdle', station }
+{ type: 'toolEquipped', kind, item: key }
+{ type: 'buffStarted', item: key, skills, speed, ms }      { type: 'buffEnded', item: itemId }
+{ type: 'petAte', ..., favorite: true|false }
+```
+Summary additions: `stations: { stationId: { items: { key: n }, xp, skill } }`, `equipped: [key]`, `buffsEnded: [itemId]`.
+
+### Commands (Phase 4)
+
+`crafting/start { recipe, qty, focus }` (focus: 'perfect' | 'good' | 'miss' | null for Skip),
+`crafting/cancel { station, index }`, `crafting/seen`, `tools/equip { item: key }`, `buffs/use { item: key }`.
+Test mode: `dev/grant { item, qty, quality }`.
+
+### Selectors (Phase 4)
+
+From `js/systems/crafting.js`: `stationList(state, data) -> [{ id, name, skill, blurb, tier, slots, queue, progressMs, notice }]`,
+`recipesFor(data, stationId)`, `recipeDef`, `stationDef`, `recipeCheck(state, data, recipeId, qty) -> { ok, reason, max }`,
+`itemMs(state, data, recipe)`, `itemXp(data, recipe)`, `makesQuality(data, recipe)`,
+`qualityOdds(state, data, recipe, focus) -> { fine, masterwork }`, `stationTimeLeft(state, data, stationId) -> { total, item }`,
+`craftNotice(state)`, `queueSlots`, `stationTier`.
+From `js/systems/tools.js`: `isUpgrade(state, data, key)`.
+From `js/systems/buffs.js`: `buffOf(data, key) -> { skills, speed, ms } | null`, `buffSpeed(state, skill)`,
+`activeBuffs(state, data) -> [{ id, item, skills, speed, msLeft }]`.
+From `js/systems/pets.js`: `foodValue(data, key)`, `isFavoriteDish(data, pet, key)`; `pantryList` entries gain `label` and `food`.
+
+### data/recipes.json
+
+```json
+{
+  "stations": [ { "id": "workbench", "name": "Workbench", "skill": "carpentry", "blurb": "..." } ],
+  "recipes": [ { "id": "copper_axe", "station": "forge", "level": 10, "seconds": 12,
+                 "inputs": { "copper_axe_head": 1, "tool_handle": 1 }, "output": "copper_axe", "qty": 1,
+                 "needs": { "carpentry": 10 } } ]
+}
+```
+`level` is in the station's skill; `needs` lists other skills' levels. Item additions: `dish`
+(fruit | nut | fish | meat), `buff { skills, speed, minutes }`; archetypes gain `dish`.
+
+### balance.json additions (Phase 4)
+
+`crafting { queueSlotsByTier, stationSpeedPerTier, xpPerCraftSecond, xpPerRecipeLevel, maxBatch,
+quality { fineBase, finePerLevel, fineCap, fineFocusCap, masterworkBase, masterworkPerLevel, masterworkCap, masterworkFocusCap },
+focus { mult { good, perfect }, sweepMs, goodWidth, perfectWidth }, mealQuality }`, `pets.bond.favoriteDish`.
+Focus bar: the marker sweeps 0..1 and back every `sweepMs`; Perfect = within `perfectWidth / 2` of
+the centre, Good = within `goodWidth / 2`.

@@ -1,0 +1,57 @@
+/* Craft tab: buffs, stations, recipe picker, Focus tap, equipped tools. */
+.buff-row { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.buff-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.buff-time { flex-shrink: 0; }
+
+.station { min-width: 0; }
+.station-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.station-top h2 { margin: 0 0 4px; }
+.station-top .small { color: var(--cream); }
+.station-blurb { margin: 6px 0 4px; }
+.craft-add { margin-top: 8px; min-height: 48px; }
+.batch { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 8px; background: var(--wood-dark); border: 2px solid var(--ink); border-radius: 6px; min-width: 0; }
+.batch > .item-icon { flex-shrink: 0; }
+.batch-body { flex: 1; min-width: 0; }
+.batch-name { overflow-wrap: anywhere; }
+.batch-body .bar.big { margin: 4px 0; }
+.batch-cancel { flex-shrink: 0; min-width: 72px; min-height: 44px; }
+
+.picker { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.recipe {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 56px; padding: 8px; min-width: 0;
+  background: var(--wood-dark); color: var(--text); text-align: left; font: inherit;
+  border: 2px solid var(--ink); border-radius: 6px; cursor: pointer; touch-action: manipulation;
+}
+.recipe > .item-icon { flex-shrink: 0; }
+.recipe.locked, .recipe.nomats { opacity: 0.55; }
+.recipe-body { flex: 1; min-width: 0; }
+.recipe-name { color: var(--pale); overflow-wrap: anywhere; }
+.recipe-inputs { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 2px 0; }
+.need { display: inline-flex; align-items: center; gap: 2px; font-size: 14px; }
+.need.short { color: #ff8a7a; }
+.recipe-note { color: #ff8a7a; }
+.qty-head { display: flex; align-items: center; gap: 10px; }
+.qty-num { color: var(--pale); font-size: 18px; overflow-wrap: anywhere; min-width: 0; }
+.qty-row { display: flex; gap: 8px; }
+.qty-row .qty-btn { flex: 1; min-width: 0; min-height: 48px; }
+
+.focus-overlay { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(19, 27, 27, 0.85); }
+.focus-box { width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 12px; padding: 16px; text-align: center; background: var(--wood); border: 3px solid var(--ink); border-radius: 8px; }
+.focus-box h2, .focus-box p { margin: 0; }
+.focus-bar { position: relative; height: 40px; background: var(--ink); border: 3px solid var(--tan); border-radius: 6px; overflow: hidden; touch-action: manipulation; }
+.focus-zone { position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); }
+.focus-zone.good { background: #3f7a4e; }
+.focus-zone.perfect { background: var(--pale); }
+.focus-marker { position: absolute; top: 0; bottom: 0; width: 6px; margin-left: -3px; background: var(--cream); box-shadow: 0 0 0 2px var(--ink); }
+.focus-result { min-height: 24px; color: var(--cream); overflow-wrap: anywhere; }
+.focus-result.perfect { color: var(--pale); }
+.focus-result.miss { color: #ff8a7a; }
+.focus-tap { min-height: 64px; font-size: 22px; }
+
+.tool-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.tool-cell { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.tool-cell .item-icon { display: inline-block; width: 32px; height: 32px; }
+
+.bag-quality { font-size: 11px; color: var(--pale); }
+.bag-quality.q-masterwork { color: #ffd94a; }
+.batch .bar .fill { transition: width 0.25s linear; }

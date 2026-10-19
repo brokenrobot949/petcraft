@@ -46,7 +46,7 @@
     "speed": { "base": 0.8, "perLevel": 0.02, "affinityBonus": 0.25, "bondPerHeart": 0.02 },
     "stamina": { "maxPerLevel": 0.01, "drainCutPerLevel": 0.005 },
     "luck": { "rarePerLevel": 0.0005 },
-    "bond": { "hearts": [40, 120, 250, 450, 700], "pat": 10, "workMinutesPerPoint": 30 },
+    "bond": { "hearts": [40, 120, 250, 450, 700], "pat": 10, "workMinutesPerPoint": 30, "favoriteDish": 15 },
     "qualities": {
       "common": { "growth": 1.0, "gifts": 0, "odds": 0.6 },
       "uncommon": { "growth": 1.15, "gifts": 0, "odds": 0.28 },
@@ -54,6 +54,24 @@
       "epic": { "growth": 1.5, "gifts": 1, "odds": 0.025 },
       "legendary": { "growth": 1.75, "gifts": 2, "odds": 0.005 }
     }
+  },
+  "crafting": {
+    "queueSlotsByTier": [1, 1, 2, 2, 3],
+    "stationSpeedPerTier": 0.05,
+    "xpPerCraftSecond": 1.5,
+    "xpPerRecipeLevel": 0.05,
+    "maxBatch": 500,
+    "quality": {
+      "fineBase": 0.1, "finePerLevel": 0.01, "fineCap": 0.5, "fineFocusCap": 0.8,
+      "masterworkBase": 0.02, "masterworkPerLevel": 0.005, "masterworkCap": 0.2, "masterworkFocusCap": 0.5
+    },
+    "focus": {
+      "mult": { "good": 1.5, "perfect": 2.5 },
+      "sweepMs": 1300,
+      "goodWidth": 0.24,
+      "perfectWidth": 0.08
+    },
+    "mealQuality": { "normal": 1, "fine": 1.25, "masterwork": 1.5 }
   },
   "render": {
     "pixelScale": 3,

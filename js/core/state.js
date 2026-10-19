@@ -3,7 +3,7 @@
 // Per-skill and per-tool entries are filled from data by each system's init(), not here.
 import { newSeed, deriveSeed } from './rng.js';
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export function createInitialState(now) {
   const seed = newSeed();
@@ -30,9 +30,11 @@ export function createInitialState(now) {
     workers: {
       player: { task: null, progressMs: 0, rng: deriveSeed(seed, 1) },
     },
-    stats: { actions: {} },
+    stats: { actions: {}, crafts: {} },
     pets: { nextId: 1, active: [], list: {} },
     pantry: {},
+    crafting: { stations: {} },
+    buffs: {},
   };
 }
 
@@ -77,5 +79,19 @@ export function validateState(s) {
   for (const id of p.active) if (id !== null && !p.list[id]) return 'active pet is missing';
   for (const id of Object.keys(s.workers)) if (id !== 'player' && !p.list[id]) return 'worker for a missing pet';
   if (!isObj(s.pantry)) return 'bad pantry';
+  if (s.version < 4) return null;
+  if (!isObj(s.crafting) || !isObj(s.crafting.stations)) return 'bad crafting';
+  for (const st of Object.values(s.crafting.stations)) {
+    if (!isObj(st) || !Array.isArray(st.queue) || !isCount(st.progressMs) || !Number.isInteger(st.rng)) return 'bad station';
+    for (const b of st.queue) {
+      if (!isObj(b) || typeof b.recipe !== 'string' || !Number.isInteger(b.qty) || b.qty < 1) return 'bad batch';
+      if (!Number.isInteger(b.done) || b.done < 0 || b.done > b.qty || !isObj(b.inputs) || !isObj(b.made)) return 'bad batch';
+    }
+  }
+  if (!isObj(s.buffs)) return 'bad buffs';
+  for (const b of Object.values(s.buffs)) {
+    if (!isObj(b) || !Array.isArray(b.skills) || !Number.isFinite(b.speed) || !Number.isFinite(b.msLeft)) return 'bad buff';
+  }
+  if (!isObj(s.stats.crafts)) return 'bad stats';
   return null;
 }

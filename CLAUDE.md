@@ -60,34 +60,52 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 3 done (2026-10-19)
-Next: Phase 4 (crafting + balance simulator v1).
+Phase: 4 done (2026-10-19)
+Next: Phase 5 (homestead, building tiers, polish layer v1).
+Phase 4: save schema v4 (station queues, player buffs, craft counts; migration 3->4). Four stations
+  (data/recipes.json, 24 recipes) with queues that run offline, Focus tap (Good x1.5 / Perfect x2.5),
+  Normal/Fine/Masterwork quality, copper tools for all 6 kinds (tier 2; a better tool equips itself),
+  5 meals + 3 potions/tonics: pets eat meals (+Bond for their archetype's favorite dish), the player
+  eats them for a 1 h speed buff. Bag keys carry quality ("copper_axe:fine"). The tick splits time where
+  a buff ends or a tool finishes, so live = offline. Craft tab badge when a queue runs empty.
+  Contract in docs/architecture.md "Phase 4: crafting". Core checks: 55 (tools/tests/core.html).
+  Balance simulator v1: tools/sim/ is a browser page (no Node), open http://localhost:8080/tools/sim/;
+  30 days for both player types in ~1 s; milestones, flags, charts, CSV. See tools/sim/README.md.
 Phase 3: save schema v3 (pets, pantry, a random stream per worker; migration 2->3). Egg choice,
   hatch and name, 2 active slots (+ Stable swap), energy (~3 h per bar), rest, auto-feed from the
   pantry (per-item toggles), hand-feeding, pet XP (stage caps 10/20/30, extra XP banks), Bond with
   hearts, daily pat (local midnight), pets harvesting with the player on the World tab, pets in the
   zone and home scenes, pet lines in "While you were away", Pets tab badge. Contract in
   docs/architecture.md "Phase 3: pets". Pets never give the player skill XP.
-  Core checks: tools/tests/core.html (open it on the local server; 35 checks incl. live = offline).
-  Test mode (Journal -> tap the version line 5 times) can add pets, set energy/level/Bond, re-allow the pat.
+  Test mode (Journal -> tap the version line 5 times) can grant items (with quality), set levels,
+  add pets, set energy/level/Bond, re-allow the pat, pretend you were away.
 Phase 2: save schema v2 (skills, bag, tools, workers, stats; migration 1->2). Harvesting in
   Meadowfold for all 5 skills, skill XP, bag, "While you were away", zone scene with held tools and
-  pops, item icons (js/ui/icons.js reads the atlas). 16 h offline catch-up runs in ~16 ms.
-  XP pacing is a placeholder: 16 h offline chopping reaches level 22; the simulator (Phase 4) tunes it.
+  pops, item icons (js/ui/icons.js reads the atlas).
 Art casting: data/sprites.json maps roles (player, pet.<archetype>.<form>, mythic.<archetype>) to pack
   sprites; js/render/sprites.js loads the atlas and builds actors. Rob picked the player (Hunter,
   a 16x16 "character" sheet: 4-frame walk, 1 swing pose). The other picks are Claude's
   suggestions; Rob recasts in the catalog (http://localhost:8080/tools/catalog/ -> Casting -> Save),
   which writes sprites.json and runs tools/atlas/pack.ps1 via tools/serve.ps1. Then commit + bump version.
 Known issues:
-- Pets that fish, forage or hunt catch raw food and then eat it from the pantry, so they rarely
-  need to rest. Matches the spec, but makes stocking food matter less. Rob to decide (Phase 4 simulator).
+- Pacing is far too fast (simulator, regular player): all six copper tools by day 2, every skill
+  around level 52 by day 30, stockpiles in the hundreds of thousands. Tuned in Phase 10 by changing
+  balance.json only; the XP curve and harvest yields are the main levers.
+- Pets never rest in the simulator (0% of their time): pets that fish, forage or hunt feed
+  themselves. Matches the spec but makes stocking food matter little. Rob to decide.
+- All four stations are open from the start at tier 1; the Forge (Renown 2) and Alchemy Lab
+  (Renown 5) unlocks and station tiers arrive with buildings (Phase 5) and Renown (Phase 6).
+- Copper tools only open Whisperwood, which arrives in Phase 6; until then they add nothing but a
+  new look in the bag (tier gates materials, quality gives speed).
+- No use yet for stone, rabbit hide, pine seed and the rare gems/curios (selling: Phase 6).
+- A pet's personal favorite dish (+40 Bond, revealed on first feed) is not built yet (Phase 8 with gifts).
 - Pet XP is a placeholder: a pet reaches the hatchling cap (level 10) in about a day of work.
-- Node is not installed. The atlas packer is PowerShell (tools/atlas/pack.ps1); the balance simulator
-  (Phase 4) needs Node or a browser-page runner. Decide before Phase 4.
 - Homestead pieces are cast in Phase 5.
 - Weak item icon matches Rob may want to recast: bow (sideways), pine log (a stump), pine seed,
-  berries, rabbit hide, sinew, river shell, four-leaf clover (3 leaves), lucky rabbit foot.
+  berries, rabbit hide, sinew, river shell, four-leaf clover (3 leaves), lucky rabbit foot; Phase 4:
+  hazelnut, pine plank (a crate), tool handle, both strings (same icon), copper fittings (an anvil),
+  pickaxe/shovel heads, berry compote, roasted hazelnuts. Copper sickle, rod and shovel reuse the
+  stone tools' icons (the pack has no second version).
 - Held tools use the full item pictures (SpriteInHand files are head-only fragments) with a
   code-made wind-up and bounce, drawn behind the body; the rod and bow are small and may need tuning in balance.render.zone.
 - Tab icons and app icon are still placeholder pack sprites.

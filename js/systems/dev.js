@@ -1,17 +1,19 @@
 // Test mode commands (docs/handoff.md "Test mode"): grant items, set skill levels, add coins.
 // Opened from a hidden panel in Journal -> Settings. Removed from the shipped build in Phase 10.
-import { addItem } from './bag.js';
+import { addItem, itemKey } from './bag.js';
 import { createPet } from './pets.js';
 import { archetypeOf, petMaxEnergy, petLevelCap } from './petstats.js';
 
 export const id = 'dev';
 
 export const commands = {
-  'dev/grant': (state, { item, qty }, ctx) => {
-    if (!ctx.data.items.items[item]) throw new Error(`No such item: ${item}`);
+  // quality (optional): 'fine' | 'masterwork', for items that roll quality.
+  'dev/grant': (state, { item, qty, quality = 'normal' }, ctx) => {
+    const def = ctx.data.items.items[item];
+    if (!def) throw new Error(`No such item: ${item}`);
     const n = Math.floor(qty);
     if (!(n > 0)) throw new Error('Pick an amount above 0');
-    addItem(state, item, n);
+    addItem(state, itemKey(item, def.quality ? quality : 'normal'), n);
   },
   'dev/setLevel': (state, { skill, level }, ctx) => {
     if (!state.skills[skill]) throw new Error(`No such skill: ${skill}`);

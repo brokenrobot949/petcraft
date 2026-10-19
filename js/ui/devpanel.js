@@ -18,6 +18,8 @@ export function createDevPanel(app) {
     Object.entries(data.items.items).sort((a, b) => a[1].name.localeCompare(b[1].name))
       .map(([id, it]) => el('option', { value: id }, it.name)));
   const qty = el('input.field', { type: 'number', value: '10', min: '1', inputMode: 'numeric', 'aria-label': 'Quantity' });
+  const qualSelItem = el('select.field', { 'aria-label': 'Item quality' },
+    data.tools.qualities.map((q) => el('option', { value: q.id }, q.name)));
   const skillSel = el('select.field', { 'aria-label': 'Skill' },
     data.skills.skills.map((s) => el('option', { value: s.id }, s.name)));
   const level = el('input.field', { type: 'number', value: '5', min: '1', max: String(data.balance.skills.maxLevel), inputMode: 'numeric', 'aria-label': 'Level' });
@@ -55,8 +57,9 @@ export function createDevPanel(app) {
     el('h2', {}, 'Test mode'),
     el('p.small.muted', {}, 'For testing. Removed before release.'),
     el('h3', {}, 'Give items'),
-    el('div.row', {}, itemSel, qty,
-      el('button.btn', { type: 'button', onclick: () => run('dev/grant', { item: itemSel.value, qty: Number(qty.value) }) }, 'Grant')),
+    el('div.row', {}, itemSel),
+    el('div.row', {}, qty, qualSelItem,
+      el('button.btn', { type: 'button', onclick: () => run('dev/grant', { item: itemSel.value, qty: Number(qty.value), quality: qualSelItem.value }) }, 'Grant')),
     el('h3', {}, 'Set skill level'),
     el('div.row', {}, skillSel, level,
       el('button.btn', { type: 'button', onclick: () => run('dev/setLevel', { skill: skillSel.value, level: Number(level.value) }) }, 'Set')),

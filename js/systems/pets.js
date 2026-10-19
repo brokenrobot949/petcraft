@@ -5,7 +5,7 @@
 // Time is stepped event by event (an action finishing, energy reaching the feed line or 0, a
 // Bond point from work), so any chunk size gives the same result.
 import { deriveSeed } from '../core/rng.js';
-import { removeItem } from './bag.js';
+import { removeItem, itemDef, itemLabel, parseKey } from './bag.js';
 import { actionMs, completeAction, dropStaleTask } from './harvest.js';
 import {
   HOUR_MS, archetypeOf, petLevelCap, petXpToNext, petHearts, petMaxEnergy, petDrainPerHour,
@@ -73,8 +73,21 @@ export function petStatus(state, petId) {
   return state.workers[petId]?.task ? 'working' : 'idle';
 }
 
-export function isFood(data, itemId) {
-  return (data.items.items[itemId]?.food || 0) > 0;
+// Energy a pet gets from eating one of this bag key (meals of better quality give more), or 0.
+export function foodValue(data, key) {
+  const def = itemDef(data, key);
+  if (!def?.food) return 0;
+  return def.quality ? def.food * (data.balance.crafting.mealQuality[parseKey(key).quality] ?? 1) : def.food;
+}
+
+export function isFood(data, key) {
+  return foodValue(data, key) > 0;
+}
+
+// Does this pet's archetype love this dish (fruit, nut, fish, meat)?
+export function isFavoriteDish(data, pet, key) {
+  const dish = itemDef(data, key)?.dish;
+  return !!dish && archetypeOf(data, pet.archetype)?.dish === dish;
 }
 
 // Is auto-feed allowed to use this item? (pantry toggle; on unless the player turned it off)
@@ -82,12 +95,12 @@ export function pantryAllows(state, itemId) {
   return state.pantry[itemId] !== false;
 }
 
-// Food in the bag for the Pantry list: [{ id, item, count, on }], smallest meals first.
+// Food in the bag for the Pantry list: [{ id (bag key), item, label, food, count, on }], smallest first.
 export function pantryList(state, data) {
   return Object.entries(state.bag)
     .filter(([id, n]) => n > 0 && isFood(data, id))
-    .map(([id, count]) => ({ id, item: data.items.items[id], count, on: pantryAllows(state, id) }))
-    .sort((a, b) => a.item.food - b.item.food || a.id.localeCompare(b.id));
+    .map(([id, count]) => ({ id, item: itemDef(data, id), label: itemLabel(data, id), food: foodValue(data, id), count, on: pantryAllows(state, id) }))
+    .sort((a, b) => a.food - b.food || a.id.localeCompare(b.id));
 }
 
 // The item auto-feed would eat next, or null.
@@ -164,10 +177,12 @@ export function addBond(state, ctx, pet, amount) {
 }
 
 function eat(state, ctx, pet, itemId, auto) {
-  const food = ctx.data.items.items[itemId].food;
+  const food = foodValue(ctx.data, itemId);
   if (!removeItem(state, itemId, 1)) return false;
   pet.energy = Math.min(petMaxEnergy(ctx.data, pet), pet.energy + food);
-  ctx.emit?.({ type: 'petAte', pet: pet.id, item: itemId, energy: food, auto });
+  const favorite = isFavoriteDish(ctx.data, pet, itemId);
+  ctx.emit?.({ type: 'petAte', pet: pet.id, item: itemId, energy: food, auto, favorite });
+  if (favorite) addBond(state, ctx, pet, ctx.data.balance.pets.bond.favoriteDish);
   return true;
 }
 
@@ -294,7 +309,7 @@ export const commands = {
   'pets/feed': (state, { pet: petId, item }, ctx) => {
     const pet = needPet(state, petId);
     if (!isFood(ctx.data, item)) throw new Error("Pets can't eat that.");
-    if (!state.bag[item]) throw new Error(`You don't have any ${ctx.data.items.items[item].name}.`);
+    if (!state.bag[item]) throw new Error(`You don't have any ${itemLabel(ctx.data, item)}.`);
     if (pet.energy >= petMaxEnergy(ctx.data, pet) - EPS) throw new Error(`${pet.name} is full of energy.`);
     eat(state, ctx, pet, item, false);
     pet.resting = false;

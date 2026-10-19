@@ -6,6 +6,7 @@
       "species": "Sporelet",
       "affinity": ["foraging", "chopping"],
       "favoriteFood": "fruit and berry dishes",
+      "dish": "fruit",
       "blurb": "Loves gathering berries and tidying up fallen branches.",
       "egg": { "name": "Mossy Egg", "desc": "Soft and speckled green, it feels warm, as if something inside is dreaming of sun.", "colors": ["#8bc34a", "#4e7d2a", "#f4e9a8"] },
       "branches": [
@@ -19,6 +20,7 @@
       "species": "Pebblemole",
       "affinity": ["mining"],
       "favoriteFood": "roasted nut and root dishes",
+      "dish": "nut",
       "blurb": "Loves digging gently through the soil for shiny stones.",
       "egg": { "name": "Pebbly Egg", "desc": "Heavy and grey with flecks of quartz, it hums softly like a sleepy cave.", "colors": ["#a3a3a3", "#5f5f6b", "#e0d6c2"] },
       "branches": [
@@ -32,6 +34,7 @@
       "species": "Bloblet",
       "affinity": ["fishing"],
       "favoriteFood": "fish dishes",
+      "dish": "fish",
       "blurb": "Loves paddling by the water and fishing for little fish.",
       "egg": { "name": "Ripple Egg", "desc": "Cool and smooth as river glass, it gurgles gently when you hold it close.", "colors": ["#5ab4e0", "#2d6f9a", "#e8f6ff"] },
       "branches": [
@@ -45,6 +48,7 @@
       "species": "Whiskit",
       "affinity": ["hunting"],
       "favoriteFood": "meat dishes",
+      "dish": "meat",
       "blurb": "Loves quietly tracking small game through the tall grass.",
       "egg": { "name": "Tawny Egg", "desc": "Warm tawny shell with soft freckles, and a faint rustle comes from within.", "colors": ["#d9894a", "#8a4b26", "#f7e1c4"] },
       "branches": [

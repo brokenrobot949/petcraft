@@ -4,6 +4,8 @@ import { offlineCapMs } from '../core/time.js';
 import { itemIcon, faceIcon } from './icons.js';
 import { getPet } from '../systems/pets.js';
 import { petRole } from '../systems/petstats.js';
+import { itemLabel } from '../systems/bag.js';
+import { stationDef } from '../systems/crafting.js';
 
 export function formatDuration(ms) {
   const totalMin = Math.floor(ms / 60000);
@@ -19,7 +21,7 @@ export function showAwaySummary(app, summary, { awayMs }) {
   const data = game.data;
   const state = game.getState();
   const skillName = (id) => data.skills.skills.find((s) => s.id === id)?.name || id;
-  const itemName = (id) => data.items.items[id]?.name || id;
+  const itemName = (key) => itemLabel(data, key);
   const body = [el('p', {}, `You were away ${formatDuration(awayMs)}.`)];
 
   if (summary.ms < awayMs - 1000) {
@@ -64,6 +66,22 @@ export function showAwaySummary(app, summary, { awayMs }) {
       el('h3', {}, pet ? faceIcon(petRole(pet), 24, name) : null, el('span', {}, name)),
       w.actions > 0 ? el('p.small.muted', {}, `${w.actions.toLocaleString()} action${w.actions === 1 ? '' : 's'}`) : null,
       ...rows, ...xp, ...extra));
+  }
+  // Crafting stations: what each queue made.
+  for (const [stationId, s] of Object.entries(summary.stations || {})) {
+    anyWork = true;
+    const rows = Object.entries(s.items).map(([key, n]) =>
+      el('div.away-item', {}, itemIcon24(key, itemName(key)), el('span.grow', {}, itemName(key)), el('b', {}, `+${n.toLocaleString()}`)));
+    scroll.append(el('div.away-worker', {},
+      el('h3', {}, el('span', {}, stationDef(data, stationId)?.name || stationId)),
+      ...rows,
+      s.xp > 0 ? el('p.small', {}, `+${Math.round(s.xp).toLocaleString()} ${skillName(s.skill)} XP`) : null));
+  }
+  for (const key of summary.equipped || []) {
+    scroll.append(el('p.away-levelup', {}, `You equipped your new ${itemName(key)}!`));
+  }
+  for (const id of summary.buffsEnded || []) {
+    scroll.append(el('p.small.muted', {}, `The ${itemName(id)} boost wore off.`));
   }
   for (const [s, level] of Object.entries(summary.levelUps || {})) {
     scroll.append(el('p.away-levelup', {}, `${skillName(s)} reached level ${level}!`));
