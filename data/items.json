@@ -1,0 +1,42 @@
+{
+  "categories": [
+    { "id": "tool", "name": "Tools" },
+    { "id": "wood", "name": "Wood" },
+    { "id": "ore", "name": "Ore" },
+    { "id": "stone", "name": "Stone" },
+    { "id": "plant", "name": "Plants" },
+    { "id": "food", "name": "Food" },
+    { "id": "fish", "name": "Fish" },
+    { "id": "meat", "name": "Meat" },
+    { "id": "hunting", "name": "Hunting" },
+    { "id": "seed", "name": "Seeds" },
+    { "id": "gem", "name": "Gems" },
+    { "id": "curio", "name": "Curios" }
+  ],
+  "items": {
+    "stone_axe": { "name": "Stone Axe", "category": "tool", "tier": 1, "sell": 0, "tool": "axe", "quality": true, "desc": "A sturdy little axe, ready to chop logs for a cozy hearth." },
+    "stone_pickaxe": { "name": "Stone Pickaxe", "category": "tool", "tier": 1, "sell": 0, "tool": "pickaxe", "quality": true, "desc": "Perfect for prying loose stone and shiny ore from the hillside." },
+    "stone_sickle": { "name": "Stone Sickle", "category": "tool", "tier": 1, "sell": 0, "tool": "sickle", "quality": true, "desc": "A curved little blade that gathers herbs and fiber without fuss." },
+    "stone_rod": { "name": "Simple Fishing Rod", "category": "tool", "tier": 1, "sell": 0, "tool": "rod", "quality": true, "desc": "A patient angler's friend for coaxing little fish from the pond." },
+    "stone_bow": { "name": "Simple Bow", "category": "tool", "tier": 1, "sell": 0, "tool": "bow", "quality": true, "desc": "A light wooden bow for gathering small game from the meadow." },
+    "stone_shovel": { "name": "Stone Shovel", "category": "tool", "tier": 1, "sell": 0, "tool": "shovel", "quality": true, "desc": "A friendly shovel that uncovers buried treasures in the dirt." },
+    "pine_log": { "name": "Pine Log", "category": "wood", "tier": 1, "sell": 2, "desc": "A sweet-smelling pine log, perfect for crafting cozy cabin beams." },
+    "pine_sap": { "name": "Pine Sap", "category": "wood", "tier": 1, "sell": 4, "desc": "Golden pine sap, sticky and sweet, lovely for the alchemy lab." },
+    "pine_seed": { "name": "Pine Seed", "category": "seed", "tier": 1, "sell": 3, "desc": "A tiny pine seed that will sprout into a tall, friendly tree." },
+    "stone": { "name": "Stone", "category": "stone", "tier": 1, "sell": 1, "desc": "A sturdy chunk of stone, handy for building walls and paths." },
+    "copper_ore": { "name": "Copper Ore", "category": "ore", "tier": 1, "sell": 4, "desc": "A rock with rosy copper veins, ready for the smelting furnace." },
+    "meadow_herb": { "name": "Meadow Herb", "category": "plant", "tier": 1, "sell": 2, "food": 10, "desc": "A fragrant meadow herb, lovely in a warm meal or tea." },
+    "berries": { "name": "Berries", "category": "plant", "tier": 1, "sell": 2, "food": 12, "desc": "Plump, juicy red berries, a sweet treat for hungry pets." },
+    "plant_fiber": { "name": "Plant Fiber", "category": "plant", "tier": 1, "sell": 1, "desc": "Soft, stringy fibers, just right for weaving rope and cozy blankets." },
+    "minnow": { "name": "Minnow", "category": "fish", "tier": 1, "sell": 3, "food": 12, "desc": "A small silvery fish that makes a light, tasty snack for pets." },
+    "rabbit_meat": { "name": "Rabbit Meat", "category": "meat", "tier": 1, "sell": 3, "food": 15, "desc": "Fresh provisions from the warren, hearty enough for a proper supper." },
+    "rabbit_hide": { "name": "Rabbit Hide", "category": "hunting", "tier": 1, "sell": 2, "desc": "A soft, cozy pelt from the warren, useful for snug bedding." },
+    "sinew": { "name": "Sinew", "category": "hunting", "tier": 1, "sell": 2, "desc": "Tough, gentle strands that make strong string for crafting." },
+    "river_shell": { "name": "River Shell", "category": "curio", "tier": 1, "sell": 4, "desc": "A smooth, shimmering shell from the pond, perfect for a little keepsake." },
+    "amber_chunk": { "name": "Amber Chunk", "category": "gem", "tier": 1, "sell": 20, "desc": "Warm golden amber with a tiny, sleepy bug frozen inside." },
+    "small_quartz": { "name": "Small Quartz", "category": "gem", "tier": 1, "sell": 25, "desc": "A clear crystal that catches the light and scatters little rainbows." },
+    "four_leaf_clover": { "name": "Four-Leaf Clover", "category": "curio", "tier": 1, "sell": 18, "desc": "A rare four-leaf clover, said to bring a bit of good fortune." },
+    "small_pearl": { "name": "Small Pearl", "category": "gem", "tier": 1, "sell": 30, "desc": "A little pearl with a soft glow, treasured by the pond folk." },
+    "lucky_rabbit_foot": { "name": "Lucky Rabbit Foot", "category": "curio", "tier": 1, "sell": 22, "desc": "A charm that feels wonderfully lucky, a gentle keepsake of the warren." }
+  }
+}

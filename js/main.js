@@ -6,11 +6,14 @@ import { elapsedOfflineMs, offlineCapMs } from './core/time.js';
 import { createGame } from './core/game.js';
 import { mountShell } from './ui/shell.js';
 import { initPwa } from './ui/pwa.js';
+import { loadIcons } from './ui/icons.js';
+import { showAwaySummary } from './ui/away.js';
 import { el, toast } from './ui/dom.js';
 
 async function boot() {
   const data = await loadData();
   const { balance } = data;
+  await loadIcons(data.sprites);
 
   const loaded = loadSave();
   const now = Date.now();
@@ -18,7 +21,8 @@ async function boot() {
   const game = createGame(data, state);
 
   // Offline catch-up runs through the same systems as live play.
-  game.catchUp(elapsedOfflineMs(state, balance, now));
+  const awayMs = Math.max(0, now - game.getState().meta.lastSavedAt);
+  const offlineSummary = game.catchUp(elapsedOfflineMs(game.getState(), balance, now));
   game.dispatch('meta/launched');
 
   let saveError = null;
@@ -42,21 +46,36 @@ async function boot() {
     showElsewhere();
   });
 
-  // Live loop: small real-time steps. A long gap (tab in background, phone asleep) is handled
-  // as catch-up, capped like offline time.
+  // "While you were away" for absences long enough to matter.
+  const summaryMinMs = balance.offline.summaryMinSeconds * 1000;
+  const maybeShowAway = (summary, away) => {
+    if (away >= summaryMinMs) showAwaySummary(app, summary, { awayMs: away });
+  };
+
+  // Live loop: small real-time steps. While the page is hidden nothing runs (browsers throttle
+  // background timers anyway); on return the whole gap is one capped catch-up with one summary.
   let last = Date.now();
-  const liveTimer = setInterval(() => {
+  const tickLive = () => {
+    if (document.hidden || suspended) return;
     const t = Date.now();
     const dt = t - last;
     last = t;
     if (dt <= 0) return;
-    if (dt > balance.tick.maxLiveStepMs) game.catchUp(Math.min(dt, offlineCapMs(game.getState(), balance)));
-    else game.advance(dt);
-  }, balance.tick.liveTickMs);
+    if (dt > balance.tick.maxLiveStepMs) {
+      const summary = game.catchUp(Math.min(dt, offlineCapMs(game.getState(), balance)));
+      maybeShowAway(summary, dt);
+    } else {
+      game.advance(dt);
+    }
+  };
+  const liveTimer = setInterval(tickLive, balance.tick.liveTickMs);
 
   // Autosave every N seconds, when the page is hidden, and when it closes.
   const autosaveTimer = setInterval(saveNow, balance.save.autosaveSeconds * 1000);
-  document.addEventListener('visibilitychange', () => document.hidden && saveNow());
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) saveNow();
+    else tickLive();
+  });
   window.addEventListener('pagehide', saveNow);
 
   const app = {
@@ -67,12 +86,25 @@ async function boot() {
       game.replaceState(next);
       return saveNow();
     },
+    // Test mode: pretend the player was away for ms. Same cap and catch-up as a real return.
+    simulateAway(ms) {
+      const summary = game.catchUp(Math.min(ms, offlineCapMs(game.getState(), balance)));
+      saveNow();
+      showAwaySummary(app, summary, { awayMs: ms });
+    },
+    // Test mode: start over. The old game is kept as the backup.
+    resetGame() {
+      saveNow();
+      game.replaceState(createInitialState(Date.now()));
+      return saveNow();
+    },
     pwa: initPwa({ beforeReload: saveNow }),
   };
   mountShell(app);
 
   if (loaded.source === 'backup') toast('Your last save was damaged, so your backup was loaded.', 5000);
   if (loaded.error) toast(`Started a new game: ${loaded.error}.`, 5000);
+  if (loaded.state) maybeShowAway(offlineSummary, awayMs);
 }
 
 function showElsewhere() {

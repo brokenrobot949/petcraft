@@ -60,8 +60,14 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 1 done (2026-10-19)
-Next: Phase 2 (core simulation).
+Phase: 2 done (2026-10-19)
+Next: Phase 3 (pets).
+Phase 2: save schema v2 (skills, bag, tools, workers, stats; migration 1->2). The contract for
+  systems, events, selectors and data shapes is docs/architecture.md (lead-owned). Harvesting in
+  Meadowfold for all 5 skills, skill XP, bag, "While you were away", zone scene with held tools and
+  pops, item icons (js/ui/icons.js reads the atlas). 16 h offline catch-up runs in ~16 ms.
+  Test mode: Journal -> tap the version line 5 times.
+  XP pacing is a placeholder: 16 h offline chopping reaches level 22; the simulator (Phase 4) tunes it.
 Art casting: data/sprites.json maps roles (player, pet.<archetype>.<form>, mythic.<archetype>) to pack
   sprites; js/render/sprites.js loads the atlas and builds actors. Rob picked the player (Hunter,
   a 16x16 "character" sheet: 4-frame walk, 1 swing pose). The other picks are Claude's
@@ -70,7 +76,9 @@ Art casting: data/sprites.json maps roles (player, pet.<archetype>.<form>, mythi
 Known issues:
 - Node is not installed. The atlas packer is PowerShell (tools/atlas/pack.ps1); the balance simulator
   (Phase 4) needs Node or a browser-page runner. Decide before Phase 4.
-- Item icons and homestead pieces are cast in the phases that add items (2) and buildings (5).
-- Held tools: Phase 2 draws Items/Weapons/*/SpriteInHand in the player's hand, plus a code-made
-  wind-up/bounce, since the Hunter sheet has only one swing pose per direction.
+- Homestead pieces are cast in Phase 5.
+- Weak item icon matches Rob may want to recast: bow (sideways), pine log (a stump), pine seed,
+  berries, rabbit hide, sinew, river shell, four-leaf clover (3 leaves), lucky rabbit foot.
+- Held tools use the full item pictures (SpriteInHand files are head-only fragments) with a
+  code-made wind-up and bounce; the rod and bow are small and may need tuning in balance.render.zone.
 - Tab icons and app icon are still placeholder pack sprites.

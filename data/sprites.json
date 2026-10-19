@@ -169,6 +169,73 @@
           "loop": true
         }
       }
+    },
+    "icon": {
+      "label": "Item icon (one picture up to 16x16, centred in a 16x16 cell)",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "anchor": [
+        0.5,
+        0.5
+      ],
+      "pad": true,
+      "single": true,
+      "anims": {
+        "idle": {
+          "dirs": false,
+          "start": [
+            0,
+            0
+          ],
+          "frames": 1,
+          "fps": 1,
+          "loop": true
+        }
+      }
+    },
+    "held": {
+      "label": "Held tool (one picture; the anchor is the grip)",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "anchor": [
+        0.15,
+        0.85
+      ],
+      "single": true,
+      "anims": {
+        "idle": {
+          "dirs": false,
+          "start": [
+            0,
+            0
+          ],
+          "frames": 1,
+          "fps": 1,
+          "loop": true
+        }
+      }
+    },
+    "prop": {
+      "label": "Scene prop (one picture, anchored at its bottom centre)",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "anchor": [
+        0.5,
+        1
+      ],
+      "single": true,
+      "anims": {
+        "idle": {
+          "dirs": false,
+          "start": [
+            0,
+            0
+          ],
+          "frames": 1,
+          "fps": 1,
+          "loop": true
+        }
+      }
     }
   },
   "groups": [
@@ -183,6 +250,18 @@
     {
       "id": "mythics",
       "label": "Mythic pets (from the bosses)"
+    },
+    {
+      "id": "items",
+      "label": "Item icons (one per item)"
+    },
+    {
+      "id": "held",
+      "label": "Held tools (drawn in the player's hand)"
+    },
+    {
+      "id": "props",
+      "label": "Scene props (zone pages)"
     }
   ],
   "roles": {
@@ -368,6 +447,326 @@
       "frameWidth": 60,
       "frameHeight": 60,
       "face": "Actor/Boss/GiantRacoon/Faceset.png"
+    },
+    "item.stone_axe": {
+      "group": "items",
+      "label": "Stone Axe",
+      "layout": "icon",
+      "src": "Items/Tool/Axe.png"
+    },
+    "item.stone_pickaxe": {
+      "group": "items",
+      "label": "Stone Pickaxe",
+      "layout": "icon",
+      "src": "Items/Tool/Pickaxe.png"
+    },
+    "item.stone_sickle": {
+      "group": "items",
+      "label": "Stone Sickle",
+      "layout": "icon",
+      "src": "Items/Tool/Sickle.png"
+    },
+    "item.stone_rod": {
+      "group": "items",
+      "label": "Simple Fishing Rod",
+      "layout": "icon",
+      "src": "Items/Weapons/Fishing Rod/Sprite.png",
+      "frameWidth": 10,
+      "frameHeight": 14
+    },
+    "item.stone_bow": {
+      "group": "items",
+      "label": "Simple Bow",
+      "layout": "icon",
+      "src": "Items/Weapons/Bow/Sprite.png",
+      "frameWidth": 15,
+      "frameHeight": 7
+    },
+    "item.stone_shovel": {
+      "group": "items",
+      "label": "Stone Shovel",
+      "layout": "icon",
+      "src": "Items/Tool/Shovel.png"
+    },
+    "item.pine_log": {
+      "group": "items",
+      "label": "Pine Log",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 192,
+      "y": 208
+    },
+    "item.pine_sap": {
+      "group": "items",
+      "label": "Pine Sap",
+      "layout": "icon",
+      "src": "Items/Food/Honey.png"
+    },
+    "item.pine_seed": {
+      "group": "items",
+      "label": "Pine Seed",
+      "layout": "icon",
+      "src": "Items/Food/SeedBig1.png",
+      "frameWidth": 10,
+      "frameHeight": 13
+    },
+    "item.stone": {
+      "group": "items",
+      "label": "Stone",
+      "layout": "icon",
+      "src": "Items/Resource/Rock.png"
+    },
+    "item.copper_ore": {
+      "group": "items",
+      "label": "Copper Ore",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 64,
+      "y": 224
+    },
+    "item.meadow_herb": {
+      "group": "items",
+      "label": "Meadow Herb",
+      "layout": "icon",
+      "src": "Items/Food/TeaLeaf.png"
+    },
+    "item.berries": {
+      "group": "items",
+      "label": "Berries",
+      "layout": "icon",
+      "src": "Items/Food/Nut2.png",
+      "frameWidth": 15,
+      "frameHeight": 15
+    },
+    "item.plant_fiber": {
+      "group": "items",
+      "label": "Plant Fiber",
+      "layout": "icon",
+      "src": "Items/Resource/Grass.png"
+    },
+    "item.minnow": {
+      "group": "items",
+      "label": "Minnow",
+      "layout": "icon",
+      "src": "Items/Food/Fish.png"
+    },
+    "item.rabbit_meat": {
+      "group": "items",
+      "label": "Rabbit Meat",
+      "layout": "icon",
+      "src": "Items/Food/Meat.png",
+      "frameWidth": 15,
+      "frameHeight": 15
+    },
+    "item.rabbit_hide": {
+      "group": "items",
+      "label": "Rabbit Hide",
+      "layout": "icon",
+      "src": "Items/Scroll/ScrollEmpty.png"
+    },
+    "item.sinew": {
+      "group": "items",
+      "label": "Sinew",
+      "layout": "icon",
+      "src": "Items/Weapons/Whip/Sprite.png",
+      "frameWidth": 9,
+      "frameHeight": 13
+    },
+    "item.river_shell": {
+      "group": "items",
+      "label": "River Shell",
+      "layout": "icon",
+      "src": "Items/Food/Nut.png",
+      "frameWidth": 15,
+      "frameHeight": 15
+    },
+    "item.amber_chunk": {
+      "group": "items",
+      "label": "Amber Chunk",
+      "layout": "icon",
+      "src": "Items/Resource/GemYellow.png",
+      "frameWidth": 14,
+      "frameHeight": 14
+    },
+    "item.small_quartz": {
+      "group": "items",
+      "label": "Small Quartz",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 16,
+      "y": 224
+    },
+    "item.four_leaf_clover": {
+      "group": "items",
+      "label": "Four-Leaf Clover",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 32,
+      "y": 176
+    },
+    "item.small_pearl": {
+      "group": "items",
+      "label": "Small Pearl",
+      "layout": "icon",
+      "src": "Items/Resource/GemPurple.png"
+    },
+    "item.lucky_rabbit_foot": {
+      "group": "items",
+      "label": "Lucky Rabbit Foot",
+      "layout": "icon",
+      "src": "Items/Food/FortuneCookie.png"
+    },
+    "held.axe": {
+      "group": "held",
+      "label": "Held axe",
+      "layout": "held",
+      "src": "Items/Tool/Axe.png",
+      "anchor": [
+        0.12,
+        0.88
+      ]
+    },
+    "held.pickaxe": {
+      "group": "held",
+      "label": "Held pickaxe",
+      "layout": "held",
+      "src": "Items/Tool/Pickaxe.png",
+      "anchor": [
+        0.12,
+        0.88
+      ]
+    },
+    "held.sickle": {
+      "group": "held",
+      "label": "Held sickle",
+      "layout": "held",
+      "src": "Items/Tool/Sickle.png",
+      "anchor": [
+        0.12,
+        0.88
+      ]
+    },
+    "held.rod": {
+      "group": "held",
+      "label": "Held fishing rod",
+      "layout": "held",
+      "src": "Items/Weapons/Fishing Rod/Sprite.png",
+      "frameWidth": 10,
+      "frameHeight": 14,
+      "anchor": [
+        0.15,
+        0.92
+      ]
+    },
+    "held.bow": {
+      "group": "held",
+      "label": "Held bow",
+      "layout": "held",
+      "src": "Items/Weapons/Bow/Sprite.png",
+      "frameWidth": 15,
+      "frameHeight": 7,
+      "anchor": [
+        0.5,
+        0.5
+      ]
+    },
+    "prop.tree": {
+      "group": "props",
+      "label": "Tree (chopping spot)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "x": 32,
+      "y": 0
+    },
+    "prop.rock": {
+      "group": "props",
+      "label": "Ore rock (mining spot)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "x": 112,
+      "y": 224
+    },
+    "prop.bush": {
+      "group": "props",
+      "label": "Bush (foraging spot)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 160,
+      "y": 144
+    },
+    "prop.pond": {
+      "group": "props",
+      "label": "Pond (fishing spot)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetWater.png",
+      "frameWidth": 40,
+      "frameHeight": 40,
+      "x": 4,
+      "y": 100
+    },
+    "prop.burrow": {
+      "group": "props",
+      "label": "Rabbit burrow (hunting spot)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 112,
+      "y": 208
+    },
+    "prop.flower_yellow": {
+      "group": "props",
+      "label": "Yellow flower (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 0,
+      "y": 176
+    },
+    "prop.flower_red": {
+      "group": "props",
+      "label": "Red flower (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 48,
+      "y": 176
+    },
+    "prop.daisy": {
+      "group": "props",
+      "label": "Daisy (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 96,
+      "y": 176
+    },
+    "prop.tuft": {
+      "group": "props",
+      "label": "Grass tuft (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 48,
+      "y": 160
     }
   }
 }

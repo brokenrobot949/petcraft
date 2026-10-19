@@ -257,3 +257,53 @@ textarea.code {
   top: 12px;
   pointer-events: none;
 }
+
+/* ---- item icons ---- */
+.item-icon { display: inline-block; flex-shrink: 0; background-repeat: no-repeat; image-rendering: pixelated; image-rendering: crisp-edges; }
+.item-icon.placeholder { background: var(--tan); color: var(--ink); display: inline-flex; align-items: center; justify-content: center; line-height: 1; word-spacing: 0; }
+
+/* ---- world tab ---- */
+.world h1 { margin: 4px 0 12px; }
+.zone-card { display: block; width: 100%; text-align: left; color: var(--text); font: inherit; cursor: pointer; min-height: var(--tap); touch-action: manipulation; }
+.zone-card.locked { opacity: 0.55; }
+.zone-card p { margin: 4px 0 0; }
+.zone-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.zone-head b { color: var(--pale); font-weight: normal; font-size: 18px; }
+.zone-head .tier { color: var(--muted); font-size: 14px; }
+.zone-note { color: var(--pale); }
+.zone-working { color: var(--cream); }
+.zone-top { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.zone-top h1 { margin: 0; }
+.zone-scene { position: relative; width: 100%; height: clamp(180px, 32vh, 300px); margin-bottom: 12px; overflow: hidden; background: var(--ink); border: 3px solid var(--ink); border-radius: 6px; }
+.zone-scene canvas { display: block; width: 100%; height: 100%; }
+.scene-placeholder { display: flex; height: 100%; align-items: center; justify-content: center; color: var(--muted); }
+.bar.big { height: 16px; margin: 6px 0; }
+.node-btn { display: flex; align-items: center; gap: 8px; width: 100%; min-height: 52px; margin-top: 8px; padding: 6px 10px; background: var(--wood-dark); color: var(--text); border: 3px solid var(--ink); border-radius: 6px; font: inherit; text-align: left; cursor: pointer; touch-action: manipulation; }
+.node-btn.active { border-color: var(--orange); background: #5a4a30; }
+.node-btn.blocked { opacity: 0.55; }
+.node-name { flex: 1; min-width: 0; }
+.node-drops { display: flex; gap: 2px; flex-shrink: 0; }
+.node-lv { color: var(--muted); font-size: 14px; flex-shrink: 0; }
+
+/* ---- bag (Craft tab) ---- */
+.bag-title { margin-top: 8px; }
+.bag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(76px, 1fr)); gap: 8px; }
+.bag-tile { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 64px; padding: 6px 2px; background: var(--wood-dark); color: var(--text); border: 2px solid var(--ink); border-radius: 6px; font: inherit; cursor: pointer; touch-action: manipulation; }
+.bag-icon { position: relative; display: inline-flex; }
+.bag-count { position: absolute; right: -10px; bottom: -6px; padding: 0 4px; background: var(--ink); color: var(--cream); font-size: 12px; border-radius: 4px; }
+.bag-name { font-size: 12px; text-align: center; word-spacing: 0.2em; overflow-wrap: anywhere; }
+.item-detail { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+
+/* ---- away sheet ---- */
+.sheet { max-height: 90vh; max-height: 90dvh; overflow-y: auto; }
+.away-scroll { max-height: 45vh; overflow-y: auto; margin: 8px 0 12px; }
+.away-worker h3, .dev-panel h3 { margin: 8px 0 4px; font-size: 16px; font-weight: normal; color: var(--cream); }
+.away-item { display: flex; align-items: center; gap: 8px; min-height: 28px; }
+.away-item .grow { flex: 1; min-width: 0; }
+.away-levelup { color: var(--pale); }
+
+/* ---- test mode panel ---- */
+.dev-panel { border-color: var(--rust); }
+.dev-panel .row > .field { flex: 1 1 100px; min-width: 0; }
+.field { min-height: var(--tap); padding: 0 8px; background: var(--ink); color: var(--cream); border: 2px solid var(--tan); border-radius: 4px; }
+.dev-panel input.field { flex: 0 1 80px; }

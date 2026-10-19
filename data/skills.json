@@ -1,0 +1,15 @@
+{
+  "tierLevels": [1, 10, 20, 30, 40, 50],
+  "skills": [
+    { "id": "chopping", "name": "Chopping", "type": "harvest", "tool": "axe", "verb": "Chop" },
+    { "id": "mining", "name": "Mining", "type": "harvest", "tool": "pickaxe", "verb": "Mine" },
+    { "id": "foraging", "name": "Foraging", "type": "harvest", "tool": "sickle", "verb": "Forage" },
+    { "id": "fishing", "name": "Fishing", "type": "harvest", "tool": "rod", "verb": "Fish" },
+    { "id": "hunting", "name": "Hunting", "type": "harvest", "tool": "bow", "verb": "Hunt" },
+    { "id": "carpentry", "name": "Carpentry", "type": "craft", "station": "workbench", "verb": "Build" },
+    { "id": "smithing", "name": "Smithing", "type": "craft", "station": "forge", "verb": "Smith" },
+    { "id": "cooking", "name": "Cooking", "type": "craft", "station": "kitchen", "verb": "Cook" },
+    { "id": "alchemy", "name": "Alchemy", "type": "craft", "station": "alchemyLab", "verb": "Brew" },
+    { "id": "taming", "name": "Taming", "type": "special", "verb": "Track" }
+  ]
+}

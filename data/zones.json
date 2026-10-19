@@ -1,0 +1,103 @@
+{
+  "zones": [
+    {
+      "id": "meadowfold", "name": "Meadowfold", "tier": 1, "unlock": { "renown": 1 },
+      "archetypes": ["sprout", "wild"],
+      "blurb": "Rolling green fields around your homestead, full of berries, rabbits and gentle breezes.",
+      "scene": {
+        "idle": [0.46, 0.9],
+        "spots": {
+          "chopping": { "prop": "prop.tree", "x": 0.11, "y": 0.6, "stand": [0.22, 0.72], "face": "left" },
+          "mining": { "prop": "prop.rock", "x": 0.36, "y": 0.52, "stand": [0.36, 0.8], "face": "up" },
+          "foraging": { "prop": "prop.bush", "x": 0.54, "y": 0.6, "stand": [0.54, 0.82], "face": "up" },
+          "hunting": { "prop": "prop.burrow", "x": 0.69, "y": 0.58, "stand": [0.69, 0.82], "face": "up" },
+          "fishing": { "prop": "prop.pond", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" }
+        },
+        "decor": [
+          { "prop": "prop.flower_yellow", "x": 0.05, "y": 0.92 },
+          { "prop": "prop.daisy", "x": 0.3, "y": 0.95 },
+          { "prop": "prop.flower_red", "x": 0.46, "y": 0.7 },
+          { "prop": "prop.tuft", "x": 0.62, "y": 0.96 },
+          { "prop": "prop.tuft", "x": 0.2, "y": 0.4 },
+          { "prop": "prop.flower_yellow", "x": 0.15, "y": 0.28 },
+          { "prop": "prop.daisy", "x": 0.6, "y": 0.34 },
+          { "prop": "prop.flower_red", "x": 0.97, "y": 0.4 }
+        ]
+      },
+      "harvest": {
+        "chopping": [
+          { "id": "pine", "name": "Pine Tree", "level": 1,
+            "drops": [ { "item": "pine_log", "qty": [1, 1], "chance": 1 },
+                       { "item": "pine_sap", "qty": [1, 1], "chance": 0.08 },
+                       { "item": "pine_seed", "qty": [1, 1], "chance": 0.05 } ] }
+        ],
+        "mining": [
+          { "id": "stone_outcrop", "name": "Stone Outcrop", "level": 1,
+            "drops": [ { "item": "stone", "qty": [1, 2], "chance": 1 } ] },
+          { "id": "copper_vein", "name": "Copper Vein", "level": 3,
+            "drops": [ { "item": "copper_ore", "qty": [1, 1], "chance": 1 },
+                       { "item": "stone", "qty": [1, 1], "chance": 0.15 } ] }
+        ],
+        "foraging": [
+          { "id": "herb_patch", "name": "Herb Patch", "level": 1,
+            "drops": [ { "item": "meadow_herb", "qty": [1, 1], "chance": 1 },
+                       { "item": "plant_fiber", "qty": [1, 1], "chance": 0.1 } ] },
+          { "id": "berry_bush", "name": "Berry Bush", "level": 2,
+            "drops": [ { "item": "berries", "qty": [1, 2], "chance": 1 },
+                       { "item": "meadow_herb", "qty": [1, 1], "chance": 0.1 } ] },
+          { "id": "fiber_grass", "name": "Fiber Grass", "level": 1,
+            "drops": [ { "item": "plant_fiber", "qty": [1, 2], "chance": 1 },
+                       { "item": "berries", "qty": [1, 1], "chance": 0.08 } ] }
+        ],
+        "fishing": [
+          { "id": "minnow_pond", "name": "Minnow Pond", "level": 1,
+            "drops": [ { "item": "minnow", "qty": [1, 1], "chance": 1 },
+                       { "item": "river_shell", "qty": [1, 1], "chance": 0.06 } ] }
+        ],
+        "hunting": [
+          { "id": "rabbit_warren", "name": "Rabbit Warren", "level": 1,
+            "drops": [ { "item": "rabbit_meat", "qty": [1, 1], "chance": 1 },
+                       { "item": "rabbit_hide", "qty": [1, 1], "chance": 0.5 },
+                       { "item": "sinew", "qty": [1, 1], "chance": 0.3 } ] }
+        ]
+      },
+      "rare": {
+        "chopping": [ { "item": "amber_chunk", "weight": 1 } ],
+        "mining": [ { "item": "small_quartz", "weight": 1 } ],
+        "foraging": [ { "item": "four_leaf_clover", "weight": 1 } ],
+        "fishing": [ { "item": "small_pearl", "weight": 1 } ],
+        "hunting": [ { "item": "lucky_rabbit_foot", "weight": 1 } ]
+      }
+    },
+    {
+      "id": "whisperwood", "name": "Whisperwood", "tier": 2, "unlock": { "renown": 3 },
+      "archetypes": ["sprout", "tide"],
+      "blurb": "A hushed forest where mushrooms glow softly and the brooks murmur secrets.",
+      "harvest": {}, "rare": {}
+    },
+    {
+      "id": "stonecrag", "name": "Stonecrag Hills", "tier": 3, "unlock": { "renown": 6 },
+      "archetypes": ["stone", "wild"],
+      "blurb": "Sunny hills of warm rock, mountain sage and sleepy boars.",
+      "harvest": {}, "rare": {}
+    },
+    {
+      "id": "mistfen", "name": "Mistfen Marsh", "tier": 4, "unlock": { "renown": 10 },
+      "archetypes": ["tide", "stone"],
+      "blurb": "A misty marsh of bog lilies, lazy eels and drifting fireflies.",
+      "harvest": {}, "rare": {}
+    },
+    {
+      "id": "emberfall", "name": "Emberfall Caldera", "tier": 5, "unlock": { "renown": 15 },
+      "archetypes": ["stone", "wild"],
+      "blurb": "A warm volcanic bowl where fire blooms flicker and the ground hums.",
+      "harvest": {}, "rare": {}
+    },
+    {
+      "id": "heartgrove", "name": "Heartgrove", "tier": 6, "unlock": { "grandProject": 5 },
+      "archetypes": ["sprout", "stone", "tide", "wild"],
+      "blurb": "A hidden grove at the heart of the sanctuary, where every kind of creature gathers.",
+      "harvest": {}, "rare": {}
+    }
+  ]
+}

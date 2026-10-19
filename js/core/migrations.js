@@ -4,7 +4,17 @@
 import { SCHEMA_VERSION } from './state.js';
 
 const MIGRATIONS = {
-  // 1: (s) => { s.newThing = ...; s.version = 2; return s; },
+  // 1 -> 2 (Phase 2): skills, bag, tools, workers and stats. Skill and tool entries are filled
+  // in from data by the systems' init().
+  1: (s) => {
+    s.skills = s.skills || {};
+    s.bag = s.bag || {};
+    s.tools = s.tools || {};
+    s.workers = s.workers || { player: { task: null, progressMs: 0 } };
+    s.stats = s.stats || { actions: {} };
+    s.version = 2;
+    return s;
+  },
 };
 
 export function migrate(save) {

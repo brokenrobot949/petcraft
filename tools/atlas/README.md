@@ -26,6 +26,12 @@ share one region in the image.
   `fps`, `loop`, optional `file` (a separate image in the same folder as the role's `src`) and `axis`.
 - `roles.<id>`: `layout`, `src` (null = not cast yet, skipped), optional `face` image, optional
   `frameWidth`/`frameHeight` overriding the layout.
+  Optional `x`/`y` give a pixel origin inside `src`, so a piece can be cut from a big tileset (frames then
+  start at that pixel, not at a multiple of the frame size). Optional `anchor` [ax, ay] overrides the layout's
+  anchor (used for the grip point of held tools; js/render/sprites.js reads it).
+- Layout flags: `single: true` marks whole-picture layouts (`icon`, `held`, `prop`: one frame `idle`, frame
+  name `<role>/idle/0`). `pad: true` (the `icon` layout) centres a smaller picture (frame size from the role,
+  e.g. 15x15 or 10x13) inside the layout's 16x16 cell, so every item icon atlas frame is exactly 16x16.
 
 Frames: `dirs: true` reads column `start+direction`, going down rows, as `<role>/<anim>_<dir>`.
 `dirs: false` goes across a row (or down a column with `axis: "col"`), as `<role>/<anim>`.

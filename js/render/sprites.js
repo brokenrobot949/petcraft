@@ -45,8 +45,13 @@ export async function loadSprites(spritesData) {
       const spec = layout(roleId)?.anims[anim];
       return spec ? { fps: spec.fps, loop: spec.loop !== false } : { fps: 1, loop: true };
     },
+    // A role may override its layout's anchor (held tools use a per-tool grip point).
     anchor(roleId) {
-      return layout(roleId)?.anchor || [0.5, 1];
+      return role(roleId)?.anchor || layout(roleId)?.anchor || [0.5, 1];
+    },
+    // One frame of a non-directional animation (item icons, held tools, props), or null.
+    texture(roleId, anim = 'idle', i = 0) {
+      return sheet.textures[`${roleId}/${anim}/${i}`] || null;
     },
     // Portrait texture (the pack's Faceset), or null.
     face(roleId) {

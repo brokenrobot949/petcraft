@@ -5,11 +5,26 @@
   "offline": {
     "baseCapHours": 8,
     "capHoursPerCottageTierAbove1": 2,
-    "catchupStepSeconds": 60
+    "catchupStepSeconds": 60,
+    "summaryMinSeconds": 60
   },
   "tick": {
     "liveTickMs": 250,
     "maxLiveStepMs": 5000
+  },
+  "skills": {
+    "maxLevel": 60,
+    "xpCurve": { "a": 40, "exp": 1.5, "b": 60 }
+  },
+  "harvest": {
+    "actionSeconds": { "chopping": 4, "mining": 5, "foraging": 3, "fishing": 6, "hunting": 5 },
+    "tierDurationMult": [1, 1.25, 1.5, 1.75, 2, 2.25],
+    "xpPerActionSecond": 0.6,
+    "xpPerNodeLevel": 0.05,
+    "rareFindBase": 0.01,
+    "playerRareMult": 2,
+    "toolQualitySpeed": { "normal": 0, "fine": 0.1, "masterwork": 0.2 },
+    "toolQualityRare": { "normal": 0, "fine": 0.01, "masterwork": 0.02 }
   },
   "render": {
     "pixelScale": 3,
@@ -25,6 +40,39 @@
       "maxStepPx": 48,
       "swingChance": 0.35,
       "swingMs": 1600
+    },
+    "zone": {
+      "pixelScale": 2,
+      "pixelScaleWide": 3,
+      "wideMinWidthPx": 500,
+      "wideMinHeightPx": 260,
+      "maxPops": 6,
+      "popRiseMs": 1100,
+      "popRisePx": 22,
+      "popFadeStartFrac": 0.55,
+      "popFontSize": 12,
+      "popIconScale": 1,
+      "popIconScaleWide": 2,
+      "popSpacingPx": 34,
+      "popJitterPx": 6,
+      "rareSparkles": 7,
+      "walkSpeedPxPerSec": 38,
+      "windupFrac": 0.7,
+      "blendMs": 160,
+      "bouncePx": 3,
+      "bounceMs": 220,
+      "squash": 0.12,
+      "hand": { "down": [5, -6], "up": [-5, -8], "left": [-5, -6], "right": [5, -6] },
+      "held": {
+        "axe": { "rest": 0, "windup": -55, "strike": 75 },
+        "pickaxe": { "rest": 0, "windup": -60, "strike": 80 },
+        "sickle": { "rest": 10, "windup": -50, "strike": 70 },
+        "rod": { "rest": 0, "windup": -30, "strike": 45 },
+        "bow": { "rest": 80, "windup": 60, "strike": 100 }
+      },
+      "groundColor": "0xadbc3a",
+      "speckColor": "0x9aaa30",
+      "specks": 26
     }
   }
 }

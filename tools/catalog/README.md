@@ -20,5 +20,9 @@ Start the server with `tools/serve.ps1` (needed for saving), open the catalog an
    (the layout is detected automatically; a warning appears if the picture has the wrong shape).
    While choosing, a **Monsters / Bosses / Characters** chip helps narrow the grid.
    You can also open any sprite and use **Use for...** + **Cast**.
+   Item icons, held tools and scene props are whole pictures: pick any small PNG (icons max 16x16, others max
+   128x128; the Items chip filters to the Items folder). Pieces cut from a big tileset (x/y in sprites.json) show
+   their frame in the list but can only be re-cut by editing sprites.json; recasting a role with a new picture
+   resets its x, y and anchor.
 3. Press **Save casting & build atlas**. It writes `data/sprites.json` and runs `tools/atlas/pack.ps1`;
    the log is shown in the panel. **Revert** reloads the saved file. Without the dev server, use **Copy casting JSON**.

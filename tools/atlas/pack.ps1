@@ -65,11 +65,13 @@ $anims = New-Object System.Collections.ArrayList
 $frameNames = @{}
 $packed = 0; $skipped = New-Object System.Collections.ArrayList
 
-function Add-Region($img, [int]$x, [int]$y, [int]$w, [int]$h, [string]$what) {
+function Add-Region($img, [int]$x, [int]$y, [int]$w, [int]$h, [string]$what, [int]$cw = 0, [int]$ch = 0, [int]$dx = 0, [int]$dy = 0) {
   if ($x -lt 0 -or $y -lt 0 -or $x + $w -gt $img.W -or $y + $h -gt $img.H) {
     Fail "$what : frame rectangle x=$x y=$y w=$w h=$h is outside the image ($($img.W)x$($img.H))"
   }
+  if ($cw -le 0) { $cw = $w }; if ($ch -le 0) { $ch = $h }
   $k = "$($img.Key)|$x|$y|$w|$h"
+  if ($cw -ne $w -or $ch -ne $h -or $dx -ne 0 -or $dy -ne 0) { $k += "|pad$cw$ch$dx$dy" }
   if (-not $regions.ContainsKey($k)) {
     # transparency check
     $any = $false
@@ -78,7 +80,7 @@ function Add-Region($img, [int]$x, [int]$y, [int]$w, [int]$h, [string]$what) {
       for ($xx = 0; $xx -lt $w; $xx++) { if ($img.Px[$o + $xx * 4] -ne 0) { $any = $true; break } }
     }
     if (-not $any) { Write-Host "WARN: $what : frame at x=$x y=$y is fully transparent" }
-    $regions[$k] = @{ Img = $img; SX = $x; SY = $y; W = $w; H = $h; X = 0; Y = 0; Key = $k }
+    $regions[$k] = @{ Img = $img; SX = $x; SY = $y; SW = $w; SH = $h; W = $cw; H = $ch; DX = $dx; DY = $dy; X = 0; Y = 0; Key = $k }
   }
   return $regions[$k]
 }
@@ -98,6 +100,16 @@ foreach ($rp in $spr.roles.PSObject.Properties) {
   if ($role.PSObject.Properties['frameWidth'] -and $role.frameWidth) { $fw = [int]$role.frameWidth }
   if ($role.PSObject.Properties['frameHeight'] -and $role.frameHeight) { $fh = [int]$role.frameHeight }
   if ($fw -le 0 -or $fh -le 0) { Fail "role $id : bad frame size ${fw}x${fh}" }
+  $ox = 0; $oy = 0
+  if ($role.PSObject.Properties['x'] -and $role.x) { $ox = [int]$role.x }
+  if ($role.PSObject.Properties['y'] -and $role.y) { $oy = [int]$role.y }
+  # layout "pad": the picture (frame size from the role) is centred in the layout's frame-size cell.
+  $cw = $fw; $ch = $fh; $dx = 0; $dy = 0
+  if ($layout.PSObject.Properties['pad'] -and $layout.pad) {
+    $cw = [int]$layout.frameWidth; $ch = [int]$layout.frameHeight
+    if ($fw -gt $cw -or $fh -gt $ch) { Fail "role $id : picture ${fw}x${fh} is bigger than the ${cw}x${ch} cell of layout '$($role.layout)'" }
+    $dx = [int][Math]::Floor(($cw - $fw) / 2); $dy = [int][Math]::Floor(($ch - $fh) / 2)
+  }
   $srcDir = ''
   if ($role.src.Contains('/')) { $srcDir = $role.src.Substring(0, $role.src.LastIndexOf('/') + 1) }
 
@@ -120,7 +132,7 @@ foreach ($rp in $spr.roles.PSObject.Properties) {
         $key = "$id/${an}_$($dirs[$d])"
         $list = New-Object System.Collections.ArrayList
         for ($i = 0; $i -lt $n; $i++) {
-          $reg = Add-Region $img (($sx + $d) * $fw) (($sy + $i) * $fh) $fw $fh "$what dir $($dirs[$d]) frame $i"
+          $reg = Add-Region $img ($ox + ($sx + $d) * $fw) ($oy + ($sy + $i) * $fh) $fw $fh "$what dir $($dirs[$d]) frame $i" $cw $ch $dx $dy
           Add-Frame "$key/$i" $reg; [void]$list.Add("$key/$i")
         }
         [void]$anims.Add(@{ Key = $key; Frames = $list })
@@ -140,7 +152,7 @@ foreach ($rp in $spr.roles.PSObject.Properties) {
       $list = New-Object System.Collections.ArrayList
       for ($i = 0; $i -lt $n; $i++) {
         if ($axis -eq 'col') { $px0 = $sx * $fw; $py0 = ($sy + $i) * $fh } else { $px0 = ($sx + $i) * $fw; $py0 = $sy * $fh }
-        $reg = Add-Region $img $px0 $py0 $fw $fh "$what frame $i"
+        $reg = Add-Region $img ($ox + $px0) ($oy + $py0) $fw $fh "$what frame $i" $cw $ch $dx $dy
         Add-Frame "$key/$i" $reg; [void]$list.Add("$key/$i")
       }
       [void]$anims.Add(@{ Key = $key; Frames = $list })
@@ -175,8 +187,8 @@ if ($atlasH -gt $MAXH) { Fail "atlas would be ${atlasW}x${atlasH}, taller than t
 $out = New-Object byte[] ($atlasW * $atlasH * 4)
 foreach ($r in $sorted) {
   $img = $r.Img
-  for ($y = 0; $y -lt $r.H; $y++) {
-    [Array]::Copy($img.Px, (($r.SY + $y) * $img.W + $r.SX) * 4, $out, (($r.Y + $y) * $atlasW + $r.X) * 4, $r.W * 4)
+  for ($y = 0; $y -lt $r.SH; $y++) {
+    [Array]::Copy($img.Px, (($r.SY + $y) * $img.W + $r.SX) * 4, $out, (($r.Y + $r.DY + $y) * $atlasW + $r.X + $r.DX) * 4, $r.SW * 4)
   }
 }
 $bmp = New-Object System.Drawing.Bitmap($atlasW, $atlasH, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)

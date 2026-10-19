@@ -1,6 +1,8 @@
 // Journal tab. Phase 0 has Settings: sound toggles, save export/import, install, credits.
 import { el, toast, formatAgo } from './dom.js';
 import { exportCode, importCode } from '../core/save.js';
+import { getPref, setPref } from './device.js';
+import { createDevPanel } from './devpanel.js';
 
 export const id = 'journal';
 export const label = 'Journal';
@@ -80,6 +82,27 @@ export function mount(container, app) {
     installBtn.hidden = !can;
   });
 
+  // ---- test mode: tap the version line 5 times within 3 seconds ----
+  const devHost = el('div');
+  let taps = [];
+  const versionLine = el('p.small.muted', {
+    style: 'margin-top:8px',
+    onclick: () => {
+      const now = Date.now();
+      taps = taps.filter((t) => now - t < 3000).concat(now);
+      if (taps.length < 5) return;
+      taps = [];
+      const on = !getPref('devMode', false);
+      setPref('devMode', on);
+      showDev(on);
+      toast(on ? 'Test mode on' : 'Test mode off');
+    },
+  }, `Version ${self.PETCRAFT_VERSION}`);
+  function showDev(on) {
+    devHost.replaceChildren(...(on ? [createDevPanel(app)] : []));
+  }
+  showDev(getPref('devMode', false));
+
   container.append(
     el('h1', {}, 'Journal'),
     el('div.panel', {},
@@ -101,7 +124,8 @@ export function mount(container, app) {
       importBox,
       el('div.row', {}, importBtn)),
     el('div.panel', {}, el('h2', {}, 'App'), installBtn, installHelp,
-      el('p.small.muted', { style: 'margin-top:8px' }, `Version ${self.PETCRAFT_VERSION}`)),
+      versionLine),
+    devHost,
     el('div.panel', {},
       el('h2', {}, 'Credits'),
       el('p.small', {}, 'Art, font and sound: the Ninja Adventure pack by Pixel-boy and AAA (CC0).'),

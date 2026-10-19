@@ -1,5 +1,5 @@
 // Loads the data/*.json files. Add a name here when a phase adds a data file (and add the file to sw.js).
-const DATA_FILES = ['balance', 'sprites'];
+const DATA_FILES = ['balance', 'sprites', 'skills', 'tools', 'items', 'zones'];
 
 export async function loadData() {
   const entries = await Promise.all(

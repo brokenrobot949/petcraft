@@ -1,0 +1,24 @@
+{
+  "kinds": [
+    { "id": "axe", "name": "Axe", "skill": "chopping", "starter": "stone_axe" },
+    { "id": "pickaxe", "name": "Pickaxe", "skill": "mining", "starter": "stone_pickaxe" },
+    { "id": "sickle", "name": "Sickle", "skill": "foraging", "starter": "stone_sickle" },
+    { "id": "rod", "name": "Fishing Rod", "skill": "fishing", "starter": "stone_rod" },
+    { "id": "bow", "name": "Bow", "skill": "hunting", "starter": "stone_bow" },
+    { "id": "shovel", "name": "Shovel", "skill": null, "starter": "stone_shovel" }
+  ],
+  "tiers": [
+    { "tier": 1, "metal": "stone", "name": "Stone", "opens": "meadowfold" },
+    { "tier": 2, "metal": "copper", "name": "Copper", "opens": "whisperwood" },
+    { "tier": 3, "metal": "iron", "name": "Iron", "opens": "stonecrag" },
+    { "tier": 4, "metal": "steel", "name": "Steel", "opens": "mistfen" },
+    { "tier": 5, "metal": "mythril", "name": "Mythril", "opens": "emberfall" },
+    { "tier": 6, "metal": "emberite", "name": "Emberite", "opens": "heartgrove" },
+    { "tier": 7, "metal": "starmetal", "name": "Starmetal", "opens": null, "prestige": true }
+  ],
+  "qualities": [
+    { "id": "normal", "name": "Normal" },
+    { "id": "fine", "name": "Fine" },
+    { "id": "masterwork", "name": "Masterwork" }
+  ]
+}

@@ -6,7 +6,7 @@ const DATA_URL = '../../data/sprites.json';
 const SAVE_URL = '/__dev/cast';
 const ROW_BOX = 80;   // preview box size in the role list (pixels)
 const OV_BOX = 256;   // preview box size in the big overlay (pixels)
-const ROLE_FIELD_ORDER = ['group', 'label', 'layout', 'src', 'frameWidth', 'frameHeight', 'face'];
+const ROLE_FIELD_ORDER = ['group', 'label', 'layout', 'src', 'frameWidth', 'frameHeight', 'x', 'y', 'anchor', 'face'];
 
 export async function initCast({ files, urlFor, $, refilter }) {
   const byPath = new Map(files.map((f) => [f.path, f]));
@@ -83,7 +83,7 @@ export async function initCast({ files, urlFor, $, refilter }) {
       const [c, r] = cellFor(a.anim, 0, f); // always facing down
       a.ctx.clearRect(0, 0, a.canvas.width, a.canvas.height);
       a.ctx.imageSmoothingEnabled = false;
-      a.ctx.drawImage(a.img, c * a.fw, r * a.fh, a.fw, a.fh, 0, 0, a.fw * a.scale, a.fh * a.scale);
+      a.ctx.drawImage(a.img, a.ox + c * a.fw, a.oy + r * a.fh, a.fw, a.fh, 0, 0, a.fw * a.scale, a.fh * a.scale);
     }
     requestAnimationFrame(tick);
   }
@@ -103,7 +103,7 @@ export async function initCast({ files, urlFor, $, refilter }) {
       canvas.width = fw * scale;
       canvas.height = fh * scale;
       running.add({
-        canvas, ctx: canvas.getContext('2d'), img, anim, fw, fh, scale,
+        canvas, ctx: canvas.getContext('2d'), img, anim, fw, fh, scale, ox: spec.x || 0, oy: spec.y || 0, // x,y = pixel origin of a piece cut from a bigger sheet
         frames: frameCount(anim, img.naturalWidth, img.naturalHeight, fw, fh),
         fps: anim.fps || 6, last: -1,
       });
@@ -168,8 +168,25 @@ export async function initCast({ files, urlFor, $, refilter }) {
     return null;
   }
 
+  // Layouts marked "single" (icon, held, prop) use the whole picked picture as one frame.
+  function singlePlan(e, override, targetRoleId) {
+    const target = targetRoleId && data.roles[targetRoleId];
+    const name = override || (target ? target.layout : '');
+    const layout = name && data.layouts[name];
+    if (!layout || !layout.single) return null;
+    if (!/\.png$/i.test(e.path)) return { error: 'Only PNG pictures can be cast (this is not a PNG).' };
+    const limit = layout.pad ? [layout.frameWidth, layout.frameHeight] : [128, 128];
+    if (e.width > limit[0] || e.height > limit[1]) {
+      return { error: `This picture is ${e.width}x${e.height}, too big for "${layout.label}" (max ${limit[0]}x${limit[1]}). ` +
+        'For a piece of a big tileset sheet, ask Claude to cut it (sprites.json supports x and y).' };
+    }
+    return { layout: name, fw: e.width, fh: e.height, frameWidth: e.width, frameHeight: e.height, src: e.path, face: null, single: true, error: null, warn: null };
+  }
+
   // Work out everything needed to cast file `e`. `override` = layout name or ''; fwIn/fhIn = manual strip sizes.
-  function makePlan(e, override, fwIn, fhIn) {
+  function makePlan(e, override, fwIn, fhIn, targetRoleId) {
+    const single = singlePlan(e, override, targetRoleId); // item icons, held tools and props are one whole picture
+    if (single) return single;
     const det = detect(e);
     if (det.fatal) return { error: det.error };
     const layoutName = override || det.layout;
@@ -197,6 +214,11 @@ export async function initCast({ files, urlFor, $, refilter }) {
     const old = data.roles[roleId];
     const next = {};
     const values = { group: old.group, label: old.label, layout: plan.layout, src: plan.src, face: plan.face };
+    if (plan.single) { // whole-picture layouts: no face; frame size only when it differs from the layout's; x, y and anchor reset
+      delete values.face;
+      const lay = data.layouts[plan.layout];
+      if (plan.fw !== lay.frameWidth || plan.fh !== lay.frameHeight) { values.frameWidth = plan.fw; values.frameHeight = plan.fh; }
+    }
     if (plan.layout === 'strip') { values.frameWidth = plan.fw; values.frameHeight = plan.fh; }
     for (const k of ROLE_FIELD_ORDER) if (k in values) next[k] = values[k];
     for (const k of Object.keys(old)) if (!(k in next) && !ROLE_FIELD_ORDER.includes(k)) next[k] = old[k];
@@ -258,7 +280,8 @@ export async function initCast({ files, urlFor, $, refilter }) {
   window.addEventListener('resize', placeBars);
 
   // ---------- picking a role ----------
-  const CHIPS = { pets: ['Monsters', 'Monster'], mythics: ['Bosses', 'Boss'], player: ['Characters', 'Character'] };
+  const CHIPS = { pets: ['Monsters', 'Monster'], mythics: ['Bosses', 'Boss'], player: ['Characters', 'Character'],
+    items: ['Items', 'Items'], held: ['Items', 'Items'] };
 
   function startPicking(id) {
     activeRole = id;
@@ -300,6 +323,7 @@ export async function initCast({ files, urlFor, $, refilter }) {
     if (!activeRole || !chipOn) return null;
     const chip = CHIPS[data.roles[activeRole].group];
     if (!chip) return null;
+    if (chip[1] === 'Items') return (e) => e.category === 'Items';
     if (chip[1] === 'Character') return (e) => e.category === 'Actor' && (e.subcategory === 'Character' || e.subcategory === 'CharacterAnimated');
     return (e) => e.category === 'Actor' && e.subcategory === chip[1];
   }
@@ -307,14 +331,14 @@ export async function initCast({ files, urlFor, $, refilter }) {
   // ---------- the overlay's casting section ----------
   function refreshOverlay() {
     if (!ovEntry) return;
-    const plan = makePlan(ovEntry, $('ov-layout').value, +$('ov-fw').value, +$('ov-fh').value);
+    const plan = makePlan(ovEntry, $('ov-layout').value, +$('ov-fw').value, +$('ov-fh').value, activeRole || $('ov-role').value);
     ovPlan = plan;
     const strip = (plan.layout || $('ov-layout').value) === 'strip';
     $('ov-frame').hidden = !strip;
     if (strip && plan.fw && document.activeElement !== $('ov-fw')) { $('ov-fw').value = plan.fw; $('ov-fh').value = plan.fh; }
     const msg = $('ov-cast-msg');
     msg.textContent = plan.error || plan.warn || (plan.layout
-      ? `Will play as: ${data.layouts[plan.layout].label}${plan.face ? '' : ' (no face picture found)'}` : '');
+      ? `Will play as: ${data.layouts[plan.layout].label}${plan.face || plan.single ? '' : ' (no face picture found)'}` : '');
     msg.className = 'cast-msg' + (plan.error ? ' bad' : plan.warn ? ' warn' : '');
     const cv = $('ov-anim');
     $('ov-anim-wrap').hidden = !!plan.error;
