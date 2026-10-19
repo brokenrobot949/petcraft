@@ -70,7 +70,8 @@ export async function createZoneScene(host, game, zoneId) {
   world.addChild(player.view);
   const heldSprite = new Sprite();
   heldSprite.visible = false;
-  player.view.addChild(heldSprite);
+  // Behind the character's body, so the tool reads as held rather than pasted on top.
+  player.view.addChildAt(heldSprite, 0);
   let heldRole = null;
 
   const me = {

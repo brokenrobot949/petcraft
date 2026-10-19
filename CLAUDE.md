@@ -80,5 +80,5 @@ Known issues:
 - Weak item icon matches Rob may want to recast: bow (sideways), pine log (a stump), pine seed,
   berries, rabbit hide, sinew, river shell, four-leaf clover (3 leaves), lucky rabbit foot.
 - Held tools use the full item pictures (SpriteInHand files are head-only fragments) with a
-  code-made wind-up and bounce; the rod and bow are small and may need tuning in balance.render.zone.
+  code-made wind-up and bounce, drawn behind the body; the rod and bow are small and may need tuning in balance.render.zone.
 - Tab icons and app icon are still placeholder pack sprites.
