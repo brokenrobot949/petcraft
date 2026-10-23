@@ -61,7 +61,13 @@ Live play, offline catch-up and the balance simulator must call the same system 
 
 ## Status
 Phase: 5 done (2026-10-19)
-Next: Phase 6 (Mossbrook market, coins, commissions, achievements, Renown ranks, zones 2-5, tool tiers 3-6).
+Next: Phase 6 (Mossbrook market, coins, commissions, achievements, Renown ranks, zones 2-5, tool tiers 3-6),
+  plus the working-station limit Rob approved on 2026-10-23 (docs/design.md "Crafting", locked decision
+  changed): the player works 1 station at a time, 2 from Cottage tier 3; other queues pause; one-tap switch
+  on the Craft tab; works offline. Needs a schema bump + migration (which stations the player works at;
+  existing saves keep their queues, the first busy station stays working). Phase 8 changes station assist
+  from +10% speed to "an adult assistant keeps that station running" (no player slot used). Re-run the
+  simulator: watch pet rest time, since the Kitchen now competes with the Workbench and Forge.
 Phase 5: no schema bump (buildings.init fills one { tier } per building in data/buildings.json). 8 buildings
   (Cottage, Stable, Workbench, Kitchen, Forge, Alchemy Lab, Garden, Nest), 5 tiers each, instant upgrades
   (js/systems/buildings.js): materials, coins from tier 3, blueprints for tiers 3-5; nothing passes the

@@ -32,7 +32,7 @@ These were agreed in planning and should not change without Rob's say-so.
 | Pet role | Bulk idle harvesting at any unlocked tier. Evolved pets can assist a crafting station. |
 | Active pets | 2 active; the Stable holds the rest. |
 | Upkeep | One energy bar per pet. Rest refills it slowly, food quickly. Auto-rest and auto-feed. |
-| Crafting | Each station runs its own queue, offline too. Optional Focus timing tap for quality. |
+| Crafting | Each station keeps its own queue, but the player works only one station at a time (two from Cottage tier 3); adult pets posted as assistants keep more stations running. Queues run offline. Optional Focus timing tap for quality. (Changed by Rob, 2026-10-23.) |
 | Evolution | Player picks the branch. Branches unlock from what the pet has done (callings). Final stage needs Bond 3 and an Alchemy catalyst. |
 | Quality | Sets stat growth and innate Gift talents. Shown with palette and aura, not new sprites. |
 | Taming | Tracking finds a monster; a crafted trap and bait catch it. Replaces separate pet search and trapping. |
@@ -66,7 +66,7 @@ Zones become materials, stations turn materials into outputs, and each output lo
 
 - **Three workers:** the player plus two active pets. Each works one task in one zone until reassigned.
 - **Player tasks:** harvest (any of the 5 skills), track monsters, or dig a treasure site. One at a time.
-- **Stations:** each crafting station runs its own queue in parallel with the workers, offline too.
+- **Stations:** each crafting station keeps its own queue. The player works at one station at a time (two from Cottage tier 3), alongside harvesting; the others wait, paused, unless an adult pet assistant is posted there. Offline too.
 - **Actions:** every harvest action has a base duration (about 3–6 seconds at tier 1, longer at higher tiers) and yields items plus skill XP.
 
 **Offline progress**
@@ -235,7 +235,7 @@ Sprout shown; Stone, Tide and Wild follow the same shape with their own branches
 
 Catalysts use tier 3–4 materials, so most adults appear around Stonecrag and Mistfen.
 
-**Station assist:** an adult pet resting in the Stable can be posted to one station for +10% craft speed (Forge quality assist: +10% Fine and Masterwork odds instead). One assistant per station. This gives stabled pets a job.
+**Station assist:** an adult pet resting in the Stable can be posted to one station, which then keeps running even when the player is working elsewhere (it does not use one of the player's station slots). One assistant per station. This gives stabled pets a job, and is the only way to run more than two stations at once.
 
 **Talents**
 
@@ -279,6 +279,7 @@ Crafting is managed, not idle: you choose recipes, keep four station queues full
 
 - **Four stations,** each a homestead building: Workbench (Carpentry), Forge (Smithing), Kitchen (Cooking), Alchemy Lab (Alchemy).
 - **Queue slots:** 1 at tiers 1–2, 2 at tiers 3–4, 3 at tier 5. A slot holds one batch (one recipe × any quantity you have materials for).
+- **Working stations:** the player works 1 station at a time (2 from Cottage tier 3), switched with one tap on the Craft tab; stations with a pet assistant run on their own. Paused stations keep their queues.
 - **Queues run offline.** Finished items go straight to the bag; the Craft tab shows a badge when a queue empties.
 - **Craft time:** a few seconds per item at tier 1, rising with tier. Station tiers add +5% speed each.
 
