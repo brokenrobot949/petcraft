@@ -77,6 +77,21 @@ export function showAwaySummary(app, summary, { awayMs }) {
       ...rows,
       s.xp > 0 ? el('p.small', {}, `+${Math.round(s.xp).toLocaleString()} ${skillName(s.skill)} XP`) : null));
   }
+  // Garden harvests, Renown and achievements (Phase 6).
+  const gardenRows = Object.entries(summary.garden || {});
+  if (gardenRows.length) {
+    anyWork = true;
+    scroll.append(el('div.away-worker', {},
+      el('h3', {}, el('span', {}, 'Garden')),
+      ...gardenRows.map(([key, n]) =>
+        el('div.away-item', {}, itemIcon24(key, itemName(key)), el('span.grow', {}, itemName(key)), el('b', {}, `+${n.toLocaleString()}`)))));
+  }
+  for (const id of summary.achievements || []) {
+    const a = data.achievements.achievements.find((x) => x.id === id);
+    scroll.append(el('p.away-levelup', {}, `Achievement: ${a?.name || id}`));
+  }
+  if (summary.renown?.xp > 0) scroll.append(el('p.small', {}, `+${Math.round(summary.renown.xp).toLocaleString()} Renown XP`));
+  if (summary.renown?.rank) scroll.append(el('p.away-levelup', {}, `You reached Renown ${summary.renown.rank}!`));
   for (const key of summary.equipped || []) {
     scroll.append(el('p.away-levelup', {}, `You equipped your new ${itemName(key)}!`));
   }

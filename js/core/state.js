@@ -3,7 +3,7 @@
 // Per-skill and per-tool entries are filled from data by each system's init(), not here.
 import { newSeed, deriveSeed } from './rng.js';
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 export function createInitialState(now) {
   const seed = newSeed();
@@ -33,9 +33,18 @@ export function createInitialState(now) {
     stats: { actions: {}, crafts: {} },
     pets: { nextId: 1, active: [], list: {} },
     pantry: {},
-    crafting: { stations: {} },
+    crafting: { stations: {}, working: [], known: {} },
     buffs: {},
+    village: newVillage(seed),
+    garden: { plots: [], rng: deriveSeed(seed, 3000) },
+    achievements: { done: {}, title: null },
   };
+}
+
+// Mossbrook (v5): today's Commission Board, this week's Great Commission and merchant stock.
+// day / week are null until the first village/newDay command fills them.
+export function newVillage(seed) {
+  return { day: null, board: [], rerolls: 0, seen: true, week: null, great: null, merchant: [], rng: deriveSeed(seed, 4000) };
 }
 
 const isObj = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -94,5 +103,19 @@ export function validateState(s) {
     if (!isObj(b) || !Array.isArray(b.skills) || !Number.isFinite(b.speed) || !Number.isFinite(b.msLeft)) return 'bad buff';
   }
   if (!isObj(s.stats.crafts)) return 'bad stats';
+  if (s.version < 5) return null;
+  if (!Number.isFinite(s.renown.xp) || s.renown.xp < 0) return 'bad renown';
+  if (!Array.isArray(s.crafting.working) || !s.crafting.working.every((id) => typeof id === 'string')) return 'bad working stations';
+  if (!isObj(s.crafting.known)) return 'bad known recipes';
+  const v = s.village;
+  if (!isObj(v) || !Array.isArray(v.board) || !Array.isArray(v.merchant) || !Number.isInteger(v.rng) || !Number.isInteger(v.rerolls)) return 'bad village';
+  for (const c of [...v.board, ...(v.great ? [v.great] : [])]) {
+    if (!isObj(c) || typeof c.template !== 'string' || !isObj(c.items) || !isCount(c.coins) || !isCount(c.renown)) return 'bad commission';
+  }
+  for (const m of v.merchant) if (!isObj(m) || typeof m.item !== 'string' || !isCount(m.price) || !Number.isInteger(m.left)) return 'bad merchant stock';
+  const g = s.garden;
+  if (!isObj(g) || !Array.isArray(g.plots) || !Number.isInteger(g.rng)) return 'bad garden';
+  for (const p of g.plots) if (!isObj(p) || !isCount(p.ms) || (p.seed !== null && typeof p.seed !== 'string')) return 'bad garden plot';
+  if (!isObj(s.achievements) || !isObj(s.achievements.done)) return 'bad achievements';
   return null;
 }

@@ -3,6 +3,8 @@
 import { addItem, itemKey } from './bag.js';
 import { createPet } from './pets.js';
 import { archetypeOf, petMaxEnergy, petLevelCap } from './petstats.js';
+import { addRenownXp } from './renown.js';
+import { newDay } from './village.js';
 
 export const id = 'dev';
 
@@ -29,8 +31,16 @@ export const commands = {
     const max = ctx.data.balance.buildings.maxTier;
     state.buildings[building].tier = Math.min(max, Math.max(0, Math.floor(tier) || 0));
   },
-  'dev/setRenown': (state, { rank }) => {
-    state.renown.rank = Math.max(1, Math.floor(rank) || 1);
+  'dev/setRenown': (state, { rank }, ctx) => {
+    state.renown.rank = Math.min(ctx.data.balance.renown.maxRank, Math.max(1, Math.floor(rank) || 1));
+    state.renown.xp = 0;
+  },
+  'dev/addRenownXp': (state, { amount }, ctx) => addRenownXp(state, ctx, Math.floor(amount) || 0, 'dev'),
+  // A fresh Commission Board (and Great Commission and merchant) as if a new week began.
+  'dev/newDay': (state, _p, ctx) => {
+    state.village.day = null;
+    state.village.week = null;
+    newDay(state, ctx);
   },
   // Pets: a test pet of any archetype and quality (first free slot, else the Stable).
   'dev/addPet': (state, { archetype, quality = 'common', name }, ctx) => {

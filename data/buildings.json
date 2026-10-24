@@ -6,9 +6,9 @@
       "looks": ["Tent", "Cabin", "Cottage", "Farmhouse", "Manor"], "plot": [0.5, 0.33],
       "costs": {
         "2": { "coins": 0, "items": { "pine_plank": 10, "stone": 20 } },
-        "3": { "coins": 200, "items": { "pine_plank": 30, "stone": 60, "pine_shingles": 15 }, "blueprint": "blueprint_sturdy" },
-        "4": { "coins": 800, "items": { "pine_plank": 90, "stone": 180, "pine_frame": 10, "pine_shingles": 40, "amber_chunk": 1 }, "blueprint": "blueprint_fine" },
-        "5": { "coins": 2500, "items": { "pine_plank": 250, "stone": 500, "pine_frame": 30, "pine_shingles": 100, "copper_nails": 100, "small_quartz": 2 }, "blueprint": "blueprint_grand" }
+        "3": { "coins": 200, "items": { "oak_plank": 30, "stone": 60, "oak_shingles": 15 }, "blueprint": "blueprint_sturdy" },
+        "4": { "coins": 800, "items": { "cedar_plank": 90, "stone": 180, "cedar_frame": 10, "cedar_shingles": 40, "rough_gem": 1 }, "blueprint": "blueprint_fine" },
+        "5": { "coins": 2500, "items": { "willow_plank": 250, "stone": 500, "cedar_frame": 30, "willow_shingles": 100, "mythril_rivets": 40, "moonstone": 2 }, "blueprint": "blueprint_grand" }
       }
     },
     {
@@ -17,9 +17,9 @@
       "looks": ["Hay Pen", "Lean-to Stall", "Wooden Stable", "Carriage Barn", "Grand Barn"], "plot": [0.5, 0.63],
       "costs": {
         "2": { "coins": 0, "items": { "pine_plank": 8, "fiber_string": 6, "rabbit_hide": 10 } },
-        "3": { "coins": 150, "items": { "pine_plank": 24, "fiber_string": 18, "rabbit_hide": 30, "pine_frame": 4 }, "blueprint": "blueprint_sturdy" },
-        "4": { "coins": 700, "items": { "pine_plank": 70, "fiber_string": 50, "rabbit_hide": 90, "pine_frame": 12, "lucky_rabbit_foot": 1 }, "blueprint": "blueprint_fine" },
-        "5": { "coins": 2200, "items": { "pine_plank": 200, "fiber_string": 150, "rabbit_hide": 250, "pine_frame": 30, "lucky_rabbit_foot": 2, "four_leaf_clover": 2 }, "blueprint": "blueprint_grand" }
+        "3": { "coins": 150, "items": { "oak_plank": 24, "fiber_string": 18, "deer_hide": 30, "oak_frame": 4 }, "blueprint": "blueprint_sturdy" },
+        "4": { "coins": 700, "items": { "cedar_plank": 70, "sinew_string": 50, "deer_hide": 90, "cedar_frame": 12, "boar_tusk": 4, "deer_antler": 1 }, "blueprint": "blueprint_fine" },
+        "5": { "coins": 2200, "items": { "willow_plank": 200, "fiber_string": 150, "feathers": 250, "cedar_frame": 30, "boar_tusk": 10, "heron_plume": 2 }, "blueprint": "blueprint_grand" }
       }
     },
     {
@@ -28,9 +28,9 @@
       "looks": ["Stump Table", "Plank Bench", "Carpenter's Shed", "Workshop", "Master Joinery"], "plot": [0.18, 0.31],
       "costs": {
         "2": { "coins": 0, "items": { "pine_plank": 12, "pine_frame": 2, "copper_nails": 10 } },
-        "3": { "coins": 200, "items": { "pine_plank": 36, "pine_frame": 6, "copper_nails": 30, "stone": 30 }, "blueprint": "blueprint_sturdy" },
-        "4": { "coins": 800, "items": { "pine_plank": 100, "pine_frame": 18, "copper_nails": 90, "fiber_string": 30, "amber_chunk": 1 }, "blueprint": "blueprint_fine" },
-        "5": { "coins": 2800, "items": { "pine_plank": 300, "pine_frame": 50, "copper_nails": 250, "fiber_string": 90, "amber_chunk": 2, "small_quartz": 1 }, "blueprint": "blueprint_grand" }
+        "3": { "coins": 200, "items": { "oak_plank": 36, "oak_frame": 6, "iron_nails": 30, "stone": 30 }, "blueprint": "blueprint_sturdy" },
+        "4": { "coins": 800, "items": { "cedar_plank": 100, "cedar_frame": 18, "iron_nails": 90, "fiber_string": 30, "rough_gem": 1 }, "blueprint": "blueprint_fine" },
+        "5": { "coins": 2800, "items": { "willow_plank": 300, "cedar_frame": 50, "iron_nails": 200, "mythril_rivets": 20, "fiber_string": 90, "garnet": 2, "moonstone": 1 }, "blueprint": "blueprint_grand" }
       }
     },
     {
@@ -39,31 +39,33 @@
       "looks": ["Campfire", "Cook Stove", "Brick Hearth", "Country Kitchen", "Grand Bakehouse"], "plot": [0.18, 0.61],
       "costs": {
         "2": { "coins": 0, "items": { "stone": 25, "pine_plank": 8, "river_shell": 4 } },
-        "3": { "coins": 200, "items": { "stone": 75, "pine_plank": 24, "river_shell": 12, "copper_fittings": 10 }, "blueprint": "blueprint_sturdy" },
-        "4": { "coins": 800, "items": { "stone": 220, "pine_plank": 70, "river_shell": 36, "copper_fittings": 30, "copper_bar": 10 }, "blueprint": "blueprint_fine" },
-        "5": { "coins": 2800, "items": { "stone": 650, "pine_plank": 200, "river_shell": 100, "copper_fittings": 90, "copper_bar": 30, "small_pearl": 2 }, "blueprint": "blueprint_grand" }
+        "3": { "coins": 200, "items": { "stone": 75, "oak_plank": 24, "river_shell": 12, "iron_fittings": 10 }, "blueprint": "blueprint_sturdy" },
+        "4": { "coins": 800, "items": { "stone": 220, "cedar_plank": 70, "river_shell": 36, "steel_fittings": 30, "steel_bar": 10 }, "blueprint": "blueprint_fine" },
+        "5": { "coins": 2800, "items": { "stone": 650, "willow_plank": 200, "river_shell": 100, "mythril_fittings": 90, "mythril_bar": 30, "mist_pearl": 2 }, "blueprint": "blueprint_grand" }
       }
     },
     {
       "id": "forge", "name": "Forge", "blurb": "A roaring little forge where ore turns into something useful. Hotter fires mean faster work.",
-      "startTier": 1, "unlock": { "renown": 2 }, "effects": ["queueSlots", "craftSpeed"],
+      "startTier": 0, "unlock": { "renown": 2 }, "effects": ["queueSlots", "craftSpeed"],
       "looks": ["Fire Pit", "Clay Furnace", "Stone Smithy", "Iron Foundry", "Master Forge"], "plot": [0.82, 0.61],
       "costs": {
+        "1": { "coins": 0, "items": { "stone": 20, "pine_plank": 6 } },
         "2": { "coins": 0, "items": { "stone": 40, "copper_bar": 8, "pine_plank": 6 } },
-        "3": { "coins": 250, "items": { "stone": 120, "copper_bar": 24, "pine_plank": 18, "copper_nails": 20 }, "blueprint": "blueprint_sturdy" },
-        "4": { "coins": 900, "items": { "stone": 350, "copper_bar": 70, "pine_plank": 50, "copper_nails": 60, "amber_chunk": 1 }, "blueprint": "blueprint_fine" },
-        "5": { "coins": 3000, "items": { "stone": 1000, "copper_bar": 200, "pine_plank": 150, "copper_nails": 180, "small_quartz": 2 }, "blueprint": "blueprint_grand" }
+        "3": { "coins": 250, "items": { "stone": 120, "iron_bar": 24, "oak_plank": 18, "iron_nails": 20 }, "blueprint": "blueprint_sturdy" },
+        "4": { "coins": 900, "items": { "stone": 350, "steel_bar": 70, "cedar_plank": 50, "iron_nails": 60, "rough_gem": 1 }, "blueprint": "blueprint_fine" },
+        "5": { "coins": 3000, "items": { "stone": 1000, "steel_bar": 100, "mythril_bar": 40, "willow_plank": 150, "mythril_rivets": 50, "garnet": 2 }, "blueprint": "blueprint_grand" }
       }
     },
     {
       "id": "alchemyLab", "name": "Alchemy Lab", "blurb": "A bubbly nook of jars and glowing drops. More shelves mean more brews at once.",
-      "startTier": 1, "unlock": { "renown": 5 }, "effects": ["queueSlots", "craftSpeed"],
+      "startTier": 0, "unlock": { "renown": 5 }, "effects": ["queueSlots", "craftSpeed"],
       "looks": ["Herb Table", "Potion Shelf", "Brewing Cabin", "Alchemist's Tower", "Crystal Observatory"], "plot": [0.18, 0.9],
       "costs": {
+        "1": { "coins": 0, "items": { "pine_plank": 8, "river_shell": 3, "meadow_herb": 10 } },
         "2": { "coins": 0, "items": { "pine_plank": 10, "copper_bar": 6, "river_shell": 6 } },
-        "3": { "coins": 250, "items": { "pine_plank": 30, "copper_bar": 18, "river_shell": 18, "pine_sap": 15 }, "blueprint": "blueprint_sturdy" },
-        "4": { "coins": 900, "items": { "pine_plank": 90, "copper_bar": 54, "river_shell": 54, "pine_sap": 45, "small_pearl": 1 }, "blueprint": "blueprint_fine" },
-        "5": { "coins": 3200, "items": { "pine_plank": 270, "copper_bar": 160, "river_shell": 160, "pine_sap": 130, "small_pearl": 2, "four_leaf_clover": 1 }, "blueprint": "blueprint_grand" }
+        "3": { "coins": 250, "items": { "oak_plank": 30, "iron_bar": 18, "river_shell": 18, "oak_resin": 15 }, "blueprint": "blueprint_sturdy" },
+        "4": { "coins": 900, "items": { "cedar_plank": 90, "steel_bar": 54, "river_shell": 54, "cedar_resin": 45, "river_opal": 1 }, "blueprint": "blueprint_fine" },
+        "5": { "coins": 3200, "items": { "willow_plank": 270, "mythril_bar": 50, "river_shell": 160, "willow_sap": 130, "mist_pearl": 2, "ghost_orchid": 1 }, "blueprint": "blueprint_grand" }
       }
     },
     {
@@ -73,9 +75,9 @@
       "costs": {
         "1": { "coins": 0, "items": { "pine_plank": 4, "plant_fiber": 15, "stone": 10 } },
         "2": { "coins": 0, "items": { "pine_plank": 10, "plant_fiber": 30, "stone": 30, "fiber_string": 4 } },
-        "3": { "coins": 200, "items": { "pine_plank": 30, "stone": 90, "fiber_string": 12, "pine_seed": 10 }, "blueprint": "blueprint_sturdy" },
-        "4": { "coins": 800, "items": { "pine_plank": 90, "stone": 270, "fiber_string": 36, "pine_frame": 8, "four_leaf_clover": 1 }, "blueprint": "blueprint_fine" },
-        "5": { "coins": 2600, "items": { "pine_plank": 260, "stone": 800, "fiber_string": 100, "pine_frame": 24, "pine_shingles": 60, "four_leaf_clover": 2 }, "blueprint": "blueprint_grand" }
+        "3": { "coins": 200, "items": { "oak_plank": 30, "stone": 90, "fiber_string": 12, "honeycomb": 10 }, "blueprint": "blueprint_sturdy" },
+        "4": { "coins": 800, "items": { "cedar_plank": 90, "stone": 270, "fiber_string": 36, "cedar_frame": 8, "silver_sprig": 1 }, "blueprint": "blueprint_fine" },
+        "5": { "coins": 2600, "items": { "willow_plank": 260, "stone": 800, "fiber_string": 100, "cedar_frame": 24, "willow_shingles": 60, "bog_lily": 30, "ghost_orchid": 2 }, "blueprint": "blueprint_grand" }
       }
     },
     {
@@ -85,9 +87,9 @@
       "costs": {
         "1": { "coins": 0, "items": { "plant_fiber": 20, "pine_plank": 6, "rabbit_hide": 10 } },
         "2": { "coins": 0, "items": { "plant_fiber": 40, "pine_plank": 14, "rabbit_hide": 25, "sinew_string": 4 } },
-        "3": { "coins": 220, "items": { "pine_plank": 40, "rabbit_hide": 70, "sinew_string": 12, "pine_shingles": 12 }, "blueprint": "blueprint_sturdy" },
-        "4": { "coins": 850, "items": { "pine_plank": 120, "rabbit_hide": 200, "sinew_string": 36, "pine_frame": 8, "amber_chunk": 1 }, "blueprint": "blueprint_fine" },
-        "5": { "coins": 2800, "items": { "pine_plank": 340, "rabbit_hide": 600, "sinew_string": 100, "pine_frame": 24, "pine_shingles": 60, "small_pearl": 2 }, "blueprint": "blueprint_grand" }
+        "3": { "coins": 220, "items": { "oak_plank": 40, "deer_hide": 70, "sinew_string": 12, "oak_shingles": 12 }, "blueprint": "blueprint_sturdy" },
+        "4": { "coins": 850, "items": { "cedar_plank": 120, "deer_hide": 200, "sinew_string": 36, "cedar_frame": 8, "rough_gem": 1 }, "blueprint": "blueprint_fine" },
+        "5": { "coins": 2800, "items": { "willow_plank": 340, "feathers": 600, "sinew_string": 100, "cedar_frame": 24, "willow_shingles": 60, "heron_plume": 2 }, "blueprint": "blueprint_grand" }
       }
     }
   ],

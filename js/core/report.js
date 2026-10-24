@@ -1,10 +1,11 @@
 // Folds the events systems emit during offline catch-up into the "While you were away" summary:
 // { ms, workers: { id: { actions, items: { id: n }, xp: { skill: n }, petXp } }, levelUps: { skill: level },
 //   pets: { petId: { workMs, restMs, ate: { itemId: n }, level, hearts } },
-//   stations: { stationId: { items: { key: n }, xp, skill } }, equipped: [bag key], buffsEnded: [itemId] }
+//   stations: { stationId: { items: { key: n }, xp, skill } }, equipped: [bag key], buffsEnded: [itemId],
+//   renown: { xp, rank (the new rank, or null) }, achievements: [id], garden: { itemId: n } }
 // pets[id].level / .hearts are set only when the pet reached a new level / heart while away.
 export function createReport(ms) {
-  const summary = { ms, workers: {}, levelUps: {}, pets: {}, stations: {}, equipped: [], buffsEnded: [] };
+  const summary = { ms, workers: {}, levelUps: {}, pets: {}, stations: {}, equipped: [], buffsEnded: [], renown: { xp: 0, rank: null }, achievements: [], garden: {} };
   const pet = (id) => summary.pets[id] || (summary.pets[id] = { workMs: 0, restMs: 0, ate: {}, level: null, hearts: null });
   function add(e) {
     if (e.type === 'harvest') {
@@ -36,6 +37,14 @@ export function createReport(ms) {
       summary.equipped.push(e.item);
     } else if (e.type === 'buffEnded') {
       summary.buffsEnded.push(e.item);
+    } else if (e.type === 'renownXp') {
+      summary.renown.xp += e.amount;
+    } else if (e.type === 'rankUp') {
+      summary.renown.rank = Math.max(summary.renown.rank || 0, e.rank);
+    } else if (e.type === 'achievement') {
+      summary.achievements.push(e.id);
+    } else if (e.type === 'gardenHarvest') {
+      summary.garden[e.item] = (summary.garden[e.item] || 0) + e.qty;
     }
   }
   return { summary, add };

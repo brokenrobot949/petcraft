@@ -1,7 +1,7 @@
 // Save migrations. MIGRATIONS[n] upgrades a version-n save to version n+1.
 // Rules: never delete a migration, never edit one that has shipped, and add one for every
 // SCHEMA_VERSION bump in state.js. Each migration must set the new version number.
-import { SCHEMA_VERSION } from './state.js';
+import { SCHEMA_VERSION, newVillage } from './state.js';
 import { deriveSeed } from './rng.js';
 
 const MIGRATIONS = {
@@ -32,6 +32,23 @@ const MIGRATIONS = {
     s.buffs = s.buffs || {};
     s.stats.crafts = s.stats.crafts || {};
     s.version = 4;
+    return s;
+  },
+  // 4 -> 5 (Phase 6): Mossbrook (commissions, merchant), the Garden, achievements, recipes learned
+  // from scrolls, and the stations the player works at. Every station used to run at once; now the
+  // player works one, so the first station (data order is filled in by crafting.init) with a queue
+  // stays working and the others pause with their queues kept. renown.xp was a running total at
+  // rank 1; it now means progress into the current rank, which renown.init settles into ranks.
+  4: (s) => {
+    s.crafting.working = [];
+    const busy = Object.entries(s.crafting.stations).find(([, st]) => st.queue && st.queue.length);
+    if (busy) s.crafting.working.push(busy[0]);
+    s.crafting.known = s.crafting.known || {};
+    s.village = newVillage(s.rng);
+    s.garden = { plots: [], rng: deriveSeed(s.rng, 3000) };
+    s.achievements = { done: {}, title: null };
+    s.renown.xp = Number.isFinite(s.renown.xp) ? s.renown.xp : 0;
+    s.version = 5;
     return s;
   },
 };

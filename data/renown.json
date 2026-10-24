@@ -1,0 +1,15 @@
+{
+  "titles": [
+    { "from": 1, "name": "Newcomer" },
+    { "from": 5, "name": "Homesteader" },
+    { "from": 10, "name": "Keeper" },
+    { "from": 15, "name": "Warden" },
+    { "from": 20, "name": "Steward" },
+    { "from": 25, "name": "Sanctuary Keeper" }
+  ],
+  "ranks": [
+    { "rank": 1, "unlocks": ["Meadowfold", "Cottage, Stable, Workbench and Kitchen"] },
+    { "rank": 12, "unlocks": ["The Old Sanctuary (Grand Projects)"] },
+    { "rank": 30, "unlocks": ["The Sanctuary Keeper title and the Heartgrove decor set"] }
+  ]
+}

@@ -22,7 +22,13 @@ import { tierCost, upgradeCheck, canUpgradeAny, petCapacity } from '../../js/sys
 import { petRestPerHour } from '../../js/systems/petstats.js';
 import { offlineCapMs } from '../../js/core/time.js';
 import { pantryList } from '../../js/systems/pets.js';
-import { actionMs } from '../../js/systems/harvest.js';
+import { actionMs, zoneUnlocked } from '../../js/systems/harvest.js';
+import { recipeCheck } from '../../js/systems/crafting.js';
+import { rankInfo } from '../../js/systems/renown.js';
+import { weekOf, sellPrice } from '../../js/systems/village.js';
+import { growMs, seedDef } from '../../js/systems/garden.js';
+import { achievementList, wornTitle } from '../../js/systems/achievements.js';
+import { localDay } from '../../js/core/time.js';
 
 const out = document.getElementById('out');
 const lines = [];
@@ -44,10 +50,12 @@ const data = await loadData();
 let clockNow = Date.UTC(2026, 9, 19, 12);
 const clock = () => clockNow;
 
-function freshGame(seed = 12345) {
+// stations: build the Forge and Alchemy Lab (a new game starts without them since Phase 6).
+function freshGame(seed = 12345, { stations = true } = {}) {
   const s = createInitialState(clockNow);
   s.rng = seed;
   s.workers.player.rng = seed + 1;
+  if (stations) Object.assign(s.buildings, { forge: { tier: 1 }, alchemyLab: { tier: 1 } });
   return createGame(data, JSON.parse(JSON.stringify(s)), { clock });
 }
 
@@ -65,7 +73,7 @@ try {
     workers: { player: { task: { zone: 'meadowfold', skill: 'chopping', node: 'pine' }, progressMs: 100 } }, stats: { actions: { chopping: 50 } },
   };
   const mig = parseSave(JSON.stringify(v2));
-  check('v2 save migrates to the current version and validates', !!mig.state && mig.state.version === 4, mig.error || '');
+  check('v2 save migrates to the current version and validates', !!mig.state && mig.state.version === 5, mig.error || '');
   check('migration keeps progress', mig.state?.bag.pine_log === 40 && mig.state?.skills.chopping.level === 4 && mig.state?.workers.player.task?.node === 'pine');
   const g0 = createGame(data, mig.state, { clock });
   check('migrated save needs a starter egg', g0.getState().pets.active.length === 2 && !g0.getState().pets.starter);
@@ -222,7 +230,7 @@ try {
   const v3 = JSON.parse(JSON.stringify(so));
   v3.version = 3; delete v3.crafting; delete v3.buffs; delete v3.stats.crafts;
   const m3 = parseSave(JSON.stringify(v3));
-  check('v3 save migrates to v4 and keeps pets', !!m3.state && m3.state.version === 4 && Object.keys(m3.state.pets.list).length === Object.keys(so.pets.list).length, m3.error || '');
+  check('v3 save migrates to v5 and keeps pets', !!m3.state && m3.state.version === 5 && Object.keys(m3.state.pets.list).length === Object.keys(so.pets.list).length, m3.error || '');
   const gc = freshGame(777);
   const sc = gc.getState();
   const refused = (type, payload) => { try { gc.dispatch(type, payload); return false; } catch { return true; } };
@@ -315,21 +323,25 @@ try {
   check('crafted state still valid', validateState(os) === null && validateState(sc) === null, validateState(os) || validateState(sc) || '');
 
   // 10. Buildings (Phase 5).
-  const gB = freshGame(77);
+  const gB = freshGame(77, { stations: false });
   const sB = gB.getState();
-  check('every building has an entry; stations start at tier 1, Garden and Nest at 0',
-    data.buildings.buildings.every((b) => sB.buildings[b.id]?.tier === b.startTier) && sB.buildings.forge.tier === 1 && sB.buildings.garden.tier === 0);
+  check('every building has an entry; Forge, Garden and Nest start empty for a new game',
+    data.buildings.buildings.every((b) => sB.buildings[b.id]?.tier === b.startTier) && sB.buildings.forge.tier === 0 && sB.buildings.garden.tier === 0);
   const refusedB = (type, payload) => { try { gB.dispatch(type, payload); return false; } catch { return true; } };
   check('stable tier 2 is refused while the Cottage is tier 1', refusedB('buildings/upgrade', { building: 'stable' }));
   check('cottage upgrade without materials is refused', refusedB('buildings/upgrade', { building: 'cottage' }) && sB.buildings.cottage.tier === 1);
   const c2 = tierCost(data, 'cottage', 2);
   for (const [item, n] of Object.entries(c2.items)) gB.dispatch('dev/grant', { item, qty: n });
   check('upgradeCheck says yes once the materials are in the bag', upgradeCheck(sB, data, 'cottage').ok && canUpgradeAny(sB, data));
+  const bRenown = [];
+  const offB = gB.onEvents((evs) => evs.forEach((e) => e.type === 'renownXp' && e.source === 'building' && bRenown.push(e.amount)));
   gB.dispatch('buildings/upgrade', { building: 'cottage' });
+  offB();
   check('cottage reaches tier 2 and the materials are spent',
     sB.buildings.cottage.tier === 2 && Object.keys(c2.items).every((i) => !sB.bag[i]));
-  check('upgrade gives Renown XP (30 x tier)', sB.renown.xp === data.balance.buildings.renownXpPerTier * 2);
+  check('upgrade gives Renown XP (30 x tier)', bRenown.length === 1 && bRenown[0] === data.balance.buildings.renownXpPerTier * 2, JSON.stringify(bRenown));
   check('offline cap grows to 10 h', offlineCapMs(sB, data.balance) === 10 * H);
+  gB.dispatch('dev/setRenown', { rank: 1 });
   check('garden stays locked at Renown 1', /Renown/.test(upgradeCheck(sB, data, 'garden').reason || ''));
   const w2 = tierCost(data, 'workbench', 2);
   for (const [item, n] of Object.entries(w2.items)) gB.dispatch('dev/grant', { item, qty: n });
@@ -355,6 +367,161 @@ try {
   check('Stable tier 2 has room for 2 more', petCapacity(sB, data) === 6 && !refusedB('dev/addPet', { archetype: 'wild' }));
   check('Stable tier 2 rests 20% faster', near(petRestPerHour(sB, data, sB.pets.list.pet1), 120, 1e-9));
   check('state with buildings is valid', validateState(sB) === null, validateState(sB) || '');
+
+  // 11. Phase 6: working stations, Renown, Mossbrook, Garden, achievements.
+  const v4 = JSON.parse(JSON.stringify(so));
+  v4.version = 4;
+  delete v4.village; delete v4.garden; delete v4.achievements; delete v4.crafting.working; delete v4.crafting.known;
+  v4.renown = { rank: 1, xp: 400 };
+  v4.crafting.stations.kitchen.queue = [{ recipe: 'berry_compote', qty: 2, done: 0, focus: null, inputs: { berries: 3 }, made: {} }];
+  v4.crafting.stations.forge.queue = [{ recipe: 'copper_bar', qty: 2, done: 0, focus: null, inputs: { copper_ore: 2 }, made: {} }];
+  const m4 = parseSave(JSON.stringify(v4));
+  check('v4 save migrates to v5 and validates', !!m4.state && m4.state.version === 5, m4.error || '');
+  check('migration: the first busy station keeps working, the other pauses', JSON.stringify(m4.state?.crafting.working) === '["forge"]', JSON.stringify(m4.state?.crafting.working));
+  const g4 = createGame(data, m4.state, { clock });
+  const s4 = g4.getState();
+  check('old Renown total settles into ranks (400 XP -> rank 3)', s4.renown.rank >= 3, JSON.stringify(s4.renown));
+  check('migrated save keeps both queues', s4.crafting.stations.kitchen.queue.length === 1 && s4.crafting.stations.forge.queue.length === 1);
+
+  const gw = freshGame(31);
+  const sw = gw.getState();
+  gw.dispatch('dev/grant', { item: 'pine_log', qty: 20 });
+  gw.dispatch('dev/grant', { item: 'copper_ore', qty: 20 });
+  gw.dispatch('crafting/start', { recipe: 'pine_plank', qty: 3 });   // 3 x 4 s
+  gw.dispatch('crafting/start', { recipe: 'copper_bar', qty: 2 });   // 2 x 5 s
+  check('one station at a time: the first queued is worked', JSON.stringify(sw.crafting.working) === '["workbench"]');
+  gw.advance(6000);
+  check('the paused station makes nothing', !sw.bag.copper_bar && sw.bag.pine_plank === 1, JSON.stringify(sw.bag));
+  gw.dispatch('crafting/work', { station: 'forge' });
+  check('switching works: the workbench pauses', JSON.stringify(sw.crafting.working) === '["forge"]');
+  gw.advance(10000);
+  check('the forge finishes its queue', sw.bag.copper_bar === 2 && sw.bag.pine_plank === 1, JSON.stringify(sw.bag));
+  gw.advance(10000);
+  check('the player moves back to the waiting workbench and resumes mid-item', sw.bag.pine_plank === 3, JSON.stringify(sw.bag));
+  const handoff = (gx) => {
+    gx.dispatch('dev/grant', { item: 'pine_log', qty: 40 });
+    gx.dispatch('dev/grant', { item: 'copper_axe_head', qty: 1 });
+    gx.dispatch('dev/grant', { item: 'tool_handle', qty: 1 });
+    gx.dispatch('dev/setLevel', { skill: 'smithing', level: 10 });
+    gx.dispatch('dev/setLevel', { skill: 'carpentry', level: 10 });
+    gx.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'chopping', node: 'pine' });
+    gx.dispatch('crafting/start', { recipe: 'pine_plank', qty: 7 });
+    gx.dispatch('crafting/start', { recipe: 'copper_axe', qty: 1 });
+  };
+  const hl = freshGame(5); handoff(hl); runChunks(hl, H, 250);
+  const ho = freshGame(5); handoff(ho); ho.catchUp(H);
+  check('handoff to a waiting tool: live ticks and catch-up agree', sortedJson(hl.getState().bag) === sortedJson(ho.getState().bag) && ho.getState().tools.axe.item === 'copper_axe',
+    `${sortedJson(hl.getState().bag)} vs ${sortedJson(ho.getState().bag)}`);
+  gw.dispatch('dev/setBuilding', { building: 'cottage', tier: 3 });
+  gw.dispatch('crafting/start', { recipe: 'pine_plank', qty: 2 });
+  gw.dispatch('crafting/start', { recipe: 'copper_bar', qty: 2 });
+  check('Cottage tier 3: two stations at once', sw.crafting.working.length === 2, JSON.stringify(sw.crafting.working));
+  check('an unbuilt station refuses recipes', /^Needs the Forge/.test(recipeCheck(gB.getState(), data, 'copper_bar', 1).reason));
+  const firstCraftXp = [];
+  const offF = gw.onEvents((evs) => evs.forEach((e) => e.type === 'renownXp' && e.source === 'firstCraft' && firstCraftXp.push(e.amount)));
+  gw.dispatch('dev/grant', { item: 'plant_fiber', qty: 6 });
+  gw.dispatch('dev/setLevel', { skill: 'carpentry', level: 5 });
+  gw.dispatch('crafting/cancel', { station: 'workbench', index: 0 });
+  gw.dispatch('crafting/start', { recipe: 'fiber_string', qty: 2 });
+  gw.advance(20000);
+  offF();
+  check('the first craft of a recipe gives Renown XP once', firstCraftXp.length === 1 && firstCraftXp[0] === data.balance.renown.firstCraft, JSON.stringify(firstCraftXp));
+
+  // Renown and zones
+  const gR = freshGame(41);
+  const sr = gR.getState();
+  gR.dispatch('dev/setRenown', { rank: 1 });
+  check('Whisperwood is closed at Renown 1', !zoneUnlocked(sr, data, 'whisperwood'));
+  gR.dispatch('dev/addRenownXp', { amount: 150 + 250 });
+  check('Renown XP ranks up (150, then 250)', sr.renown.rank === 3 && sr.renown.xp === 0, JSON.stringify(sr.renown));
+  check('each zone opens at its rank', zoneUnlocked(sr, data, 'whisperwood') && !zoneUnlocked(sr, data, 'stonecrag'));
+  check('rank info points at the next unlock', rankInfo(sr, data).nextUnlockRank === 5 && rankInfo(sr, data).nextUnlocks.includes('Build the Alchemy Lab'), JSON.stringify(rankInfo(sr, data)));
+
+  // Commission Board: midnight reset, rerolls, delivery
+  clockNow = new Date(2026, 9, 21, 23, 30).getTime(); // a Wednesday, 23:30 local time
+  const gv = freshGame(52);
+  const sv = gv.getState();
+  gv.dispatch('village/newDay');
+  const day0 = sv.village.day;
+  const board0 = JSON.stringify(sv.village.board);
+  check('the board fills with 3 commissions and the merchant stock', sv.village.board.length === data.balance.village.boardSize && sv.village.merchant.length === data.balance.village.merchant.slots, board0);
+  clockNow += 20 * 60000; // 23:50, same day
+  gv.dispatch('village/newDay');
+  check('same day: the board stays', JSON.stringify(sv.village.board) === board0);
+  const great0 = JSON.stringify(sv.village.great);
+  clockNow += 20 * 60000; // 00:10 the next day
+  gv.dispatch('village/newDay');
+  check('commissions reset at local midnight', sv.village.day === day0 + 1 && JSON.stringify(sv.village.board) !== board0);
+  check('the Great Commission stays for the week', JSON.stringify(sv.village.great) === great0);
+  clockNow = new Date(2026, 9, 26, 0, 5).getTime(); // the next Monday
+  const week0 = sv.village.week;
+  gv.dispatch('village/newDay');
+  check('a Monday starts a new week', sv.village.week === week0 + 1 && sv.village.week === weekOf(data, localDay(clockNow)));
+  const refusedV = (type, payload) => { try { gv.dispatch(type, payload); return false; } catch { return true; } };
+  const tpl0 = sv.village.board[0].template;
+  gv.dispatch('village/reroll', { slot: 0 });
+  check('the first reroll is free and changes the request', sv.coins === 0 && sv.village.board[0].template !== tpl0);
+  check('the second reroll costs coins', refusedV('village/reroll', { slot: 0 }));
+  gv.dispatch('dev/addCoins', { amount: 100 });
+  gv.dispatch('village/reroll', { slot: 0 });
+  check('... and takes them', sv.coins === 100 - data.balance.village.rerollCost);
+  const c0 = sv.village.board[1];
+  check('delivering without the items is refused', refusedV('village/deliver', { slot: 1 }));
+  for (const [item, n] of Object.entries(c0.items)) gv.dispatch('dev/grant', { item, qty: n });
+  const coinsB = sv.coins;
+  gv.dispatch('village/deliver', { slot: 1 });
+  check('delivery pays coins, takes the items, counts once', sv.coins === coinsB + c0.coins && c0.done && Object.keys(c0.items).every((i) => !sv.bag[i]) && sv.stats.commissions === 1 && refusedV('village/deliver', { slot: 1 }));
+  check('commission coins come from the sell value',
+    c0.coins === Math.max(data.balance.village.daily.minCoins, Math.round(Object.entries(c0.items).reduce((s, [i, n]) => s + data.items.items[i].sell * n, 0) * data.balance.village.daily.coinMult)));
+
+  // Market
+  gv.dispatch('dev/grant', { item: 'pine_log', qty: 10 });
+  gv.dispatch('dev/grant', { item: 'berry_compote', qty: 1, quality: 'masterwork' });
+  const cm = sv.coins;
+  gv.dispatch('market/sell', { item: 'pine_log', qty: 10 });
+  gv.dispatch('market/sell', { item: 'berry_compote:masterwork', qty: 1 });
+  check('selling pays sell price x quality', sv.coins === cm + 10 * data.items.items.pine_log.sell + Math.floor(data.items.items.berry_compote.sell * data.balance.village.sellQualityMult.masterwork) && sv.stats.sold === 11);
+  check('tools and blueprints cannot be sold', sellPrice(data, 'copper_axe') === 0 && sellPrice(data, 'blueprint_sturdy') === 0);
+  const seedShop = data.market.shop.find((s) => data.items.items[s.item].seed);
+  gv.dispatch('dev/setRenown', { rank: 15 });
+  gv.dispatch('dev/addCoins', { amount: 5000 });
+  gv.dispatch('market/buy', { item: seedShop.item, qty: 3 });
+  check('buying seeds', sv.bag[seedShop.item] === 3);
+  const scroll = data.market.scrolls[0];
+  check('a scroll recipe is locked until learned', /scroll/.test(recipeCheck(sv, data, scroll.recipe, 1).reason));
+  gv.dispatch('market/learn', { recipe: scroll.recipe });
+  check('learning a scroll unlocks the recipe', sv.crafting.known[scroll.recipe] === true && !/scroll/.test(recipeCheck(sv, data, scroll.recipe, 1).reason));
+  check('lifetime coin totals match the balance', sv.stats.coinsEarned - sv.stats.coinsSpent === sv.coins - 100 - 5000, `${sv.stats.coinsEarned} - ${sv.stats.coinsSpent} vs ${sv.coins}`);
+
+  // Garden
+  gv.dispatch('dev/setBuilding', { building: 'garden', tier: 1 });
+  gv.dispatch('dev/grant', { item: 'turnip_seed', qty: 2 });
+  const turnips0 = sv.bag.turnip || 0;
+  if (sv.bag.turnip_seed > 2) gv.dispatch('market/sell', { item: 'turnip_seed', qty: sv.bag.turnip_seed - 2 });
+  gv.dispatch('garden/plant', { plot: 0, seed: 'turnip_seed' });
+  gv.catchUp(growMs(data, 'turnip_seed') * 2.5);
+  const sd = seedDef(data, 'turnip_seed');
+  check('garden: grows, harvests and replants from the bag', sv.stats.garden === 2 && !sv.bag.turnip_seed && sv.bag.turnip - turnips0 >= 2 * sd.yield[0] && sv.garden.plots[0].seed === null, `${sv.stats.garden} harvests, ${sv.bag.turnip} turnips`);
+  check('garden plots follow the Garden tier', sv.garden.plots.length === data.balance.buildings.gardenPlotsByTier[0]);
+
+  // Achievements
+  check('achievements are earned', Object.keys(sv.achievements.done).length > 0);
+  const anyTitle = achievementList(sv, data).find((a) => a.done && a.title);
+  if (anyTitle) {
+    gv.dispatch('achievements/setTitle', { id: anyTitle.id });
+    check('an earned title can be worn', wornTitle(sv, data) === anyTitle.title);
+  }
+  const unearned = achievementList(sv, data).find((a) => !a.done && a.title);
+  check('an unearned title cannot be worn', !unearned || refusedV('achievements/setTitle', { id: unearned.id }));
+  check('Phase 6 state is valid', validateState(sv) === null && validateState(sw) === null, validateState(sv) || validateState(sw) || '');
+
+  // Data: every id the village refers to exists; coin sinks exist.
+  check('coin sinks exist (shop, scrolls, merchant, rerolls)', data.market.shop.length > 0 && data.market.scrolls.length > 0 && data.market.merchant.length > 0 && data.balance.village.rerollCost > 0);
+  const missing = [];
+  for (const c of [...data.commissions.daily, ...data.commissions.great]) for (const e of c.items) if (!data.items.items[e.item]) missing.push(e.item);
+  for (const s of [...data.market.shop, ...data.market.merchant]) if (!data.items.items[s.item]) missing.push(s.item);
+  for (const s of data.market.scrolls) if (!data.recipes.recipes.find((r) => r.id === s.recipe && r.scroll)) missing.push(s.recipe);
+  check('commission, market and scroll ids all exist', !missing.length, missing.join(', '));
 } catch (err) {
   failed++;
   lines.push(`FAIL  crashed: ${err.stack || err}`);

@@ -25,6 +25,10 @@ async function boot() {
   const awayMs = Math.max(0, now - game.getState().meta.lastSavedAt);
   const offlineSummary = game.catchUp(elapsedOfflineMs(game.getState(), balance, now));
   game.dispatch('meta/launched');
+  // Daily commissions reset at local midnight; the board checks the date on load, on return and every minute.
+  const checkDay = () => {
+    if (!suspended) game.dispatch('village/newDay');
+  };
 
   let saveError = null;
   let suspended = false;
@@ -70,12 +74,17 @@ async function boot() {
     }
   };
   const liveTimer = setInterval(tickLive, balance.tick.liveTickMs);
+  checkDay();
+  setInterval(checkDay, balance.village.dayCheckSeconds * 1000);
 
   // Autosave every N seconds, when the page is hidden, and when it closes.
   const autosaveTimer = setInterval(saveNow, balance.save.autosaveSeconds * 1000);
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) saveNow();
-    else tickLive();
+    else {
+      tickLive();
+      checkDay();
+    }
   });
   window.addEventListener('pagehide', saveNow);
 

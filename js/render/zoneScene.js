@@ -36,7 +36,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
   const app = new Application();
   await app.init({
     resizeTo: host,
-    background: colorOf(cfg.groundColor),
+    background: colorOf(scene.ground || cfg.groundColor),
     antialias: false,
     roundPixels: true,
     resolution: Math.min(window.devicePixelRatio || 1, data.balance.render.maxResolution),
@@ -170,7 +170,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     const { w, h } = sizeNow();
     ground.clear();
     // Small darker grass flecks at fixed pseudo-random places (stable across resizes).
-    const speck = colorOf(cfg.speckColor);
+    const speck = colorOf(scene.speck || cfg.speckColor);
     for (let i = 0; i < cfg.specks; i++) {
       const rx = (Math.sin(i * 12.9898) * 43758.5453) % 1;
       const ry = (Math.sin(i * 78.233) * 12543.8721) % 1;
@@ -530,6 +530,9 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
   syncWorkers(game.getState());
   layout();
   app.renderer.on('resize', layout);
+  // The host may be hidden (zero size) when the scene is built; follow its real size once it shows.
+  const sizeWatch = new ResizeObserver(() => { if (host.clientWidth && !destroyed) app.resize(); });
+  sizeWatch.observe(host);
 
   app.ticker.add((ticker) => {
     const state = game.getState();
@@ -550,6 +553,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
       if (destroyed) return;
       destroyed = true;
       unsubscribe();
+      sizeWatch.disconnect();
       app.renderer.off('resize', layout);
       polish.destroy();
       app.destroy(true, { children: true });

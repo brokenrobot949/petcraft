@@ -27,7 +27,7 @@
 </style>
 </head>
 <body>
-<h1>PetCraft balance simulator <span class="muted">(dev only, v1)</span></h1>
+<h1>PetCraft balance simulator <span class="muted">(dev only, v2)</span></h1>
 <div class="muted">Plays the real game with a scripted player. Nothing here is shipped. See tools/sim/README.md.</div>
 <div class="controls">
   <label>Days <input id="days" type="number" min="1" max="120" value="30" style="width:80px"></label>
@@ -97,9 +97,12 @@ function render(r) {
 
   // (a) milestones
   html += '<h3>Milestones (first time hit)</h3>';
-  html += table(['Milestone', 'When', 'Since start'], r.milestones.map((m) => [m.label, m.at == null ? 'not reached' : fmtWhen(m.at), m.at == null ? '' : fmtSince(m.minutes)]), 3);
-  html += '<h3>Design-doc milestones not in the game yet</h3>';
-  html += table(['Milestone', 'Regular-player target', 'Status'], r.notYet.map(([n, t]) => [n, t, 'not in the game yet']), 9);
+  html += '<div class="muted">Target = days since the start (the middle of a design-doc range); "on time" is within 25%.</div>';
+  html += table(['Milestone', 'When', 'Since start', 'Target', 'Status'], r.milestones.map((m) => [m.label, m.at == null ? 'not reached' : fmtWhen(m.at), m.at == null ? '' : fmtSince(m.minutes),
+    m.targetText ? `${m.targetText} (${m.targetDays < 0.1 ? Math.round(m.targetDays * 1440) + ' min' : m.targetDays.toFixed(1) + ' d'})` : '', m.status || '']), 5);
+  html += `<h3>Coin flow</h3><div class="muted">Earned <b>${r.coins.earned}</b>, spent <b>${r.coins.spent}</b>, balance <b>${r.coins.balance}</b> at the end.</div>`;
+  html += table(['Source', 'Coins'], r.coins.sources, 1) + table(['Sink', 'Coins'], r.coins.sinks, 1);
+  html += '<h3>Design-doc milestones not in the game yet</h3>';  html += table(['Milestone', 'Regular-player target', 'Status'], r.notYet.map(([n, t]) => [n, t, 'not in the game yet']), 9);
 
   // (c) flags
   html += '<h3>Flags</h3>';
@@ -108,6 +111,8 @@ function render(r) {
   // (b) charts
   const xs = snaps.map((s) => s.day);
   html += lineChart('Skill levels by day', xs, r.skillIds.map((id, i) => ({ name: r.skillNames[id], color: COLORS[i % COLORS.length], values: snaps.map((s) => s.levels[id]) })));
+  html += lineChart('Renown rank by day', xs, [{ name: 'Renown rank', color: COLORS[0], values: snaps.map((s) => s.renownRank) }, { name: 'Coins / 100', color: COLORS[1], values: snaps.map((s) => Math.round(s.coins / 100)) }]);
+  html += lineChart('Renown XP gained per day', xs, [{ name: 'Renown XP that day', color: COLORS[2], values: snaps.map((s) => Math.round(s.renownXpDay)) }]);
   const peak = {};
   for (const s of snaps) for (const [k, c] of Object.entries(s.bag)) peak[k] = Math.max(peak[k] || 0, c);
   const top = Object.entries(peak).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k]) => k);
@@ -115,8 +120,8 @@ function render(r) {
 
   // (d) daily table
   html += '<h3>Daily table (23:59)</h3>';
-  const head = ['Day', ...r.skillIds.map((id) => r.skillNames[id].slice(0, 5)), 'Coins', 'Top stockpiles'];
-  html += table(head, snaps.map((s) => [s.day, ...r.skillIds.map((id) => s.levels[id]), s.coins,
+  const head = ['Day', ...r.skillIds.map((id) => r.skillNames[id].slice(0, 5)), 'Renown', 'Renown XP', 'Coins', 'Top stockpiles'];
+  html += table(head, snaps.map((s) => [s.day, ...r.skillIds.map((id) => s.levels[id]), s.renownRank, Math.round(s.renownXpDay), s.coins,
     Object.entries(s.bag).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, c]) => `${itemName(k)} ${c}`).join(', ')]), 1);
 
   // refusals
@@ -126,7 +131,7 @@ function render(r) {
   if (r.refusals.length) html += table(['Message', 'Count'], r.refusals, 1);
 
   // final state + CSV
-  html += `<h3>Final state</h3><div class="muted">Tools: ${esc(Object.entries(r.final.tools).map(([k, v]) => `${k}=${v}`).join(', '))}. Pets: ${esc(r.final.pets.map((p) => `${p.name} L${p.level}, Bond ${p.bond}`).join('; ') || 'none')}.</div>`;
+  html += `<h3>Final state</h3><div class="muted">Buildings: ${esc(Object.entries(r.final.buildings).map(([k, v]) => `${k}=${v}`).join(", "))}. Commissions delivered: ${r.final.commissions} (+${r.final.greats} great). Tools: ${esc(Object.entries(r.final.tools).map(([k, v]) => `${k}=${v}`).join(', '))}. Pets: ${esc(r.final.pets.map((p) => `${p.name} L${p.level}, Bond ${p.bond}`).join('; ') || 'none')}.</div>`;
   html += '<p><button data-csv>Download CSV</button></p>';
   el.innerHTML = html;
   el.querySelector('[data-csv]').addEventListener('click', () => {

@@ -4,11 +4,11 @@ The contract between the simulation core and everything else. Only the lead chan
 schema, the system interfaces or the structure of `data/balance.json`. Subagents build against
 this file.
 
-## Save state (schema version 4)
+## Save state (schema version 5; Phase 6 additions in "Phase 6: village and progression")
 
 ```js
 {
-  version: 4,
+  version: 5,
   meta: { createdAt, lastSavedAt, launches },     // ms timestamps
   rng: 123456789,                                  // seeded RNG state (js/core/rng.js)
   settings: { music: true, sound: true },
@@ -416,3 +416,98 @@ and building parts (`pine_frame`, `pine_shingles`, `copper_nails`).
   packer pastes each piece at (dx, dy) inside the role's frameWidth x frameHeight canvas.
 - `prop.plot_empty` (an unbuilt plot), `prop.sanctuary_ruins`, `prop.signpost` (the road to Mossbrook).
 - `fx.leaf`, `fx.rain`, `fx.sparkle`: short animated strips for the polish layer.
+
+## Phase 6: village and progression
+
+### Save schema v5 (migration 4 -> 5)
+
+```js
+renown: { rank, xp },                  // xp is now progress INTO the current rank (renown.init settles old totals)
+crafting: { stations, working: [stationId], known: { recipeId: true } },  // stations the player works; recipes learned from scrolls
+village: { day, board: [Commission], rerolls, seen, week, great: Commission|null, merchant: [{ item, price, left }], rng },
+garden: { plots: [{ seed: itemId|null, ms, auto, rng }], rng },
+achievements: { done: { id: true }, title: null|achievementId },
+stats: + coinsEarned, coinsSpent, sold, commissions, greats, garden, found: { itemId: true }, quality: { fine, masterwork }
+// Commission: { template, items: { itemId: n }, coins, renown, bonus: { itemId: n }|null, done }
+```
+Migration: the first station (data order) with a queue keeps working; the others pause with their queues.
+Stats fields are filled by each system's init.
+
+### Rules
+
+- **Renown** (js/systems/renown.js): `addRenownXp(state, ctx, amount, source)` is the only way to add Renown XP;
+  ranks follow `balance.renown.xpCurve` (a x R^exp + b to the next rank), up to `maxRank`. Sources: commissions
+  (rolled in `balance.village.daily.renown`), the Great Commission (`great.renown`), achievements (their `renown`),
+  building upgrades (30 x tier), the first craft of each recipe (`renown.firstCraft`). Zones and buildings open
+  from their own `unlock.renown`. Titles by band from data/renown.json.
+- **Working stations** (js/systems/crafting.js): the player works `workSlots` stations at once
+  (`balance.crafting.workSlotsByCottageTier`); only those advance. A free slot picks up the first station
+  (data order) with a queue; when a worked queue empties, the leftover time goes to the next waiting station.
+  `crafting/work { station }` switches by hand (the station worked longest pauses). Stations with building tier 0
+  (Forge before Renown 2, Alchemy Lab before 5, for new saves) can't queue. Phase 8 adds assistants.
+- **Coins** (js/systems/coins.js): `earnCoins`, `spendCoins` keep `stats.coinsEarned/Spent`. Sources: selling,
+  commissions (Phase 7: treasure). Sinks: building tiers 2-5 coins, blueprints, seeds, scrolls, merchant, paid rerolls.
+- **Mossbrook** (js/systems/village.js): `village/newDay` (sent by the UI on load, on return to the page and
+  every minute; by the simulator at each check-in) fills a new board when `ctx.day` changed (local midnight) and a
+  new Great Commission and merchant stock when the Monday-based week changed. Templates are eligible when
+  their `tier` <= `reachableTier` (highest open zone tier the player has a harvest tool for) and within
+  `tierSpread` of it, and their `needs` skill levels are met. Coins = max(minCoins, sell value x coinMult).
+  Deliveries take any quality, Normal first. 1 free reroll a day, then `rerollCost` coins.
+  Selling pays `sell x sellQualityMult[quality]`; items with sell 0 can't be sold.
+- **Garden** (js/systems/garden.js): plots from `gardenPlotsByTier` (0 while unbuilt). A seed item's
+  `seed { crop, minutes, yield }` (items.json) grows, the crop goes to the bag, and with `auto` on another
+  seed of that kind is planted from the bag with the leftover time carried.
+- **Achievements** (js/systems/achievements.js): conditions (`when.kind`, see `conditionProgress`) are
+  checked after every command (new system hook `afterCommand(state, ctx)`, called by game.dispatch) and at the
+  end of every advance. A save gets what it already earned on load, quietly.
+
+### Events (Phase 6)
+
+```js
+{ type: 'renownXp', amount, source }   { type: 'rankUp', rank }   { type: 'achievement', id, renown }
+{ type: 'newBoard', day }   { type: 'commissionDone', slot, template, coins, renown, bonus }
+{ type: 'sold', item: key, qty, coins }   { type: 'bought', item, qty, coins, merchant? }   { type: 'learned', recipe, coins }
+{ type: 'gardenHarvest', plot, seed, item, qty }
+```
+Summary additions: `renown: { xp, rank|null }`, `achievements: [id]`, `garden: { itemId: n }`.
+
+### Commands (Phase 6)
+
+`village/newDay`, `village/seen`, `village/deliver { slot }` (slot 0..2 or 'great'), `village/reroll { slot }`,
+`market/sell { item: key, qty }`, `market/buy { item, qty }`, `market/learn { recipe }`, `market/buyMerchant { index }`,
+`crafting/work { station }`, `garden/plant { plot, seed }`, `garden/clear { plot }`, `garden/auto { plot, on }`,
+`achievements/setTitle { id|null }`. Test mode: `dev/addRenownXp { amount }`, `dev/newDay` (fresh board, Great
+Commission and merchant), `dev/setRenown` now also clears the rank's XP.
+
+### Selectors (Phase 6)
+
+- renown.js: `xpToNextRank(rank, balance)`, `rankTitle(data, rank)`, `unlocksAt(data, rank) -> [string]`,
+  `rankInfo(state, data) -> { rank, title, xp, next, max, nextRank, nextUnlocks, nextUnlockRank }`.
+- village.js: `boardList(state, data) -> [{ slot, template, giver, note, items: [{ item, need, have }], coins, renown,
+  bonus, done, canDeliver }]`, `greatCommission(state, data)` (same shape, slot 'great', or null),
+  `rerollInfo -> { free, cost }`, `villageNotice(state, data)` (badge), `sellPrice(data, key)`,
+  `sellList -> [{ key, item, count, price }]`, `shopList -> [{ item, def, price, locked, have }]`,
+  `scrollList -> [{ recipe, def, output, price, known, locked }]`, `merchantList -> [{ index, item, def, price, left, normal }]`,
+  `reachableTier`, `weekOf(data, day)`. `locked` is a player-readable reason or null.
+- crafting.js: `workSlots(state, data)`, `isWorking(state, id)`; `stationList` entries gain `working` and
+  `status` ('unbuilt' | 'working' | 'paused' | 'idle'). `recipeCheck` reasons for an unbuilt station and an unlearned
+  scroll recipe start with "Needs".
+- garden.js: `plotCount`, `plotList -> [{ index, seed, crop, ms, growMs, left, auto }]`, `seedList -> [{ id, item, count, crop, minutes, yield }]`, `seedDef`, `growMs`.
+- achievements.js: `achievementList -> [{ ...def, done, progress: { have, need } }]`, `wornTitle(state, data)`, `conditionProgress`.
+
+### Data files (Phase 6)
+
+- data/renown.json: `titles [{ from, name }]`, `ranks [{ rank, unlocks: [string] }]` (extras beyond zones/buildings).
+- data/commissions.json: `daily`, `great`: `[{ id, giver, note, tier, items: [{ item, qty: [min, max] }], needs: { skill: level } }]`,
+  `bonus: [{ item, qty, tier, weight }]`.
+- data/market.json: `shop [{ item, price, renown }]`, `scrolls [{ recipe, price, renown }]`, `merchant [{ item, price, qty, renown, weight }]`.
+- data/achievements.json: `achievements [{ id, name, desc, group, renown, title|null, when: { kind, ... } }]`.
+- items.json: `seed { crop, minutes, yield }` on seed items; recipes.json: `scroll: true` on recipes learned from scrolls.
+- zones.json `scene` may set `ground` and `speck` colors ("0xrrggbb") for its zone scene.
+
+### balance.json additions (Phase 6)
+
+`crafting.workSlotsByCottageTier`, `renown { maxRank, xpCurve, firstCraft }`, `village { boardSize, freeRerolls,
+rerollCost, tierSpread, weekStartOffset, sellQualityMult, daily { renown, coinMult, minCoins, bonusChance },
+great { renown, coinMult, minCoins }, merchant { slots }, dayCheckSeconds }`, `garden { growSpeed }`. New water props join
+`render.polish.shadow.skipProps`. Zone scenes now follow their host size with a ResizeObserver (like Home).

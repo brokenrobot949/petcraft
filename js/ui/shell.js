@@ -1,11 +1,13 @@
 // The app frame: top bar and the five bottom tabs. Each tab module exports
 // { id, label, icon, mount(container, app), show?(), hide?() }.
-import { el } from './dom.js';
+import { el, toast } from './dom.js';
 import { getPref, setPref } from './device.js';
 import { offlineCapMs, localDay } from '../core/time.js';
 import { needsStarter, petList, canPatToday } from '../systems/pets.js';
 import { craftNotice } from '../systems/crafting.js';
 import { canUpgradeAny } from '../systems/buildings.js';
+import { villageNotice } from '../systems/village.js';
+import { rankInfo, rankTitle } from '../systems/renown.js';
 import * as home from './home.js';
 import * as world from './world.js';
 import * as pets from './pets.js';
@@ -55,6 +57,24 @@ export function mountShell(app) {
     else current.tab.show?.();
   });
 
+  // Tapping the Renown bar opens the Journal's Renown panel.
+  const renownStat = document.getElementById('stat-renown');
+  renownStat.setAttribute('role', 'button');
+  renownStat.setAttribute('tabindex', '0');
+  renownStat.addEventListener('click', () => select('journal'));
+  renownStat.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && select('journal'));
+
+  // Live toasts: achievements first, the new rank last.
+  app.game.onEvents((events) => {
+    const d = app.game.data;
+    for (const e of events) {
+      if (e.type === 'achievement') toast(`Achievement: ${d.achievements.achievements.find((a) => a.id === e.id)?.name || e.id}`, 3000);
+    }
+    for (const e of events) {
+      if (e.type === 'rankUp') toast(`Renown ${e.rank}: ${rankTitle(d, e.rank)}!`, 3000);
+    }
+  });
+
   const topbar = mountTopbar(app);
   app.game.subscribe(topbar);
   topbar(app.game.getState());
@@ -75,8 +95,8 @@ export function mountShell(app) {
   const craftBadge = (state) => setBadge('craft', craftNotice(state));
   app.game.subscribe(craftBadge);
   craftBadge(app.game.getState());
-  // Home badge: a building can be upgraded right now.
-  const homeBadge = (state) => setBadge('home', canUpgradeAny(state, app.game.data));
+  // Home badge: a building can be upgraded right now, or Mossbrook has news (new board, something to deliver).
+  const homeBadge = (state) => setBadge('home', canUpgradeAny(state, app.game.data) || villageNotice(state, app.game.data));
   app.game.subscribe(homeBadge);
   homeBadge(app.game.getState());
 
@@ -91,7 +111,8 @@ function mountTopbar(app) {
   return (state) => {
     coins.textContent = state.coins.toLocaleString();
     rank.textContent = state.renown.rank;
-    fill.style.width = '0%'; // Renown XP per rank arrives with renown.json in Phase 6.
+    const info = rankInfo(state, app.game.data);
+    fill.style.width = info.max || !info.next ? '100%' : `${Math.min(100, (info.xp / info.next) * 100)}%`;
     cap.textContent = `Away ${Math.round(offlineCapMs(state, app.game.data.balance) / 3600000)}h`;
   };
 }

@@ -1,4 +1,4 @@
-# PetCraft balance simulator (v1, dev only, never shipped)
+# PetCraft balance simulator (v2, dev only, never shipped)
 
 Plays the real game with a scripted player for N days and reports pacing. It imports the same
 game modules as the app (`createGame`, the systems, `loadData`); there is no copied game logic.
@@ -32,38 +32,49 @@ so time beyond the cap is lost exactly as for a real player).
   accurate to 30 minutes while away). The clock starts 2026-10-19 08:00 local time.
 - A daily snapshot is taken at 23:59.
 
-## What the policy does
+## What the policy does (v2, Phase 6 systems)
 
-- Day 1: hatches a Sprout egg named "Sim". No other pets (taming is Phase 7).
-- Pats every pet once per local day. Leaves auto-feed on.
-- **Workers** (player and active pets): goal order is (1) the raw materials still short for the
-  copper tools (the recipe chain is followed backwards from `data/recipes.json`, counting the
-  bag and queued batches), plus spare logs/ore to level Carpentry and Smithing to the tool gate
-  (level 10); (2) food: when fewer than 20 food items (raw + meals) are in the bag the pet goes
-  foraging for the food it has least of; (3) otherwise level the lowest harvest skill at its
-  best open node. A locked node (for example the Copper Vein at Mining 3) sends the worker to
-  level that skill first. The player takes the top goal, pets take the next ones (preferring
-  their affinity skill).
-- **Stations**: every free queue slot is filled. Order per station: a copper tool not yet
-  equipped, then parts toward it, then (Kitchen) meals when food is under 20, then the craft
-  that gives the most XP among recipes it can afford without touching materials the tools
-  still need (and keeping 10 of each food ingredient). Only done for skills under the gate
-  level or the lowest trainable skill. Recipes that make quality items use Focus 'good'.
-- **Eating**: if the player has a meal or potion that buffs the skill being harvested and no
-  buff is active, it is used.
-- Refused commands are caught and counted by message.
+Each check-in, in this order (the policy only sends commands and reads selectors; it never re-implements a rule):
+
+1. `village/newDay` (the sim clock drives the day), hatch the Sprout "Sim" on day 1, pat every pet once a day.
+2. **Sell surplus** (`market/sell`) when coins are under the next building steps' coin cost: only items with no
+   remaining use, above a reserve (50 of anything used by a recipe, building or commission; all pet food, tools,
+   seeds and blueprints are kept; the market's highest-priced items go first).
+3. **Buildings**: every upgrade or empty plot (Forge, Garden, Alchemy Lab as their Renown opens; the Nest is skipped,
+   it does nothing yet) held back only by materials, a blueprint or coins, cheapest first. A missing blueprint is
+   bought (`market/buy`, or the merchant if it offers one cheaper) once the materials are in the bag and coins cover
+   blueprint + tier coins.
+4. **Commissions**: deliver every board commission and the Great Commission it can (`village/deliver`); the free
+   reroll goes to a board commission whose items it cannot reach soon (locked zone, tool tier too low, a skill more
+   than 8 levels away, unlearned scroll, items only the merchant sells).
+5. **Garden**: keep every plot planted (buys the cheapest unlocked seeds when out; auto-replant stays on).
+6. **Scrolls** (`market/learn`) when coins cover them on top of the building steps' coins.
+7. **Wants**: the cheapest building waiting on materials, the next tool tier for each kind (tiers 2-6), and the
+   cheapest reachable open commission. Wants the player cannot reach yet (a locked zone, a far-off skill) are
+   skipped. The recipe chain is followed backwards to the raw materials still short; those decide where the player
+   and pets harvest. Craft skills below the level the wants need get spare raw input to turn into XP.
+8. **Stations**: free queue slots get the wants' parts (a full queue holding only XP filler gives one batch up),
+   then meals when food is short, then XP crafts. Then the player works the queued station that matters most
+   (`crafting/work`): tools, then food when the pets' food in the bag is low, then buildings and commissions,
+   then XP. With 2 work slots the best two are worked.
+9. Eat a buff meal for the skill being harvested.
 
 ## What the page shows
 
-Milestone table (first time each was hit), design-doc milestones that cannot happen yet, flags
-(items that pile up with no use, items with a use that still pile up, skills that never or no
-longer gain XP, coins, pet rest share), skill-level and stockpile charts by day, a daily table,
-refused commands, and a CSV download (one row per day: skill levels, skill total XP, every bag item).
+Milestones with the design-doc target (middle of a range, in days since the start) and a status
+(on time within 25%, early, late, not reached yet), including Renown ranks 2-15, zone openings, Grand
+Projects (Renown 12), Forge and Garden built, first commission, and the first tool of tiers 3-6. Design-doc
+milestones that cannot happen yet. Flags: items piling up with no use, items with a use that still pile up,
+skills that never or no longer gain XP, "coins only go up" (never spent anything), coins piling up, pacing
+milestones more than 25% off, pet rest share. Coin flow (earned by selling/commissions, spent on buildings,
+blueprints, seeds, scrolls). Charts: skill levels, Renown rank (with coins/100), Renown XP per day, stockpiles.
+Daily table, refused commands, final state (buildings, tools, pets) and a CSV download (skill levels, XP, coins,
+Renown rank and XP, every bag item, one row per day).
 
-## What v1 cannot measure yet
+## What the simulator cannot measure yet
 
-Renown, buildings and building upgrades, coins and selling, commissions, taming and more pets,
-evolution, Grand Projects, other zones (only Meadowfold has content), tier 3+ tools, and the
-Focus mini-game (the policy always assumes a 'good' result). Pet feeding is whatever auto-feed
-does; the policy does not hand-feed. The policy never sells or discards, so stockpiles just grow.
-Milestones during time away are accurate to 30 minutes.
+Taming and more pets, evolution, Grand Projects themselves (only the Renown 12 mark), the Nest, Phase 7+ zones
+content, and the Focus mini-game (the policy always assumes a 'good' result). Pet feeding is whatever auto-feed
+does. Milestones during time away are accurate to 30 minutes. The policy checks in only at its check-in times, so
+the "first building upgrade in 10 minutes" target cannot be met by a 4-check-in player (it lands at the first
+check-in after enough materials exist).

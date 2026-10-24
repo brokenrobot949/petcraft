@@ -59,7 +59,10 @@ export function createGame(data, initialState, { clock = () => Date.now() } = {}
       if (!handler) throw new Error(`unknown command ${type}`);
       ctx.now = clock();
       ctx.day = localDay(ctx.now);
-      withLiveEvents(() => handler(state, payload, ctx));
+      withLiveEvents(() => {
+        handler(state, payload, ctx);
+        for (const sys of SYSTEMS) if (sys.afterCommand) sys.afterCommand(state, ctx);
+      });
     },
     advance(ms) {
       withLiveEvents(() => advance(state, ms, ctx));

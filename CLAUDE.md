@@ -60,14 +60,24 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 5 done (2026-10-19)
-Next: Phase 6 (Mossbrook market, coins, commissions, achievements, Renown ranks, zones 2-5, tool tiers 3-6),
-  plus the working-station limit Rob approved on 2026-10-23 (docs/design.md "Crafting", locked decision
-  changed): the player works 1 station at a time, 2 from Cottage tier 3; other queues pause; one-tap switch
-  on the Craft tab; works offline. Needs a schema bump + migration (which stations the player works at;
-  existing saves keep their queues, the first busy station stays working). Phase 8 changes station assist
-  from +10% speed to "an adult assistant keeps that station running" (no player slot used). Re-run the
-  simulator: watch pet rest time, since the Kitchen now competes with the Workbench and Forge.
+Phase: 6 done (2026-10-23)
+Next: Phase 7 (tracking, traps, bait, lures, Stable capacity, maps, dig sites, Nest and eggs). Phase 8 makes
+  station assist "an adult assistant keeps that station running" (no player slot used).
+Phase 6: save schema v5 (migration 4->5: crafting.working/known, village, garden, achievements; the first
+  busy station keeps working; renown.xp is now progress into the rank and old totals settle into ranks).
+  Renown ranks 1-30 (js/systems/renown.js, addRenownXp is the only way in; titles in data/renown.json).
+  Working-station limit (Rob, 2026-10-23): workSlotsByCottageTier [1,1,2,2,2]; a free slot picks the first
+  queued station; an emptied queue hands its leftover time to the next waiting one; 'crafting/work' switches.
+  Mossbrook (js/systems/village.js, js/ui/mossbrook.js; Home signpost or Mossbrook button): market (sell
+  anything with a sell price, x quality; buy seeds and blueprints; recipe scrolls teach 6 "scroll" recipes),
+  Commission Board (3 a day, reset at local midnight via 'village/newDay' from main.js every minute, 1 free
+  reroll then 25 coins), weekly Great Commission (Monday weeks), traveling merchant (3 weekly offers).
+  Coins through js/systems/coins.js (stats.coinsEarned/Spent). Garden (js/systems/garden.js): plots by tier,
+  seeds from items.json "seed", auto-replant. 56 achievements (afterCommand hook in game.dispatch), wearable
+  titles. Zones 2-5 with nodes, rares and scenes (per-zone ground colors); iron/steel/mythril/emberite tools
+  for all 6 kinds; 88 new recipes; building tiers 3-5 use later-zone materials. New games start with the
+  Forge (Renown 2) and Alchemy Lab (Renown 5) as empty plots; Phase 5 saves keep theirs. Core checks: 113.
+  Simulator v2 plays all of it (commissions, selling, blueprints, garden, station switching, tools to tier 6).
 Phase 5: no schema bump (buildings.init fills one { tier } per building in data/buildings.json). 8 buildings
   (Cottage, Stable, Workbench, Kitchen, Forge, Alchemy Lab, Garden, Nest), 5 tiers each, instant upgrades
   (js/systems/buildings.js): materials, coins from tier 3, blueprints for tiers 3-5; nothing passes the
@@ -106,31 +116,37 @@ Art casting: data/sprites.json maps roles (player, pet.<archetype>.<form>, mythi
   suggestions; Rob recasts in the catalog (http://localhost:8080/tools/catalog/ -> Casting -> Save),
   which writes sprites.json and runs tools/atlas/pack.ps1 via tools/serve.ps1. Then commit + bump version.
 Known issues:
-- Pacing is far too fast (simulator, regular player): all six copper tools by day 2, every skill
-  around level 52 by day 30, stockpiles in the hundreds of thousands. Tuned in Phase 10 by changing
-  balance.json only; the XP curve and harvest yields are the main levers.
-- Auto-feed uses cooked meals and tonics only (Rob, 2026-10-19; balance.pets.energy.autoFeedCategories), so
-  pets no longer live on the raw food they gather. With the Kitchen kept busy pets still rest under 1%
-  of the time (simulator), because meals take 4-6 s each; making meals cost more is a Phase 10 lever.
-- Copper tools only open Whisperwood, which arrives in Phase 6; until then they add nothing but a
-  new look in the bag (tier gates materials, quality gives speed).
-- No use yet for stone, rabbit hide, pine seed and the rare gems/curios (selling: Phase 6).
+- Pacing (simulator v2, 30 days, regular player): Renown zones arrive about 2x early (Whisperwood 5 h,
+  Stonecrag day 2, Mistfen day 7.4, Renown 12 day 12) but Emberfall (Renown 15) is not reached by day 30:
+  Renown XP dries up late. Harvest skills hit 60 by day 14-20; willow logs and other stockpiles reach the
+  hundreds of thousands. Light player is roughly on target to Renown 12 (day 18). All tuned in Phase 10 in
+  balance.json (renown.xpCurve, village.daily.renown, XP curve, harvest yields).
+- Pets rest under 1% of the time even with the one-station rule (simulator 0.3%): meals are cheap and fast.
+  Making meals cost more is a Phase 10 lever. Auto-feed uses cooked meals and tonics only (Rob, 2026-10-19).
+- Some commissions ask for meals made with Garden crops; a player without a Garden yet can reroll them.
+- A brand-new player gets a Great Commission only once their skills meet one template's needs (the board
+  keeps trying every minute).
+- Player outfits at Renown 5/10/15/20/25 are not built (needs Rob's casting of outfit looks).
+- Decor (market sink), fertilizer, lures, relic fragments and treasure coins arrive in later phases.
 - A pet's personal favorite dish (+40 Bond, revealed on first feed) is not built yet (Phase 8 with gifts).
 - Pet XP is a placeholder: a pet reaches the hatchling cap (level 10) in about a day of work.
-- Renown ranks don't rise yet (Phase 6), so the Garden (Renown 2) and Nest (Renown 8) stay locked and
-  the Forge (Renown 2) and Alchemy Lab (Renown 5) start built. Garden crops (Phase 6) and Nest eggs
-  (Phase 7) do nothing yet. Tiers 3-5 need blueprints from the Mossbrook market (Phase 6).
-- Building costs for tiers 3-5 use Meadowfold materials until later zones exist; Phase 6 swaps them.
-- Simulator: first building upgrade lands at the first check-in after 8:00 (about 4.5 h for the regular
-  player), because the policy only acts at check-ins; an active player needs about 5-10 minutes.
-- 30 fps was measured only in the desktop preview (about 65-130 fps); not yet on a real phone.
+- The Nest (Renown 8) can be built but eggs arrive in Phase 7.
+- Simulator: the scripted player acts only at check-ins, so "first building upgrade" shows 10 h (it must
+  build the Forge first now); an active player needs about 5-10 minutes. The policy reads zone rares and
+  reachability straight from data (no selector for "where does this item come from").
+- Catch-up: 16 h in about 80 ms on desktop; not yet measured on a phone. 30 fps likewise desktop-only.
 - Weak icon matches: pine frame (a shelf), copper nails. Several buildings reuse the same house pictures
   at different tiers; Rob may want to recast (the catalog can't edit composed "parts" roles yet).
 - Weak item icon matches Rob may want to recast: bow (sideways), pine log (a stump), pine seed,
   berries, rabbit hide, sinew, river shell, four-leaf clover (3 leaves), lucky rabbit foot; Phase 4:
   hazelnut, pine plank (a crate), tool handle, both strings (same icon), copper fittings (an anvil),
   pickaxe/shovel heads, berry compote, roasted hazelnuts. Copper sickle, rod and shovel reuse the
-  stone tools' icons (the pack has no second version).
+  stone tools' icons (the pack has no second version). Phase 6: the pack has few distinct pictures, so
+  the new meats share 3 pictures, all rods and sickles share one, axes/pickaxes/shovels/bows cycle 2-3
+  pictures across tiers, handles and fittings repeat, the 8 new potions reuse 6 bottles; poor fits: ram
+  horn (fortune cookie), boar tusk (caltrop), coal (teal rock), potato (tan block), shingles (roof tiles).
+  Zone props: lava pool is a dark pit with an orange square (no lava tile in the pack), Mistfen's pool
+  reuses Meadowfold's pond, the deer trail is a leaf pile, the coal rock is grey.
 - Held tools use the full item pictures (SpriteInHand files are head-only fragments) with a
   code-made wind-up and bounce, drawn behind the body; the rod and bow are small and may need tuning in balance.render.zone.
 - Tab icons and app icon are still placeholder pack sprites.

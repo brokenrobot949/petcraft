@@ -74,25 +74,313 @@
       "id": "whisperwood", "name": "Whisperwood", "tier": 2, "unlock": { "renown": 3 },
       "archetypes": ["sprout", "tide"],
       "blurb": "A hushed forest where mushrooms glow softly and the brooks murmur secrets.",
-      "harvest": {}, "rare": {}
+      "scene": {
+        "idle": [0.46, 0.9],
+        "ground": "0x2f5a35", "speck": "0x264a2c",
+        "spots": {
+          "chopping": { "prop": "prop.oak_tree", "x": 0.12, "y": 0.62, "stand": [0.24, 0.74], "face": "left" },
+          "mining": { "prop": "prop.iron_rock", "x": 0.37, "y": 0.52, "stand": [0.37, 0.66], "face": "up" },
+          "foraging": { "prop": "prop.mushroom_ring", "x": 0.55, "y": 0.62, "stand": [0.55, 0.82], "face": "up" },
+          "hunting": { "prop": "prop.deer_trail", "x": 0.7, "y": 0.6, "stand": [0.7, 0.82], "face": "up" },
+          "fishing": { "prop": "prop.brook", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" }
+        },
+        "decor": [
+          { "prop": "prop.mushroom_ring", "x": 0.05, "y": 0.92 },
+          { "prop": "prop.fern", "x": 0.3, "y": 0.95 },
+          { "prop": "prop.round_bush", "x": 0.46, "y": 0.7 },
+          { "prop": "prop.fern2", "x": 0.62, "y": 0.96 },
+          { "prop": "prop.dark_stump", "x": 0.22, "y": 0.38 },
+          { "prop": "prop.log_slice", "x": 0.87, "y": 0.66 },
+          { "prop": "prop.orange_stump", "x": 0.62, "y": 0.32 },
+          { "prop": "prop.mushroom_ring", "x": 0.8, "y": 0.36 },
+          { "prop": "prop.fern", "x": 0.97, "y": 0.5 }
+        ]
+      },
+      "harvest": {
+        "chopping": [
+          { "id": "oak_tree", "name": "Oak Tree", "level": 10,
+            "drops": [ { "item": "oak_log", "qty": [1, 1], "chance": 1 },
+                       { "item": "oak_resin", "qty": [1, 1], "chance": 0.08 } ] },
+          { "id": "elder_oak", "name": "Elder Oak", "level": 16,
+            "drops": [ { "item": "oak_log", "qty": [1, 2], "chance": 1 },
+                       { "item": "oak_resin", "qty": [1, 1], "chance": 0.1 } ] }
+        ],
+        "mining": [
+          { "id": "iron_vein", "name": "Iron Vein", "level": 10,
+            "drops": [ { "item": "iron_ore", "qty": [1, 1], "chance": 1 },
+                       { "item": "stone", "qty": [1, 1], "chance": 0.12 } ] },
+          { "id": "rich_iron_vein", "name": "Rich Iron Vein", "level": 17,
+            "drops": [ { "item": "iron_ore", "qty": [1, 2], "chance": 1 },
+                       { "item": "stone", "qty": [1, 1], "chance": 0.1 } ] }
+        ],
+        "foraging": [
+          { "id": "mushroom_ring", "name": "Mushroom Ring", "level": 10,
+            "drops": [ { "item": "mushroom", "qty": [1, 2], "chance": 1 },
+                       { "item": "plant_fiber", "qty": [1, 1], "chance": 0.1 } ] },
+          { "id": "honey_hollow", "name": "Honey Hollow", "level": 15,
+            "drops": [ { "item": "honeycomb", "qty": [1, 1], "chance": 1 },
+                       { "item": "mushroom", "qty": [1, 1], "chance": 0.15 } ] }
+        ],
+        "fishing": [
+          { "id": "brook_shallows", "name": "Brook Shallows", "level": 10,
+            "drops": [ { "item": "brook_trout", "qty": [1, 1], "chance": 1 },
+                       { "item": "river_shell", "qty": [1, 1], "chance": 0.06 } ] },
+          { "id": "trout_pool", "name": "Trout Pool", "level": 16,
+            "drops": [ { "item": "brook_trout", "qty": [1, 2], "chance": 1 },
+                       { "item": "river_shell", "qty": [1, 1], "chance": 0.08 } ] }
+        ],
+        "hunting": [
+          { "id": "deer_trail", "name": "Deer Trail", "level": 10,
+            "drops": [ { "item": "venison", "qty": [1, 1], "chance": 1 },
+                       { "item": "deer_hide", "qty": [1, 1], "chance": 0.5 },
+                       { "item": "sinew", "qty": [1, 1], "chance": 0.3 } ] },
+          { "id": "stag_meadow", "name": "Stag Meadow", "level": 18,
+            "drops": [ { "item": "venison", "qty": [1, 2], "chance": 1 },
+                       { "item": "deer_hide", "qty": [1, 1], "chance": 0.5 },
+                       { "item": "sinew", "qty": [1, 1], "chance": 0.3 } ] }
+        ]
+      },
+      "rare": {
+        "chopping": [ { "item": "golden_acorn", "weight": 1 } ],
+        "mining": [ { "item": "moss_agate", "weight": 1 } ],
+        "foraging": [ { "item": "glowcap_spore", "weight": 1 } ],
+        "fishing": [ { "item": "brook_pearl", "weight": 1 } ],
+        "hunting": [ { "item": "deer_antler", "weight": 1 } ]
+      }
     },
     {
       "id": "stonecrag", "name": "Stonecrag Hills", "tier": 3, "unlock": { "renown": 6 },
       "archetypes": ["stone", "wild"],
       "blurb": "Sunny hills of warm rock, mountain sage and sleepy boars.",
-      "harvest": {}, "rare": {}
+      "scene": {
+        "idle": [0.46, 0.9],
+        "ground": "0xa8977a", "speck": "0x968766",
+        "spots": {
+          "chopping": { "prop": "prop.cedar_tree", "x": 0.11, "y": 0.62, "stand": [0.23, 0.74], "face": "left" },
+          "mining": { "prop": "prop.coal_rock", "x": 0.36, "y": 0.52, "stand": [0.36, 0.66], "face": "up" },
+          "foraging": { "prop": "prop.sage_bush", "x": 0.54, "y": 0.62, "stand": [0.54, 0.82], "face": "up" },
+          "hunting": { "prop": "prop.boar_den", "x": 0.69, "y": 0.6, "stand": [0.69, 0.82], "face": "up" },
+          "fishing": { "prop": "prop.rock_pool", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" }
+        },
+        "decor": [
+          { "prop": "prop.bone_bit", "x": 0.05, "y": 0.92 },
+          { "prop": "prop.pebbles", "x": 0.3, "y": 0.95 },
+          { "prop": "prop.dry_shrub", "x": 0.46, "y": 0.7 },
+          { "prop": "prop.pebbles", "x": 0.64, "y": 0.96 },
+          { "prop": "prop.tan_boulder", "x": 0.45, "y": 0.3 },
+          { "prop": "prop.small_boulders", "x": 0.62, "y": 0.34 },
+          { "prop": "prop.mine_mouth", "x": 0.9, "y": 0.34 },
+          { "prop": "prop.dry_shrub", "x": 0.15, "y": 0.9 },
+          { "prop": "prop.skull", "x": 0.97, "y": 0.56 }
+        ]
+      },
+      "harvest": {
+        "chopping": [
+          { "id": "cedar_tree", "name": "Cedar Tree", "level": 20,
+            "drops": [ { "item": "cedar_log", "qty": [1, 1], "chance": 1 },
+                       { "item": "cedar_resin", "qty": [1, 1], "chance": 0.08 } ] },
+          { "id": "tall_cedar", "name": "Tall Cedar", "level": 26,
+            "drops": [ { "item": "cedar_log", "qty": [1, 2], "chance": 1 },
+                       { "item": "cedar_resin", "qty": [1, 1], "chance": 0.1 } ] }
+        ],
+        "mining": [
+          { "id": "coal_seam", "name": "Coal Seam", "level": 20,
+            "drops": [ { "item": "coal", "qty": [1, 1], "chance": 1 },
+                       { "item": "stone", "qty": [1, 1], "chance": 0.15 } ] },
+          { "id": "gem_seam", "name": "Gem Seam", "level": 26,
+            "drops": [ { "item": "rough_gem", "qty": [1, 1], "chance": 0.6 },
+                       { "item": "stone", "qty": [1, 2], "chance": 0.4 } ] }
+        ],
+        "foraging": [
+          { "id": "sage_slope", "name": "Sage Slope", "level": 20,
+            "drops": [ { "item": "mountain_sage", "qty": [1, 2], "chance": 1 },
+                       { "item": "plant_fiber", "qty": [1, 1], "chance": 0.1 } ] },
+          { "id": "thistle_patch", "name": "Thistle Patch", "level": 25,
+            "drops": [ { "item": "mountain_sage", "qty": [1, 1], "chance": 1 },
+                       { "item": "hazelnut", "qty": [1, 1], "chance": 0.15 } ] }
+        ],
+        "fishing": [
+          { "id": "rock_pool", "name": "Rock Pool", "level": 20,
+            "drops": [ { "item": "rock_bass", "qty": [1, 1], "chance": 1 },
+                       { "item": "river_shell", "qty": [1, 1], "chance": 0.06 } ] },
+          { "id": "cold_stream", "name": "Cold Stream", "level": 27,
+            "drops": [ { "item": "rock_bass", "qty": [1, 2], "chance": 1 },
+                       { "item": "river_shell", "qty": [1, 1], "chance": 0.08 } ] }
+        ],
+        "hunting": [
+          { "id": "boar_den", "name": "Boar Den", "level": 20,
+            "drops": [ { "item": "boar_meat", "qty": [1, 1], "chance": 1 },
+                       { "item": "boar_tusk", "qty": [1, 1], "chance": 0.3 },
+                       { "item": "bone", "qty": [1, 1], "chance": 0.5 } ] },
+          { "id": "boar_ridge", "name": "Boar Ridge", "level": 28,
+            "drops": [ { "item": "boar_meat", "qty": [1, 2], "chance": 1 },
+                       { "item": "boar_tusk", "qty": [1, 1], "chance": 0.35 },
+                       { "item": "bone", "qty": [1, 1], "chance": 0.5 } ] }
+        ]
+      },
+      "rare": {
+        "chopping": [ { "item": "fossil_resin", "weight": 1 } ],
+        "mining": [ { "item": "garnet", "weight": 1 } ],
+        "foraging": [ { "item": "silver_sprig", "weight": 1 } ],
+        "fishing": [ { "item": "river_opal", "weight": 1 } ],
+        "hunting": [ { "item": "bone_whistle", "weight": 1 } ]
+      }
     },
     {
       "id": "mistfen", "name": "Mistfen Marsh", "tier": 4, "unlock": { "renown": 10 },
       "archetypes": ["tide", "stone"],
       "blurb": "A misty marsh of bog lilies, lazy eels and drifting fireflies.",
-      "harvest": {}, "rare": {}
+      "scene": {
+        "idle": [0.46, 0.9],
+        "ground": "0x3d6558", "speck": "0x335a4d",
+        "spots": {
+          "chopping": { "prop": "prop.willow_tree", "x": 0.11, "y": 0.62, "stand": [0.23, 0.74], "face": "left" },
+          "mining": { "prop": "prop.mythril_rock", "x": 0.36, "y": 0.54, "stand": [0.36, 0.68], "face": "up" },
+          "foraging": { "prop": "prop.reeds", "x": 0.54, "y": 0.62, "stand": [0.54, 0.82], "face": "up" },
+          "hunting": { "prop": "prop.fowl_nest", "x": 0.69, "y": 0.58, "stand": [0.69, 0.8], "face": "up" },
+          "fishing": { "prop": "prop.marsh_pool", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" }
+        },
+        "decor": [
+          { "prop": "prop.bog_lily", "x": 0.06, "y": 0.9 },
+          { "prop": "prop.marsh_leaf", "x": 0.3, "y": 0.95 },
+          { "prop": "prop.reed_piece", "x": 0.46, "y": 0.7 },
+          { "prop": "prop.marsh_sprout", "x": 0.62, "y": 0.96 },
+          { "prop": "prop.sprouts", "x": 0.2, "y": 0.4 },
+          { "prop": "prop.bog_lily", "x": 0.15, "y": 0.3 },
+          { "prop": "prop.reeds", "x": 0.86, "y": 0.5 },
+          { "prop": "prop.reed_piece", "x": 0.97, "y": 0.3 },
+          { "prop": "prop.marsh_leaf", "x": 0.64, "y": 0.3 }
+        ]
+      },
+      "harvest": {
+        "chopping": [
+          { "id": "willow_tree", "name": "Willow Tree", "level": 30,
+            "drops": [ { "item": "willow_log", "qty": [1, 1], "chance": 1 },
+                       { "item": "willow_sap", "qty": [1, 1], "chance": 0.08 } ] },
+          { "id": "weeping_willow", "name": "Weeping Willow", "level": 36,
+            "drops": [ { "item": "willow_log", "qty": [1, 2], "chance": 1 },
+                       { "item": "willow_sap", "qty": [1, 1], "chance": 0.1 } ] }
+        ],
+        "mining": [
+          { "id": "mythril_vein", "name": "Mythril Vein", "level": 30,
+            "drops": [ { "item": "mythril_ore", "qty": [1, 1], "chance": 1 },
+                       { "item": "stone", "qty": [1, 1], "chance": 0.1 } ] },
+          { "id": "deep_mythril", "name": "Deep Mythril Vein", "level": 37,
+            "drops": [ { "item": "mythril_ore", "qty": [1, 2], "chance": 1 },
+                       { "item": "stone", "qty": [1, 1], "chance": 0.1 } ] }
+        ],
+        "foraging": [
+          { "id": "lily_pond", "name": "Lily Pond", "level": 30,
+            "drops": [ { "item": "bog_lily", "qty": [1, 2], "chance": 1 },
+                       { "item": "marsh_reed", "qty": [1, 1], "chance": 0.15 } ] },
+          { "id": "reed_bed", "name": "Reed Bed", "level": 34,
+            "drops": [ { "item": "marsh_reed", "qty": [1, 2], "chance": 1 },
+                       { "item": "bog_lily", "qty": [1, 1], "chance": 0.2 } ] }
+        ],
+        "fishing": [
+          { "id": "eel_pool", "name": "Eel Pool", "level": 30,
+            "drops": [ { "item": "marsh_eel", "qty": [1, 1], "chance": 1 },
+                       { "item": "river_shell", "qty": [1, 1], "chance": 0.06 } ] },
+          { "id": "murky_channel", "name": "Murky Channel", "level": 37,
+            "drops": [ { "item": "marsh_eel", "qty": [1, 2], "chance": 1 },
+                       { "item": "river_shell", "qty": [1, 1], "chance": 0.08 } ] }
+        ],
+        "hunting": [
+          { "id": "fowl_nest", "name": "Fowl Nest", "level": 30,
+            "drops": [ { "item": "fowl_meat", "qty": [1, 1], "chance": 1 },
+                       { "item": "feathers", "qty": [1, 1], "chance": 0.5 },
+                       { "item": "sinew", "qty": [1, 1], "chance": 0.2 } ] },
+          { "id": "heron_flats", "name": "Heron Flats", "level": 38,
+            "drops": [ { "item": "fowl_meat", "qty": [1, 2], "chance": 1 },
+                       { "item": "feathers", "qty": [1, 2], "chance": 0.5 },
+                       { "item": "sinew", "qty": [1, 1], "chance": 0.2 } ] }
+        ]
+      },
+      "rare": {
+        "chopping": [ { "item": "wisp_lantern", "weight": 1 } ],
+        "mining": [ { "item": "moonstone", "weight": 1 } ],
+        "foraging": [ { "item": "ghost_orchid", "weight": 1 } ],
+        "fishing": [ { "item": "mist_pearl", "weight": 1 } ],
+        "hunting": [ { "item": "heron_plume", "weight": 1 } ]
+      }
     },
     {
       "id": "emberfall", "name": "Emberfall Caldera", "tier": 5, "unlock": { "renown": 15 },
       "archetypes": ["stone", "wild"],
       "blurb": "A warm volcanic bowl where fire blooms flicker and the ground hums.",
-      "harvest": {}, "rare": {}
+      "scene": {
+        "idle": [0.46, 0.9],
+        "ground": "0x3a2a26", "speck": "0x4d3631",
+        "spots": {
+          "chopping": { "prop": "prop.ashwood_tree", "x": 0.11, "y": 0.62, "stand": [0.23, 0.74], "face": "left" },
+          "mining": { "prop": "prop.ember_rock", "x": 0.36, "y": 0.54, "stand": [0.36, 0.68], "face": "up" },
+          "foraging": { "prop": "prop.fire_bloom", "x": 0.54, "y": 0.6, "stand": [0.54, 0.82], "face": "up" },
+          "hunting": { "prop": "prop.bone_pile", "x": 0.69, "y": 0.58, "stand": [0.69, 0.82], "face": "up" },
+          "fishing": { "prop": "prop.lava_pool", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" }
+        },
+        "decor": [
+          { "prop": "prop.ember_sparks", "x": 0.05, "y": 0.92 },
+          { "prop": "prop.leaf_pile", "x": 0.3, "y": 0.95 },
+          { "prop": "prop.ember_blobs", "x": 0.46, "y": 0.7 },
+          { "prop": "prop.ash_twigs", "x": 0.62, "y": 0.96 },
+          { "prop": "prop.ash_twigs2", "x": 0.2, "y": 0.4 },
+          { "prop": "prop.ember_twig", "x": 0.15, "y": 0.28 },
+          { "prop": "prop.fire_bloom", "x": 0.6, "y": 0.34 },
+          { "prop": "prop.dark_stump", "x": 0.85, "y": 0.3 },
+          { "prop": "prop.ember_sparks", "x": 0.97, "y": 0.5 }
+        ]
+      },
+      "harvest": {
+        "chopping": [
+          { "id": "ashwood_tree", "name": "Ashwood Tree", "level": 40,
+            "drops": [ { "item": "ashwood_log", "qty": [1, 1], "chance": 1 },
+                       { "item": "ember_resin", "qty": [1, 1], "chance": 0.08 } ] },
+          { "id": "charred_ashwood", "name": "Charred Ashwood", "level": 46,
+            "drops": [ { "item": "ashwood_log", "qty": [1, 2], "chance": 1 },
+                       { "item": "ember_resin", "qty": [1, 1], "chance": 0.1 } ] }
+        ],
+        "mining": [
+          { "id": "emberite_vein", "name": "Emberite Vein", "level": 40,
+            "drops": [ { "item": "emberite_ore", "qty": [1, 1], "chance": 1 },
+                       { "item": "coal", "qty": [1, 1], "chance": 0.2 } ] },
+          { "id": "deep_emberite", "name": "Deep Emberite Vein", "level": 47,
+            "drops": [ { "item": "emberite_ore", "qty": [1, 2], "chance": 1 },
+                       { "item": "coal", "qty": [1, 1], "chance": 0.2 } ] }
+        ],
+        "foraging": [
+          { "id": "fire_bloom_patch", "name": "Fire Bloom Patch", "level": 40,
+            "drops": [ { "item": "fire_bloom", "qty": [1, 1], "chance": 1 },
+                       { "item": "plant_fiber", "qty": [1, 1], "chance": 0.1 } ] },
+          { "id": "blazing_meadow", "name": "Blazing Meadow", "level": 45,
+            "drops": [ { "item": "fire_bloom", "qty": [1, 2], "chance": 1 },
+                       { "item": "plant_fiber", "qty": [1, 1], "chance": 0.1 } ] }
+        ],
+        "fishing": [
+          { "id": "lava_pool", "name": "Lava Pool", "level": 40,
+            "drops": [ { "item": "lava_crab", "qty": [1, 1], "chance": 1 },
+                       { "item": "river_shell", "qty": [1, 1], "chance": 0.05 } ] },
+          { "id": "magma_shallows", "name": "Magma Shallows", "level": 47,
+            "drops": [ { "item": "lava_crab", "qty": [1, 2], "chance": 1 },
+                       { "item": "river_shell", "qty": [1, 1], "chance": 0.06 } ] }
+        ],
+        "hunting": [
+          { "id": "ram_ledge", "name": "Ram Ledge", "level": 40,
+            "drops": [ { "item": "ram_meat", "qty": [1, 1], "chance": 1 },
+                       { "item": "ram_horn", "qty": [1, 1], "chance": 0.4 },
+                       { "item": "sinew", "qty": [1, 1], "chance": 0.2 } ] },
+          { "id": "ember_ridge", "name": "Ember Ridge", "level": 48,
+            "drops": [ { "item": "ram_meat", "qty": [1, 2], "chance": 1 },
+                       { "item": "ram_horn", "qty": [1, 1], "chance": 0.4 },
+                       { "item": "sinew", "qty": [1, 1], "chance": 0.2 } ] }
+        ]
+      },
+      "rare": {
+        "chopping": [ { "item": "cinder_heartwood", "weight": 1 } ],
+        "mining": [ { "item": "fire_opal", "weight": 1 } ],
+        "foraging": [ { "item": "sunpetal", "weight": 1 } ],
+        "fishing": [ { "item": "ember_pearl", "weight": 1 } ],
+        "hunting": [ { "item": "golden_fleece", "weight": 1 } ]
+      }
     },
     {
       "id": "heartgrove", "name": "Heartgrove", "tier": 6, "unlock": { "grandProject": 5 },

@@ -6,6 +6,8 @@ import { createGame } from '../../js/core/game.js';
 import { createInitialState } from '../../js/core/state.js';
 import { offlineCapMs } from '../../js/core/time.js';
 import { xpToNext } from '../../js/systems/skills.js';
+import { xpToNextRank } from '../../js/systems/renown.js';
+import { tierCost, upgradeCheck } from '../../js/systems/buildings.js';
 import { parseKey } from '../../js/systems/bag.js';
 import { createPolicy } from './policy.js';
 
@@ -22,13 +24,8 @@ export const PLAYERS = {
 // Design-doc pacing milestones that cannot happen yet (docs/design.md "Pacing targets").
 export const NOT_YET = [
   ['Second pet tamed', 'day 1-2'],
-  ['Whisperwood open (Renown 3)', 'day 1'],
   ['First stage-2 evolution', 'day 2'],
-  ['Stonecrag Hills open (Renown 6)', 'day 4-5'],
   ['First stage-3 evolution', 'day 8-10'],
-  ['Mistfen Marsh open (Renown 10)', 'week 2-3'],
-  ['Grand Projects open (Renown 12)', 'week 3'],
-  ['Emberfall Caldera open (Renown 15)', 'week 5'],
   ['First pet retired to the Elder Grove', 'week 6-8'],
   ['Ending (Grand Project 5)', 'week 8-10'],
   ['Bestiary complete', 'month 4 or later'],
@@ -53,6 +50,17 @@ export function totalXp(state, balance, skillId) {
   return t;
 }
 
+// All Renown XP earned so far (the save keeps only the progress into the current rank).
+export function renownTotal(state, balance) {
+  let t = state.renown.xp;
+  for (let r = 1; r < state.renown.rank; r++) t += xpToNextRank(r, balance);
+  return t;
+}
+
+const DAY_MIN = 1440;
+// A milestone is "on time" within 25% of its target (docs/design.md "Pacing targets").
+const TOLERANCE = 0.25;
+
 function milestoneList(data) {
   const skills = data.skills.skills.filter((s) => s.type === 'harvest' || s.type === 'craft');
   const tier = (state, kind) => data.items.items[state.tools[kind]?.item]?.tier || 0;
@@ -61,8 +69,25 @@ function milestoneList(data) {
     { id: 'pet', label: 'First pet hatched', test: (s) => Object.keys(s.pets.list).length > 0 },
     { id: 'plank', label: 'First pine plank', test: (s) => (s.stats.crafts.pine_plank || 0) > 0 },
     { id: 'bar', label: 'First copper bar', test: (s) => (s.stats.crafts.copper_bar || 0) > 0 },
-    { id: 'building', label: 'First building upgrade (target: 10 minutes)', test: (s) => Object.values(s.buildings).some((b) => b.tier >= 2) },
+    { id: 'building', label: 'First building upgrade', target: 10 / DAY_MIN, targetText: '10 min', test: (s) => Object.values(s.buildings).some((b) => b.tier >= 2) },
+    { id: 'commission', label: 'First commission delivered', test: (s) => (s.stats.commissions || 0) + (s.stats.greats || 0) > 0 },
   ];
+  // Design-doc pacing targets (days since the start; the middle of a range). Zones open at their Renown rank.
+  const ZONE_TARGETS = { whisperwood: [1, 'day 1'], stonecrag: [4.5, 'day 4-5'], mistfen: [14.5, 'week 2-3'], emberfall: [32, 'week 5'] };
+  for (const z of data.zones.zones) {
+    const rank = z.unlock?.renown;
+    if (!(rank > 1)) continue;
+    const t = ZONE_TARGETS[z.id];
+    list.push({ id: `zone_${z.id}`, label: `${z.name} open (Renown ${rank})`, target: t?.[0], targetText: t?.[1], test: (s) => s.renown.rank >= rank });
+  }
+  list.push({ id: 'grand', label: 'Grand Projects open (Renown 12)', target: 18, targetText: 'week 3', test: (s) => s.renown.rank >= 12 });
+  for (let r = 2; r <= Math.min(15, data.balance.renown.maxRank); r++) list.push({ id: `rank${r}`, label: `  Renown rank ${r}`, test: (s) => s.renown.rank >= r });
+  for (const b of ['forge', 'garden']) {
+    const def = data.buildings.buildings.find((x) => x.id === b);
+    if (def) list.push({ id: `${b}_built`, label: `${def.name} built`, test: (s) => (s.buildings[b]?.tier || 0) >= 1 });
+  }
+  const tierNames = Object.fromEntries(data.tools.tiers.map((t) => [t.tier, t.name]));
+  for (let t = 3; t <= 6; t++) list.push({ id: `tier${t}`, label: `First ${tierNames[t] || `tier ${t}`} tool equipped`, test: (s) => kinds.some((k) => tier(s, k) >= t) });
   for (const lvl of [5, 10, 20]) {
     for (const sk of skills) list.push({ id: `${sk.id}${lvl}`, label: `${sk.name} reaches ${lvl}`, test: (s) => s.skills[sk.id].level >= lvl });
   }
@@ -99,8 +124,21 @@ export function runSim(data, opts = {}) {
     if ((q === 'fine' || q === 'masterwork') && !seen[q]) seen[q] = simNow;
   };
   const pets = { work: 0, rest: 0 };
+  // Coin flow by source and sink, from the events the policy's own commands emit (all coin changes
+  // are commands). Whatever the totals in state.stats show beyond these is reported as "other".
+  const flow = { sold: 0, commissions: 0, buildings: 0, blueprints: 0, seeds: 0, scrolls: 0, otherBought: 0 };
   game.onEvents((evs) => {
     for (const e of evs) {
+      if (e.type === 'sold') flow.sold += e.coins;
+      else if (e.type === 'commissionDone') flow.commissions += e.coins;
+      else if (e.type === 'learned') flow.scrolls += e.coins;
+      else if (e.type === 'buildingUpgraded') flow.buildings += tierCost(data, e.building, e.tier)?.coins || 0;
+      else if (e.type === 'bought') {
+        const def = data.items.items[e.item];
+        if (def?.category === 'blueprint') flow.blueprints += e.coins;
+        else if (def?.seed) flow.seeds += e.coins;
+        else flow.otherBought += e.coins;
+      }
       if (e.type === 'craft') noteQuality(e.item);
       else if (e.type === 'petTime') {
         pets.work += e.workMs;
@@ -135,7 +173,12 @@ export function runSim(data, opts = {}) {
       levels[sk.id] = state.skills[sk.id].level;
       xp[sk.id] = totalXp(state, balance, sk.id);
     }
-    snapshots.push({ day: snapIdx + 1, time: simNow, levels, xp, coins: state.coins, bag: { ...state.bag }, petWorkMs: pets.work, petRestMs: pets.rest });
+    const rTotal = renownTotal(state, balance);
+    const prev = snapshots[snapshots.length - 1];
+    snapshots.push({
+      day: snapIdx + 1, time: simNow, levels, xp, coins: state.coins, bag: { ...state.bag }, petWorkMs: pets.work, petRestMs: pets.rest,
+      renownRank: state.renown.rank, renownXpTotal: rTotal, renownXpDay: rTotal - (prev ? prev.renownXpTotal : 0),
+    });
     snapIdx++;
   };
   const afterTime = () => {
@@ -189,7 +232,8 @@ export function runSim(data, opts = {}) {
     player, days, seed, sessions,
     skillIds: skillDefs.map((s) => s.id),
     skillNames: Object.fromEntries(skillDefs.map((s) => [s.id, s.name])),
-    milestones: milestones.map((m) => ({ label: m.label, at: m.at, minutes: m.at == null ? null : Math.round((m.at - START_MS) / MIN) })),
+    milestones: milestones.map((m) => milestoneResult(m, days)),
+    coins: coinSummary(game.getState(), flow),
     notYet: NOT_YET,
     snapshots,
     refusals: [...policy.refusals.entries()].sort((a, b) => b[1] - a[1]),
@@ -203,10 +247,39 @@ export function runSim(data, opts = {}) {
   return result;
 }
 
+// One milestone for the report. With a target (days since the start) it gets a status:
+// 'on time' (within 25%), 'early', 'late', or 'not reached' (late when the run is already past the window).
+function milestoneResult(m, days) {
+  const minutes = m.at == null ? null : Math.round((m.at - START_MS) / MIN);
+  const out = { label: m.label, at: m.at, minutes, targetDays: m.target ?? null, targetText: m.targetText || null, status: null, actualDays: minutes == null ? null : minutes / DAY_MIN };
+  if (m.target != null) {
+    if (minutes == null) out.status = days > m.target * (1 + TOLERANCE) ? 'late (not reached)' : 'not reached yet';
+    else if (out.actualDays < m.target * (1 - TOLERANCE)) out.status = 'early';
+    else if (out.actualDays > m.target * (1 + TOLERANCE)) out.status = 'late';
+    else out.status = 'on time';
+  }
+  return out;
+}
+
+// Coins earned and spent: the sources and sinks we can name, and the remainder from the state's totals.
+function coinSummary(state, flow) {
+  const earned = state.stats.coinsEarned || 0;
+  const spent = state.stats.coinsSpent || 0;
+  const named = flow.sold + flow.commissions;
+  const sinks = flow.buildings + flow.blueprints + flow.seeds + flow.scrolls + flow.otherBought;
+  return {
+    earned, spent, balance: state.coins,
+    sources: [['Selling', flow.sold], ['Commissions', flow.commissions], ['Other', Math.max(0, earned - named)]],
+    sinks: [['Buildings (tier coins)', flow.buildings], ['Blueprints', flow.blueprints], ['Seeds', flow.seeds], ['Recipe scrolls', flow.scrolls],
+      ['Other purchases (merchant items)', flow.otherBought], ['Rerolls and other', Math.max(0, spent - sinks)]],
+  };
+}
+
 function finalSummary(state, data) {
   const tools = Object.fromEntries(Object.entries(state.tools).map(([k, v]) => [k, v.quality === 'normal' ? v.item : `${v.item}:${v.quality}`]));
   const pets = Object.values(state.pets.list).map((p) => ({ name: p.name, level: p.level, bond: p.bond }));
-  return { tools, pets };
+  const buildings = Object.fromEntries(Object.entries(state.buildings).map(([k, v]) => [k, v.tier]));
+  return { tools, pets, buildings, blocked: Object.fromEntries(Object.keys(state.buildings).map((k) => { const c = upgradeCheck(state, data, k); return [k, c.ok ? "ready" : (c.reason || "") + (c.missing.length ? " Missing: " + c.missing.map((m) => `${m.item} ${m.have}/${m.need}`).join(", ") : "")]; })), renown: state.renown.rank, commissions: state.stats.commissions, greats: state.stats.greats };
 }
 
 // ---- flags ----
@@ -250,10 +323,22 @@ function computeFlags(r, data) {
   flags.push({ kind: 'info', text: 'Taming: a special skill with no way to train it yet (Phase 7); not checked.' });
 
   // coins
-  if (snaps.every((s) => s.coins === 0)) flags.push({ kind: 'coins', text: "Coins don't exist yet (the balance is 0 every day), so the 'coins only go up' check can't run." });
+  const c = r.coins;
+  if (c.earned === 0) flags.push({ kind: 'coins', text: 'No coins were earned in this run (the policy never sold or delivered anything).' });
   else {
-    const up = snaps.every((s, i) => i === 0 || s.coins >= snaps[i - 1].coins);
-    if (up) flags.push({ kind: 'coins', text: `Coin balance only ever rises (${snaps[0].coins} -> ${lastSnap.coins}): no sink yet.` });
+    // The balance never falls if nothing was ever spent and the daily balance never dropped.
+    const up = c.spent === 0 && snaps.every((s, i) => i === 0 || s.coins >= snaps[i - 1].coins);
+    if (up) flags.push({ kind: 'coins', text: `Coins only go up: the balance never fell (${snaps[0].coins} -> ${lastSnap.coins}); nothing was bought with them in ${snaps.length} days.` });
+    flags.push({ kind: 'info', text: `Coins earned ${c.earned}, spent ${c.spent} (${Math.round(100 * c.spent / c.earned)}%), balance ${c.balance} at the end.` });
+    if (c.balance > 0.5 * c.earned && c.earned > 1000) flags.push({ kind: 'coins', text: `Coins pile up: ${c.balance} of ${c.earned} earned is still unspent at the end.` });
+  }
+
+  // pacing milestones more than 25% off their target
+  for (const m of r.milestones) {
+    if (m.status === 'early' || m.status === 'late' || m.status === 'late (not reached)') {
+      const actual = m.actualDays == null ? 'not reached' : `day ${m.actualDays.toFixed(1)}`;
+      flags.push({ kind: 'pace', text: `${m.label.trim()}: ${m.status}; target ${m.targetText} (${m.targetDays.toFixed(1)} days), actual ${actual}.` });
+    }
   }
 
   // pets resting
@@ -268,14 +353,14 @@ export function buildCsv(result) {
   const keys = new Set();
   for (const s of result.snapshots) for (const k of Object.keys(s.bag)) keys.add(k);
   const bagKeys = [...keys].sort();
-  const head = ['day', ...result.skillIds.map((id) => `level_${id}`), ...result.skillIds.map((id) => `xp_${id}`), 'coins', ...bagKeys.map((k) => `bag_${k}`)];
+  const head = ['day', ...result.skillIds.map((id) => `level_${id}`), ...result.skillIds.map((id) => `xp_${id}`), 'coins', 'renown_rank', 'renown_xp_total', 'renown_xp_day', ...bagKeys.map((k) => `bag_${k}`)];
   const rows = [head.join(',')];
   for (const s of result.snapshots) {
     rows.push([
       s.day,
       ...result.skillIds.map((id) => s.levels[id]),
       ...result.skillIds.map((id) => Math.round(s.xp[id])),
-      s.coins,
+      s.coins, s.renownRank, Math.round(s.renownXpTotal), Math.round(s.renownXpDay),
       ...bagKeys.map((k) => s.bag[k] || 0),
     ].join(','));
   }

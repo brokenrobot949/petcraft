@@ -4,11 +4,12 @@ import { itemIcon } from './icons.js';
 import { bagList, itemLabel, itemKey } from '../systems/bag.js';
 import { skillProgress } from '../systems/skills.js';
 import {
-  stationList, recipesFor, recipeDef, recipeCheck, itemMs, itemXp, makesQuality, qualityOdds, stationTimeLeft,
+  stationList, recipesFor, recipeDef, recipeCheck, itemMs, itemXp, makesQuality, qualityOdds, stationTimeLeft, workSlots,
 } from '../systems/crafting.js';
 import { activeBuffs, buffOf } from '../systems/buffs.js';
 import { isUpgrade } from '../systems/tools.js';
 import { foodValue } from '../systems/pets.js';
+import { sellPrice } from '../systems/village.js';
 
 export const id = 'craft';
 export const label = 'Craft';
@@ -18,6 +19,7 @@ let container = null;
 let app = null;
 let buffsBox = null;
 let stationsBox = null;
+let workLine = null;
 let toolsBox = null;
 let bagBox = null;
 let keys = {};
@@ -27,12 +29,13 @@ export function mount(c, a) {
   container = c;
   app = a;
   buffsBox = el('div');
+  workLine = el('p.small.muted.work-line');
   stationsBox = el('div.stations');
   toolsBox = el('div');
   bagBox = el('div.bag');
   container.append(
     el('h1', {}, 'Craft'),
-    buffsBox, stationsBox, toolsBox,
+    buffsBox, workLine, stationsBox, toolsBox,
     el('h1.bag-title', {}, 'Bag'),
     bagBox);
   app.game.subscribe(() => !container.hidden && render());
@@ -105,17 +108,27 @@ function renderBuffs() {
 
 function renderStations() {
   const list = stationList(state(), data());
-  const key = list.map((s) => `${s.id}/${s.slots}/${s.queue.map((b) => `${b.recipe}x${b.qty}`).join('+')}`).join('|');
+  const key = list.map((s) => `${s.id}/${s.slots}/${s.status}/${s.queue.map((b) => `${b.recipe}x${b.qty}`).join('+')}`).join('|');
   if (changed('stations', key)) buildStations(list);
   updateStations(list);
+  renderWorkLine();
+}
+
+// "You work at N stations at a time" (and when to expect a second one).
+function renderWorkLine() {
+  const n = workSlots(state(), data());
+  const tiers = data().balance.crafting.workSlotsByCottageTier;
+  const text = `You work at ${n} station${n === 1 ? '' : 's'} at a time.`;
+  const more = tiers.findIndex((x) => x > n);
+  workLine.textContent = more >= 0 ? `${text} (${tiers[more]} from Cottage tier ${more + 1})` : text;
 }
 
 function buildStations(list) {
   cards = {};
-  stationsBox.replaceChildren(...list.map(stationCard));
+  stationsBox.replaceChildren(...list.map((s, i) => stationCard(s, i, list)));
 }
 
-function stationCard(s) {
+function stationCard(s, _i, list) {
   const refs = { batches: [] };
   cards[s.id] = refs;
   refs.level = el('span.small');
@@ -127,10 +140,26 @@ function stationCard(s) {
     if (b) slots.push(batchRow(s, b, i, refs));
     else slots.push(el('button.btn.wide.craft-add', { type: 'button', onclick: () => openPicker(s.id) }, '+ Craft something'));
   }
+  let status = null;
+  if (s.status === 'working') status = el('p.station-status', {}, "You're working here.");
+  else if (s.status === 'paused') {
+    const other = list.find((x) => x.working);
+    status = el('div', {},
+      el('p.station-status', {}, `Paused - you're at the ${other ? other.name : 'other station'}.`),
+      el('button.btn.wide', { type: 'button', onclick: () => run('crafting/work', { station: s.id }) }, 'Work here'));
+  }
+  if (s.status === 'unbuilt') {
+    return el('div.panel.station.unbuilt', {},
+      el('div.station-top', {}, el('h2', {}, s.name), refs.level),
+      el('div.bar', {}, refs.xp),
+      el('p.small.muted.station-blurb', {}, s.blurb),
+      el('p.station-status', {}, `Build the ${s.name} on the Home tab.`));
+  }
   return el('div.panel.station', {},
     el('div.station-top', {}, el('h2', {}, s.name), refs.level),
     el('div.bar', {}, refs.xp),
     el('p.small.muted.station-blurb', {}, s.blurb),
+    status,
     el('p.small.muted', {}, s.slots === 1 ? '1 slot' : `${s.slots} slots`),
     slots,
     refs.left);
@@ -398,5 +427,5 @@ function detail(e, catName) {
       el('div', {}, el('p.small.muted', {}, catName), el('p', {}, `You have ${count.toLocaleString()}`))),
     e.item.desc && el('p', {}, e.item.desc),
     ...parts,
-    e.item.sell > 0 && el('p.small.muted', {}, `Sells for ${e.item.sell} coins at the market (Phase 6)`));
+    sellPrice(d, key) > 0 && el('p.small.muted', {}, `Sells for ${sellPrice(d, key)} coins in Mossbrook`));
 }

@@ -80,7 +80,28 @@
       "goodWidth": 0.24,
       "perfectWidth": 0.08
     },
-    "mealQuality": { "normal": 1, "fine": 1.25, "masterwork": 1.5 }
+    "mealQuality": { "normal": 1, "fine": 1.25, "masterwork": 1.5 },
+    "workSlotsByCottageTier": [1, 1, 2, 2, 2]
+  },
+  "renown": {
+    "maxRank": 30,
+    "xpCurve": { "a": 100, "exp": 1, "b": 50 },
+    "firstCraft": 5
+  },
+  "village": {
+    "boardSize": 3,
+    "freeRerolls": 1,
+    "rerollCost": 25,
+    "tierSpread": 1,
+    "weekStartOffset": 3,
+    "sellQualityMult": { "normal": 1, "fine": 1.5, "masterwork": 2 },
+    "daily": { "renown": [20, 60], "coinMult": 1.6, "minCoins": 10, "bonusChance": 0.25 },
+    "great": { "renown": 200, "coinMult": 2.5, "minCoins": 150 },
+    "merchant": { "slots": 3 },
+    "dayCheckSeconds": 60
+  },
+  "garden": {
+    "growSpeed": 1
   },
   "render": {
     "pixelScale": 3,
@@ -217,7 +238,7 @@
         "alpha": 0.4,
         "yOffsetPx": 0,
         "propWidthFrac": 0.8,
-        "skipProps": ["prop.pond", "prop.flower_yellow", "prop.flower_red", "prop.daisy", "prop.tuft"]
+        "skipProps": ["prop.pond", "prop.brook", "prop.rock_pool", "prop.marsh_pool", "prop.lava_pool", "prop.flower_yellow", "prop.flower_red", "prop.daisy", "prop.tuft"]
       },
       "tintUpdateMs": 250,
       "tint": [

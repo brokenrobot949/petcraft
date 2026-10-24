@@ -1,26 +1,37 @@
-// Balance simulator policy v1: what a sensible player does during one check-in (about 3 minutes).
+// Balance simulator policy v2: what a sensible player does during one check-in (about 3 minutes).
 // It only sends commands through game.dispatch and only reads state through the game's own
 // selectors. No DOM, no window: a Node runner can import this file as it is.
 //
-// Goal order (docs/handoff.md "Balance simulator", simplified for the systems that exist now):
-//   1. the copper tools (follow the recipe chain backwards to find the raw materials still short,
-//      and keep the gate skills (Carpentry / Smithing 10) climbing),
-//   2. keep cooked food for the pets (auto-feed eats only meals and tonics),
-//   3. level the lowest skill.
+// Order at each check-in (docs/handoff.md "Balance simulator", for the systems that exist now):
+//   0. village/newDay, hatch the starter, pat the pets;
+//   1. sell surplus when coins are short, build or upgrade buildings (buying blueprints), deliver commissions,
+//      reroll one that cannot be reached, tend the Garden, learn recipe scrolls;
+//   2. wants: the cheapest building, the next tool tier for every kind, the cheapest open commission
+//      (the recipe chain is followed backwards to the raw materials still short); queue crafts;
+//   3. send the player and the pets harvesting; eat a buff meal;
+//   4. work the queued station that matters most (tools, then food when pets are low, then buildings and
+//      commissions, then XP).
 import { itemCount, parseKey } from '../../js/systems/bag.js';
 import { skillLevel } from '../../js/systems/skills.js';
-import { nodeCheck } from '../../js/systems/harvest.js';
-import { stationList, recipeCheck, recipeDef, recipesFor, itemMs, itemXp, makesQuality } from '../../js/systems/crafting.js';
-import { isUpgrade } from '../../js/systems/tools.js';
+import { nodeCheck, zoneUnlocked, toolFor } from '../../js/systems/harvest.js';
+import { stationList, recipeCheck, recipeDef, recipesFor, itemMs, itemXp, makesQuality, stationTier, workSlots, isWorking } from '../../js/systems/crafting.js';
 import { buffOf, buffSpeed } from '../../js/systems/buffs.js';
 import { petList, canPatToday, needsStarter, canAutoFeed } from '../../js/systems/pets.js';
 import { localDay } from '../../js/core/time.js';
 import { buildingList, upgradeCheck } from '../../js/systems/buildings.js';
+import { boardList, greatCommission, rerollInfo, shopList, scrollList, merchantList, sellPrice } from '../../js/systems/village.js';
+import { plotList, seedList, seedDef } from '../../js/systems/garden.js';
 
 // Policy knobs (how the simulated player behaves; these are not game numbers).
 const FOOD_TARGET = 40;     // keep about this many cooked meals (what auto-feed eats) in the bag: a night for 2 pets
 const FOOD_RESERVE = 10;    // XP crafting never takes the last 10 of a food ingredient
 const GATE_STOCK = 40;      // spare raw input kept on hand while a gate skill is still climbing
+const RAW_RESERVE = 50;     // selling keeps this many of anything that still has a use
+const POTION_RESERVE = 10;  // and this many buff potions
+const SOON_LEVELS = 8;      // "can meet soon": a skill level within this many of the player's
+const COIN_FLOOR = 300;     // sell surplus whenever coins are under this, even with nothing to buy
+const SEEDS_PER_PLOT = 10;  // seeds bought per plot when the bag runs out
+const NOT_BUILT = new Set(['nest']); // the Nest does nothing yet
 const STARTER = { archetype: 'sprout', name: 'Sim' };
 
 export function createPolicy(data) {
@@ -33,27 +44,31 @@ export function createPolicy(data) {
   for (const r of data.recipes.recipes) if (!producer[r.output]) producer[r.output] = r;
   const harvestSkills = data.skills.skills.filter((s) => s.type === 'harvest');
   const allSkills = data.skills.skills.filter((s) => s.type === 'harvest' || s.type === 'craft');
-  const copperTier = data.tools.tiers.find((t) => t.metal === 'copper').tier;
-  const toolTargets = Object.entries(items).filter(([, d]) => d.tool && d.tier === copperTier).map(([id]) => id);
+  const stationSkill = Object.fromEntries(data.recipes.stations.map((s) => [s.id, s.skill]));
+  const craftSkills = new Set(Object.values(stationSkill));
+  const toolItem = {}; // kind -> tier -> item id
+  for (const [id, d] of Object.entries(items)) if (d.tool) (toolItem[d.tool] ||= {})[d.tier] = id;
+  const maxToolTier = Math.max(...data.tools.tiers.filter((t) => !t.prestige).map((t) => t.tier));
+  const zoneTier = Object.fromEntries(data.zones.zones.map((z) => [z.id, z.tier]));
 
-  // The skill levels the copper tool recipes ask for (their own level and `needs`).
-  const gates = {}; // skillId -> level
-  for (const id of toolTargets) {
+  // Everything with some use for the policy: recipe inputs, building costs, commission requests.
+  const used = new Set();
+  for (const r of data.recipes.recipes) for (const i of Object.keys(r.inputs)) used.add(i);
+  for (const b of data.buildings.buildings) for (const c of Object.values(b.costs || {})) for (const i of Object.keys(c.items || {})) used.add(i);
+  for (const t of [...data.commissions.daily, ...data.commissions.great]) for (const e of t.items) used.add(e.item);
+
+  // Craft-skill levels an item's whole recipe chain asks for.
+  const reqCache = {};
+  function reqOf(id) {
+    if (reqCache[id]) return reqCache[id];
+    const out = (reqCache[id] = {});
     const r = producer[id];
-    if (!r) continue;
-    const stationSkill = data.recipes.stations.find((s) => s.id === r.station).skill;
-    gates[stationSkill] = Math.max(gates[stationSkill] || 0, r.level || 1);
-    for (const [s, l] of Object.entries(r.needs || {})) gates[s] = Math.max(gates[s] || 0, l);
-  }
-  const gateLevel = Math.max(1, ...Object.values(gates));
-  // For each gate skill, the raw item its first recipe turns into XP (pine_log for Carpentry, copper_ore for Smithing).
-  const gateInput = {};
-  for (const skillId of Object.keys(gates)) {
-    const station = data.recipes.stations.find((s) => s.skill === skillId);
-    if (!station) continue;
-    const first = recipesFor(data, station.id).slice().sort((a, b) => (a.level || 1) - (b.level || 1))
-      .find((r) => Object.keys(r.inputs).every((i) => !producer[i]));
-    if (first) gateInput[skillId] = Object.keys(first.inputs)[0];
+    if (!r) return out;
+    const sk = stationSkill[r.station];
+    out[sk] = Math.max(out[sk] || 0, r.level || 1);
+    for (const [s, l] of Object.entries(r.needs || {})) if (craftSkills.has(s)) out[s] = Math.max(out[s] || 0, l);
+    for (const i of Object.keys(r.inputs)) for (const [s, l] of Object.entries(reqOf(i))) out[s] = Math.max(out[s] || 0, l);
+    return out;
   }
 
   // Which nodes give which item, best first. And every node by skill.
@@ -73,10 +88,18 @@ export function createPolicy(data) {
       }
     }
   }
+  // Rare finds (zone.rare[skill]) come from any action of that skill in the zone: index them on its easiest node.
+  for (const zone of data.zones.zones) {
+    for (const [skill, finds] of Object.entries(zone.rare || {})) {
+      const node = (zone.harvest?.[skill] || []).slice().sort((a, b) => (a.level || 1) - (b.level || 1))[0];
+      if (!node) continue;
+      for (const f of finds) (nodeIndex[f.item] ||= []).push({ zone: zone.id, skill, node: node.id, level: node.level || 1, rate: 0.001 });
+    }
+  }
   for (const list of Object.values(nodeIndex)) list.sort((a, b) => b.rate - a.rate);
 
   // ---- command wrapper: refusals are normal, count them by message ----
-  function act(game, type, payload) {
+  function act(game, type, payload = {}) {
     dispatches++;
     try {
       game.dispatch(type, payload);
@@ -105,9 +128,13 @@ export function createPolicy(data) {
     return m;
   }
 
-  function foodCount(state) {
+  function foodInBag(state) {
     let n = 0;
     for (const [k, c] of Object.entries(state.bag)) if (canAutoFeed(data, k)) n += c;
+    return n;
+  }
+  function foodCount(state) {
+    let n = foodInBag(state);
     for (const st of Object.values(state.crafting.stations)) {
       for (const b of st.queue) {
         const r = recipeDef(data, b.recipe);
@@ -136,65 +163,250 @@ export function createPolicy(data) {
     for (const [i, per] of Object.entries(r.inputs)) expand(i, per * runs, avail, acc);
   }
 
-  // ---- buildings ----
   // Raw materials a cost needs in all (planks count as 2 logs, and so on).
-  function rawSize(items) {
+  function rawSize(list) {
     const acc = newAcc();
-    for (const [id, n] of Object.entries(items)) expand(id, n, {}, acc);
+    for (const [id, n] of Object.entries(list)) expand(id, n, {}, acc);
     return Object.values(acc.raw).reduce((a, b) => a + b, 0);
   }
-  // Upgrades held back only by materials (not the Cottage cap, Renown, a blueprint or coins), cheapest first.
+
+  // Could the player meet this item soon (open zone, tool and skill within SOON_LEVELS, recipes known)?
+  function reachable(state, id, depth = 0) {
+    if (depth > 8) return false;
+    const r = producer[id];
+    if (r) {
+      if (stationTier(state, r.station) < 1) {
+        const unlock = data.buildings.buildings.find((b) => b.id === r.station)?.unlock?.renown || 1;
+        if (state.renown.rank < unlock) return false;
+      }
+      if (r.scroll && !state.crafting.known[r.id]) return false;
+      if (skillLevel(state, stationSkill[r.station]) + SOON_LEVELS < (r.level || 1)) return false;
+      for (const [s, l] of Object.entries(r.needs || {})) if (skillLevel(state, s) + SOON_LEVELS < l) return false;
+      return Object.keys(r.inputs).every((i) => reachable(state, i, depth + 1));
+    }
+    return (nodeIndex[id] || []).some((c) => zoneUnlocked(state, data, c.zone)
+      && (toolFor(state, data, c.skill)?.tier || 0) >= zoneTier[c.zone]
+      && skillLevel(state, c.skill) + SOON_LEVELS >= c.level);
+  }
+
+  // ---- buildings ----
+  // Upgrades and new plots held back only by materials, a blueprint or coins (not the Cottage cap or
+  // Renown), cheapest first.
   function buildingOptions(state) {
     return buildingList(state, data)
-      .filter((b) => b.check.cost && (b.check.ok || b.check.reason === 'Not enough materials yet.'))
-      .map((b) => ({ id: b.id, cost: b.check.cost, size: rawSize(b.check.cost.items) }))
+      .filter((b) => !NOT_BUILT.has(b.id) && b.check.cost && !/^(Opens|Upgrade the Cottage)/.test(b.check.reason || ''))
+      .map((b) => ({ id: b.id, check: b.check, cost: b.check.cost, size: rawSize(b.check.cost.items) }))
       .sort((a, b) => a.size - b.size);
   }
   function buildingGoal(state) {
-    return buildingOptions(state)[0] || null;
+    // Skip steps whose materials are out of reach for now (a locked zone, a far-off skill level).
+    return buildingOptions(state).find((o) => o.check.missing.length > 0 && Object.keys(o.cost.items).every((i) => reachable(state, i))) || null;
+  }
+  // The cheapest way to get a blueprint right now: the merchant, then the market. Returns true if bought.
+  function buyBlueprint(game, bp, extraCoins) {
+    const state = game.getState();
+    const m = merchantList(state, data).find((x) => x.item === bp && x.left > 0 && x.price + extraCoins <= state.coins);
+    if (m) return act(game, 'market/buyMerchant', { index: m.index });
+    const s = shopList(state, data).find((x) => x.item === bp && !x.locked && x.price + extraCoins <= state.coins);
+    return s ? act(game, 'market/buy', { item: bp, qty: 1 }) : false;
   }
   function upgradeBuildings(game) {
-    for (const b of buildingOptions(game.getState())) {
-      if (upgradeCheck(game.getState(), data, b.id).ok) act(game, 'buildings/upgrade', { building: b.id });
+    for (let pass = 0; pass < 10; pass++) {
+      let did = false;
+      for (const o of buildingOptions(game.getState())) {
+        let chk = upgradeCheck(game.getState(), data, o.id);
+        if (!chk.ok && chk.needsBlueprint && !chk.missing.length && buyBlueprint(game, chk.cost.blueprint, chk.cost.coins)) {
+          chk = upgradeCheck(game.getState(), data, o.id);
+        }
+        if (chk.ok && act(game, 'buildings/upgrade', { building: o.id })) {
+          did = true;
+          break;
+        }
+      }
+      if (!did) break;
+    }
+  }
+  // Coins the next few building steps ask for (their coins plus a blueprint where one is missing).
+  function coinGoal(state) {
+    let goal = 0;
+    for (const o of buildingOptions(state).slice(0, 3)) {
+      goal += o.cost.coins;
+      if (o.check.needsBlueprint) goal += shopList(state, data).find((s) => s.item === o.cost.blueprint)?.price || 0;
+    }
+    return Math.max(COIN_FLOOR, goal);
+  }
+
+  // ---- commissions ----
+  function openCommissions(state) {
+    const list = boardList(state, data).filter((c) => !c.done);
+    const g = greatCommission(state, data);
+    if (g && !g.done) list.push(g);
+    return list;
+  }
+  const itemsOf = (c) => Object.fromEntries(c.items.map((i) => [i.item, i.need]));
+  // The cheapest open commission the player can reach soon: its items become wants.
+  function commissionGoal(state) {
+    let best = null;
+    for (const c of openCommissions(state)) {
+      if (c.canDeliver) continue;
+      const list = itemsOf(c);
+      if (!Object.keys(list).every((i) => reachable(state, i))) continue;
+      const size = rawSize(list);
+      if (!best || size < best.size) best = { slot: c.slot, items: list, size };
+    }
+    return best;
+  }
+  function deliverCommissions(game) {
+    for (const c of openCommissions(game.getState())) if (c.canDeliver) act(game, 'village/deliver', { slot: c.slot });
+  }
+  // The free reroll goes to a board commission whose items the player cannot reach soon.
+  function rerollUnreachable(game) {
+    const state = game.getState();
+    if (rerollInfo(state, data).free < 1) return;
+    const bad = boardList(state, data).find((c) => !c.done && !c.canDeliver && !Object.keys(itemsOf(c)).every((i) => reachable(state, i)));
+    if (bad) act(game, 'village/reroll', { slot: bad.slot });
+  }
+
+  // ---- Garden ----
+  function tendGarden(game) {
+    let state = game.getState();
+    const plots = plotList(state, data);
+    if (!plots.length) return;
+    const seedsLeft = () => seedList(game.getState(), data).reduce((n, s) => n + s.count, 0);
+    if (seedsLeft() < plots.length * 2) {
+      const cheapest = shopList(state, data).filter((s) => !s.locked && seedDef(data, s.item)).sort((a, b) => a.price - b.price)[0];
+      if (cheapest) {
+        const qty = Math.min(plots.length * SEEDS_PER_PLOT, Math.floor(state.coins / cheapest.price));
+        if (qty >= 1) act(game, 'market/buy', { item: cheapest.item, qty });
+      }
+    }
+    for (const p of plotList(game.getState(), data)) {
+      state = game.getState();
+      if (p.seed) {
+        if (!p.auto) act(game, 'garden/auto', { plot: p.index, on: true });
+        continue;
+      }
+      const seed = seedList(state, data).sort((a, b) => b.count - a.count)[0];
+      if (seed) act(game, 'garden/plant', { plot: p.index, seed: seed.id });
     }
   }
 
+  // ---- selling and scrolls ----
+  // Sell what has no remaining use for the current wants (beyond a reserve) until coins reach `goal`.
+  function sellSurplus(game, plan, goal) {
+    const state = game.getState();
+    if (state.coins >= goal) return;
+    const byId = new Map();
+    for (const [key, count] of Object.entries(state.bag)) {
+      const { id } = parseKey(key);
+      const def = items[id];
+      if (!def || def.tool || def.seed || def.category === 'blueprint' || canAutoFeed(data, key)) continue;
+      const price = sellPrice(data, key);
+      if (!price) continue;
+      const g = byId.get(id) || { id, total: 0, keys: [] };
+      g.total += count;
+      g.keys.push({ key, count, price });
+      byId.set(id, g);
+    }
+    const groups = [...byId.values()].map((g) => {
+      const def = items[g.id];
+      const reserve = def.buff ? POTION_RESERVE : Math.max(used.has(g.id) ? RAW_RESERVE : 0, plan.total[g.id] || 0);
+      g.keys.sort((a, b) => b.price - a.price);
+      return { ...g, surplus: g.total - reserve, top: g.keys[0].price };
+    }).filter((g) => g.surplus > 0).sort((a, b) => b.top - a.top);
+    let coins = state.coins;
+    for (const g of groups) {
+      let left = g.surplus;
+      for (const k of g.keys) {
+        if (coins >= goal || left <= 0) break;
+        const qty = Math.min(k.count, left, Math.ceil((goal - coins) / k.price));
+        if (qty >= 1 && act(game, 'market/sell', { item: k.key, qty })) {
+          coins += qty * k.price;
+          left -= qty;
+        }
+      }
+      if (coins >= goal) break;
+    }
+  }
+  // Scrolls once the building steps' coins are safe.
+  function learnScrolls(game) {
+    const state = game.getState();
+    const goal = coinGoal(state);
+    const keep = goal > COIN_FLOOR ? goal : 0;
+    for (const s of scrollList(state, data).sort((a, b) => a.price - b.price)) {
+      if (s.known || s.locked || game.getState().coins < s.price + keep) continue;
+      act(game, 'market/learn', { recipe: s.recipe });
+    }
+  }
+
+  // ---- wants ----
   function analyse(state) {
-    const goals = toolTargets.filter((id) => isUpgrade(state, data, id));
-    const cost = (id) => {
-      const acc = newAcc();
-      expand(id, 1, {}, acc);
-      return Object.values(acc.raw).reduce((a, b) => a + b, 0);
-    };
+    const goals = [];
+    for (const k of data.tools.kinds) {
+      const cur = items[state.tools[k.id]?.item]?.tier || 0;
+      const next = toolItem[k.id]?.[cur + 1];
+      if (next && cur + 1 <= maxToolTier && reachable(state, next)) goals.push(next);
+    }
+    const cost = (id) => rawSize({ [id]: 1 });
     goals.sort((a, b) => cost(a) - cost(b));
+    const building = buildingGoal(state);
+    const commission = commissionGoal(state);
     const avail = stockMap(state);
     const rawShort = new Map();
-    const make = new Map();
+    const make = new Map(); // recipe -> runs
+    const cls = new Map();  // recipe -> 0 for tool chains, 2 for buildings and commissions
     const total = {};
-    // The cheapest building upgrade that only waits on materials comes first, then the tools.
-    const building = buildingGoal(state);
-    const wants = [...(building ? Object.entries(building.cost.items) : []), ...goals.map((id) => [id, 1])];
-    for (const [id, n] of wants) {
-      const acc = newAcc();
-      expand(id, n, avail, acc);
-      for (const [i, n] of Object.entries(acc.raw)) rawShort.set(i, (rawShort.get(i) || 0) + n);
-      for (const [r, n] of Object.entries(acc.make)) make.set(r, (make.get(r) || 0) + n);
-      for (const [i, n] of Object.entries(acc.total)) total[i] = (total[i] || 0) + n;
+    const toolSet = new Set();
+    const otherSet = new Set();
+    const gates = {};       // craft skill -> level the wants need
+    const groups = [
+      { c: 2, set: otherSet, list: building ? Object.entries(building.cost.items) : [] },
+      { c: 0, set: toolSet, list: goals.map((id) => [id, 1]) },
+      { c: 2, set: otherSet, list: commission ? Object.entries(commission.items) : [] },
+    ];
+    for (const g of groups) {
+      for (const [id, n] of g.list) {
+        const acc = newAcc();
+        expand(id, n, avail, acc);
+        for (const [i, k] of Object.entries(acc.raw)) rawShort.set(i, (rawShort.get(i) || 0) + k);
+        for (const [r, k] of Object.entries(acc.make)) {
+          make.set(r, (make.get(r) || 0) + k);
+          cls.set(r, Math.min(cls.has(r) ? cls.get(r) : 9, g.c));
+        }
+        for (const [i, k] of Object.entries(acc.total)) {
+          total[i] = (total[i] || 0) + k;
+          g.set.add(i);
+        }
+        for (const [s, l] of Object.entries(reqOf(id))) gates[s] = Math.max(gates[s] || 0, l);
+      }
     }
     // Gate skills still climbing need spare raw input to turn into XP.
     for (const [skillId, level] of Object.entries(gates)) {
-      const item = gateInput[skillId];
-      if (!item || skillLevel(state, skillId) >= level) continue;
+      if (skillLevel(state, skillId) >= level) continue;
+      const item = gateInput(state, skillId);
+      if (!item) continue;
       const short = (total[item] || 0) + GATE_STOCK - itemCount(state, item);
       if (short > 0) rawShort.set(item, Math.max(rawShort.get(item) || 0, short));
     }
-    // Tool recipes first, then parts, each in the order the chain needs them.
-    const makeList = [...make.entries()].sort((a, b) => {
-      const ta = items[recipeDef(data, a[0]).output]?.tool ? 0 : 1;
-      const tb = items[recipeDef(data, b[0]).output]?.tool ? 0 : 1;
-      return ta - tb;
-    });
-    return { goals, rawShort: [...rawShort.entries()].map(([item, n]) => ({ item, n })), make: makeList, total };
+    const makeList = [...make.entries()].sort((a, b) => cls.get(a[0]) - cls.get(b[0]));
+    return { goals, building, commission, rawShort: [...rawShort.entries()].map(([item, n]) => ({ item, n })), make: makeList, total, gates, toolSet, otherSet };
+  }
+
+  // For a climbing craft skill: the raw item whose recipe (best one it can already make) turns into XP.
+  function gateInput(state, skillId) {
+    const station = data.recipes.stations.find((s) => s.skill === skillId);
+    if (!station) return null;
+    const lvl = skillLevel(state, skillId);
+    let best = null;
+    for (const r of recipesFor(data, station.id)) {
+      if ((r.level || 1) > lvl || items[r.output]?.tool || r.scroll) continue;
+      const ids = Object.keys(r.inputs);
+      if (!ids.every((i) => !producer[i])) continue;
+      if (!(nodeIndex[ids[0]] || []).some((c) => nodeCheck(state, data, c.zone, c.skill, c.node).ok)) continue;
+      const xp = itemXp(data, r) / ids.length;
+      if (!best || xp > best.xp) best = { item: ids[0], xp };
+    }
+    return best?.item || null;
   }
 
   // ---- harvest choices ----
@@ -287,15 +499,28 @@ export function createPolicy(data) {
     return s && s.queue.length < s.slots;
   }
 
+  // A full queue holding only filler (XP crafts) makes way for something the wants need: cancel one
+  // such batch (its materials come back).
+  function makeRoom(game, plan, stationId) {
+    const st = game.getState().crafting.stations[stationId];
+    for (let i = st.queue.length - 1; i >= 0; i--) {
+      const out = recipeDef(data, st.queue[i].recipe)?.output;
+      if (out && (items[out]?.tool || plan.toolSet.has(out) || plan.otherSet.has(out) || canAutoFeed(data, out))) continue;
+      act(game, 'crafting/cancel', { station: stationId, index: i });
+      return;
+    }
+  }
+
   function planCrafts(game, plan, horizonMs) {
     const units = (state, r) => Math.max(1, Math.ceil(horizonMs / itemMs(state, data, r)));
 
-    // 1. copper tools, then the parts toward them
+    // 1. tools, then the parts toward them (and toward buildings and commissions)
     for (const [rid, runs] of plan.make) {
       const state = game.getState();
       const r = recipeDef(data, rid);
-      if (!stationFree(state, r.station)) continue;
-      const chk = recipeCheck(state, data, rid, 1);
+      if (!stationFree(state, r.station)) makeRoom(game, plan, r.station);
+      if (!stationFree(game.getState(), r.station)) continue;
+      const chk = recipeCheck(game.getState(), data, rid, 1);
       if (!chk.ok) continue;
       const qty = Math.min(runs, chk.max);
       act(game, 'crafting/start', { recipe: rid, qty, focus: makesQuality(data, r) ? 'good' : null });
@@ -309,6 +534,7 @@ export function createPolicy(data) {
         let best = null;
         for (const r of recipesFor(data, st.id)) {
           if (!recipeCheck(state, data, r.id, 1).ok) continue;
+          if (!canAutoFeed(data, r.output)) continue;
           const per = Object.values(r.inputs).reduce((a, b) => a + b, 0);
           const score = (items[r.output]?.food || 0) / per;
           if (!best || score > best.score) best = { r, score };
@@ -334,7 +560,7 @@ export function createPolicy(data) {
     const trainable = allSkills.filter((s) => s.type === 'harvest'
       || recipesFor(data, s.station).some((r) => (r.level || 1) <= skillLevel(state, s.id) && !items[r.output]?.tool));
     const lowest = Math.min(...trainable.map((s) => skillLevel(state, s.id)));
-    if (!(lvl < gateLevel || lvl === lowest)) return;
+    if (!(lvl < (plan.gates[st.skill] || 0) || lvl === lowest)) return;
     let best = null;
     for (const r of recipesFor(data, st.id)) {
       if (items[r.output]?.tool) continue; // spare tools are no use
@@ -353,6 +579,42 @@ export function createPolicy(data) {
     act(game, 'crafting/start', { recipe: best.r.id, qty, focus: makesQuality(data, best.r) ? 'good' : null });
   }
 
+  // The player works workSlots stations: tools first, then food when the pets' food is low, then
+  // buildings and commissions, then XP. Ties keep the station already being worked.
+  function chooseStations(game, plan) {
+    const state = game.getState();
+    const slots = workSlots(state, data);
+    const foodLow = foodInBag(state) < FOOD_TARGET;
+    const cands = [];
+    for (const st of stationList(state, data)) {
+      if (st.status === 'unbuilt' || !st.queue.length) continue;
+      let cls = 9;
+      for (const b of st.queue) {
+        const out = recipeDef(data, b.recipe)?.output;
+        if (!out) continue;
+        let c = 3;
+        if (items[out]?.tool || plan.toolSet.has(out)) c = 0;
+        else if (foodLow && canAutoFeed(data, out)) c = 1;
+        else if (plan.otherSet.has(out)) c = 2;
+        cls = Math.min(cls, c);
+      }
+      cands.push({ id: st.id, cls, working: st.working ? 1 : 0 });
+    }
+    cands.sort((a, b) => a.cls - b.cls || b.working - a.working);
+    const want = cands.slice(0, slots).map((c) => c.id);
+    // Switching evicts the station worked longest, so go worst-first and repeat until all are in.
+    for (let pass = 0; pass < 3; pass++) {
+      let changed = false;
+      for (const id of want.slice().reverse()) {
+        if (!isWorking(game.getState(), id)) {
+          act(game, 'crafting/work', { station: id });
+          changed = true;
+        }
+      }
+      if (!changed) break;
+    }
+  }
+
   // ---- eating ----
   function eat(game, skill) {
     const state = game.getState();
@@ -369,22 +631,31 @@ export function createPolicy(data) {
   // ---- one check-in's decisions ----
   // info: { now (ms), horizonMs (game time until the next check-in, after the offline cap) }
   function run(game, info) {
+    act(game, 'village/newDay');
     let state = game.getState();
     if (needsStarter(state)) act(game, 'pets/hatchStarter', STARTER);
     state = game.getState();
     const day = localDay(info.now);
     for (const p of petList(state)) if (canPatToday(state, p.id, day)) act(game, 'pets/pat', { pet: p.id });
 
+    sellSurplus(game, analyse(game.getState()), coinGoal(game.getState()));
     upgradeBuildings(game);
-    planCrafts(game, analyse(game.getState()), info.horizonMs);
-    const playerTask = planHarvest(game, analyse(game.getState()));
+    deliverCommissions(game);
+    rerollUnreachable(game);
+    tendGarden(game);
+    learnScrolls(game);
+
+    const plan = analyse(game.getState());
+    planCrafts(game, plan, info.horizonMs);
+    const plan2 = analyse(game.getState());
+    const playerTask = planHarvest(game, plan2);
     eat(game, playerTask?.skill || game.getState().workers.player.task?.skill);
+    chooseStations(game, plan2);
   }
 
   return {
     run,
     refusals,
     get dispatches() { return dispatches; },
-    info: { gateLevel, gates },
   };
 }

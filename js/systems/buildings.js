@@ -5,6 +5,8 @@
 // the offline cap (core/time.js), station queue slots and speed (crafting.js), Stable rest speed
 // (petstats.js) and Stable spaces (petCapacity, used by pets.js).
 import { itemCount, removeItem } from './bag.js';
+import { addRenownXp } from './renown.js';
+import { spendCoins } from './coins.js';
 
 export const id = 'buildings';
 
@@ -150,10 +152,10 @@ export const commands = {
     const { cost, next } = check;
     for (const [item, n] of Object.entries(cost.items)) removeItem(state, item, n);
     if (cost.blueprint) removeItem(state, cost.blueprint, 1);
-    state.coins -= cost.coins;
+    spendCoins(state, cost.coins);
     state.buildings[building].tier = next;
     const renownXp = data.balance.buildings.renownXpPerTier * next;
-    state.renown.xp += renownXp;
     ctx.emit?.({ type: 'buildingUpgraded', building, tier: next, renownXp });
+    addRenownXp(state, ctx, renownXp, 'building');
   },
 };

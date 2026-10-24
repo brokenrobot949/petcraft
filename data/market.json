@@ -1,0 +1,40 @@
+{
+  "shop": [
+    { "item": "turnip_seed", "price": 4, "renown": 2 },
+    { "item": "carrot_seed", "price": 8, "renown": 2 },
+    { "item": "strawberry_seed", "price": 12, "renown": 2 },
+    { "item": "potato_seed", "price": 12, "renown": 3 },
+    { "item": "pumpkin_seed", "price": 20, "renown": 5 },
+    { "item": "melon_seed", "price": 24, "renown": 6 },
+    { "item": "blueprint_sturdy", "price": 250, "renown": 3 },
+    { "item": "blueprint_fine", "price": 900, "renown": 6 },
+    { "item": "blueprint_grand", "price": 2500, "renown": 10 }
+  ],
+  "scrolls": [
+    { "recipe": "hunters_hotpot", "price": 150, "renown": 3 },
+    { "recipe": "hillside_feast", "price": 450, "renown": 6 },
+    { "recipe": "mist_draught", "price": 800, "renown": 10 },
+    { "recipe": "mistfen_banquet", "price": 950, "renown": 10 },
+    { "recipe": "emberlight_elixir", "price": 1400, "renown": 15 },
+    { "recipe": "caldera_feast", "price": 1500, "renown": 15 }
+  ],
+  "merchant": [
+    { "item": "blueprint_sturdy", "price": 175, "qty": 1, "renown": 3, "weight": 2 },
+    { "item": "blueprint_fine", "price": 630, "qty": 1, "renown": 6, "weight": 2 },
+    { "item": "blueprint_grand", "price": 1750, "qty": 1, "renown": 10, "weight": 2 },
+    { "item": "amber_chunk", "price": 50, "qty": 3, "renown": 1, "weight": 3 },
+    { "item": "small_pearl", "price": 75, "qty": 2, "renown": 1, "weight": 3 },
+    { "item": "four_leaf_clover", "price": 45, "qty": 3, "renown": 1, "weight": 3 },
+    { "item": "golden_acorn", "price": 125, "qty": 2, "renown": 3, "weight": 2 },
+    { "item": "moss_agate", "price": 138, "qty": 2, "renown": 3, "weight": 2 },
+    { "item": "brook_pearl", "price": 163, "qty": 1, "renown": 3, "weight": 2 },
+    { "item": "garnet", "price": 350, "qty": 1, "renown": 6, "weight": 2 },
+    { "item": "silver_sprig", "price": 288, "qty": 2, "renown": 6, "weight": 2 },
+    { "item": "moonstone", "price": 725, "qty": 1, "renown": 10, "weight": 1 },
+    { "item": "ghost_orchid", "price": 625, "qty": 1, "renown": 10, "weight": 1 },
+    { "item": "fire_opal", "price": 1625, "qty": 1, "renown": 15, "weight": 1 },
+    { "item": "potato_seed", "price": 11, "qty": 10, "renown": 3, "weight": 2 },
+    { "item": "pumpkin_seed", "price": 18, "qty": 10, "renown": 5, "weight": 2 },
+    { "item": "melon_seed", "price": 22, "qty": 10, "renown": 6, "weight": 2 }
+  ]
+}

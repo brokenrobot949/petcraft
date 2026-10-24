@@ -34,6 +34,7 @@ export function itemCount(state, key) {
 export function addItem(state, key, qty) {
   if (!(qty > 0)) return;
   state.bag[key] = (state.bag[key] || 0) + qty;
+  if (state.stats.found) state.stats.found[parseKey(key).id] = true; // collection achievements
 }
 
 // Returns false (and changes nothing) when there aren't enough.

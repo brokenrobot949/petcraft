@@ -1584,6 +1584,1570 @@
       "src": "Items/Scroll/ScrollRock.png",
       "frameWidth": 16,
       "frameHeight": 16
+    },
+    "item.oak_log": {
+      "group": "items",
+      "label": "Oak Log",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 208,
+      "y": 208
+    },
+    "item.oak_resin": {
+      "group": "items",
+      "label": "Oak Resin",
+      "layout": "icon",
+      "src": "Items/Food/Honey.png"
+    },
+    "item.iron_ore": {
+      "group": "items",
+      "label": "Iron Ore",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 96,
+      "y": 224
+    },
+    "item.mushroom": {
+      "group": "items",
+      "label": "Mushrooms",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "x": 80,
+      "y": 32
+    },
+    "item.honeycomb": {
+      "group": "items",
+      "label": "Honeycomb",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "x": 144,
+      "y": 0
+    },
+    "item.brook_trout": {
+      "group": "items",
+      "label": "Brook Trout",
+      "layout": "icon",
+      "src": "Items/Food/Fish.png"
+    },
+    "item.venison": {
+      "group": "items",
+      "label": "Venison",
+      "layout": "icon",
+      "src": "Items/Food/Meat.png",
+      "frameWidth": 15,
+      "frameHeight": 15
+    },
+    "item.deer_hide": {
+      "group": "items",
+      "label": "Deer Hide",
+      "layout": "icon",
+      "src": "Items/Object/Bag.png"
+    },
+    "item.golden_acorn": {
+      "group": "items",
+      "label": "Golden Acorn",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "x": 240,
+      "y": 0
+    },
+    "item.moss_agate": {
+      "group": "items",
+      "label": "Moss Agate",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 48,
+      "y": 256
+    },
+    "item.glowcap_spore": {
+      "group": "items",
+      "label": "Glowcap Spore",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 32,
+      "y": 224
+    },
+    "item.brook_pearl": {
+      "group": "items",
+      "label": "Brook Pearl",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "x": 64,
+      "y": 32
+    },
+    "item.deer_antler": {
+      "group": "items",
+      "label": "Deer Antler",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "x": 112,
+      "y": 0
+    },
+    "item.cedar_log": {
+      "group": "items",
+      "label": "Cedar Log",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 192,
+      "y": 226
+    },
+    "item.cedar_resin": {
+      "group": "items",
+      "label": "Cedar Resin",
+      "layout": "icon",
+      "src": "Items/Food/Seed1.png",
+      "frameWidth": 8,
+      "frameHeight": 8
+    },
+    "item.coal": {
+      "group": "items",
+      "label": "Coal",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 112,
+      "y": 192
+    },
+    "item.rough_gem": {
+      "group": "items",
+      "label": "Rough Gem",
+      "layout": "icon",
+      "src": "Items/Resource/GemGreen.png"
+    },
+    "item.mountain_sage": {
+      "group": "items",
+      "label": "Mountain Sage",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 128,
+      "y": 176
+    },
+    "item.rock_bass": {
+      "group": "items",
+      "label": "Rock Bass",
+      "layout": "icon",
+      "src": "Items/Food/Sushi2.png"
+    },
+    "item.boar_meat": {
+      "group": "items",
+      "label": "Boar Meat",
+      "layout": "icon",
+      "src": "Items/Food/Beaf.png"
+    },
+    "item.boar_tusk": {
+      "group": "items",
+      "label": "Boar Tusk",
+      "layout": "icon",
+      "src": "Items/Projectile/Caltrop.png"
+    },
+    "item.bone": {
+      "group": "items",
+      "label": "Bone",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "x": 224,
+      "y": 0
+    },
+    "item.fossil_resin": {
+      "group": "items",
+      "label": "Fossil Resin",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "x": 128,
+      "y": 48
+    },
+    "item.garnet": {
+      "group": "items",
+      "label": "Garnet",
+      "layout": "icon",
+      "src": "Items/Resource/GemRed.png",
+      "frameWidth": 15,
+      "frameHeight": 15
+    },
+    "item.silver_sprig": {
+      "group": "items",
+      "label": "Silver Sprig",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "x": 0,
+      "y": 48
+    },
+    "item.river_opal": {
+      "group": "items",
+      "label": "River Opal",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "x": 0,
+      "y": 32
+    },
+    "item.bone_whistle": {
+      "group": "items",
+      "label": "Bone Whistle",
+      "layout": "icon",
+      "src": "Items/Object/PanFlute.png"
+    },
+    "item.willow_log": {
+      "group": "items",
+      "label": "Willow Log",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 144,
+      "y": 112
+    },
+    "item.willow_sap": {
+      "group": "items",
+      "label": "Willow Sap",
+      "layout": "icon",
+      "src": "Items/Resource/Water.png",
+      "frameWidth": 14,
+      "frameHeight": 14
+    },
+    "item.mythril_ore": {
+      "group": "items",
+      "label": "Mythril Ore",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 64,
+      "y": 256
+    },
+    "item.bog_lily": {
+      "group": "items",
+      "label": "Bog Lily",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 96,
+      "y": 176
+    },
+    "item.marsh_reed": {
+      "group": "items",
+      "label": "Marsh Reed",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 192,
+      "y": 144
+    },
+    "item.marsh_eel": {
+      "group": "items",
+      "label": "Marsh Eel",
+      "layout": "icon",
+      "src": "Items/Food/Octopus.png"
+    },
+    "item.fowl_meat": {
+      "group": "items",
+      "label": "Fowl Meat",
+      "layout": "icon",
+      "src": "Items/Food/Yakitori.png"
+    },
+    "item.feathers": {
+      "group": "items",
+      "label": "Feathers",
+      "layout": "icon",
+      "src": "Items/Resource/feather.png"
+    },
+    "item.wisp_lantern": {
+      "group": "items",
+      "label": "Wisp Lantern",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "x": 32,
+      "y": 32
+    },
+    "item.moonstone": {
+      "group": "items",
+      "label": "Moonstone",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "x": 16,
+      "y": 32
+    },
+    "item.ghost_orchid": {
+      "group": "items",
+      "label": "Ghost Orchid",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "x": 96,
+      "y": 48
+    },
+    "item.mist_pearl": {
+      "group": "items",
+      "label": "Mist Pearl",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "x": 80,
+      "y": 32
+    },
+    "item.heron_plume": {
+      "group": "items",
+      "label": "Heron Plume",
+      "layout": "icon",
+      "src": "Items/Resource/feather.png"
+    },
+    "item.ashwood_log": {
+      "group": "items",
+      "label": "Ashwood Log",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 64,
+      "y": 144
+    },
+    "item.ember_resin": {
+      "group": "items",
+      "label": "Ember Resin",
+      "layout": "icon",
+      "src": "Items/Food/Seed3.png",
+      "frameWidth": 8,
+      "frameHeight": 8
+    },
+    "item.emberite_ore": {
+      "group": "items",
+      "label": "Emberite Ore",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 64,
+      "y": 272
+    },
+    "item.fire_bloom": {
+      "group": "items",
+      "label": "Fire Bloom",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 0,
+      "y": 224
+    },
+    "item.lava_crab": {
+      "group": "items",
+      "label": "Lava Crab",
+      "layout": "icon",
+      "src": "Items/Food/Shrimp.png"
+    },
+    "item.ram_meat": {
+      "group": "items",
+      "label": "Ram Meat",
+      "layout": "icon",
+      "src": "Items/Food/Meat.png",
+      "frameWidth": 15,
+      "frameHeight": 15
+    },
+    "item.ram_horn": {
+      "group": "items",
+      "label": "Ram Horn",
+      "layout": "icon",
+      "src": "Items/Food/FortuneCookie.png"
+    },
+    "item.cinder_heartwood": {
+      "group": "items",
+      "label": "Cinder Heartwood",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "x": 128,
+      "y": 0
+    },
+    "item.fire_opal": {
+      "group": "items",
+      "label": "Fire Opal",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "x": 0,
+      "y": 48
+    },
+    "item.sunpetal": {
+      "group": "items",
+      "label": "Sunpetal",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "x": 32,
+      "y": 0
+    },
+    "item.ember_pearl": {
+      "group": "items",
+      "label": "Ember Pearl",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "x": 112,
+      "y": 32
+    },
+    "item.golden_fleece": {
+      "group": "items",
+      "label": "Golden Fleece Tuft",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "x": 160,
+      "y": 0
+    },
+    "item.turnip_seed": {
+      "group": "items",
+      "label": "Turnip Seed",
+      "layout": "icon",
+      "src": "Items/Food/Seed2.png",
+      "frameWidth": 8,
+      "frameHeight": 8
+    },
+    "item.carrot_seed": {
+      "group": "items",
+      "label": "Carrot Seed",
+      "layout": "icon",
+      "src": "Items/Food/Seed1.png",
+      "frameWidth": 8,
+      "frameHeight": 8
+    },
+    "item.strawberry_seed": {
+      "group": "items",
+      "label": "Strawberry Seed",
+      "layout": "icon",
+      "src": "Items/Food/Seed3.png",
+      "frameWidth": 8,
+      "frameHeight": 8
+    },
+    "item.potato_seed": {
+      "group": "items",
+      "label": "Potato Seed",
+      "layout": "icon",
+      "src": "Items/Food/SeedLargeWhite.png",
+      "frameWidth": 14,
+      "frameHeight": 13
+    },
+    "item.pumpkin_seed": {
+      "group": "items",
+      "label": "Pumpkin Seed",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "x": 48,
+      "y": 0
+    },
+    "item.melon_seed": {
+      "group": "items",
+      "label": "Melon Seed",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "x": 64,
+      "y": 0
+    },
+    "item.turnip": {
+      "group": "items",
+      "label": "Turnip",
+      "layout": "icon",
+      "src": "Items/Food/SeedBig2.png",
+      "frameWidth": 10,
+      "frameHeight": 13
+    },
+    "item.carrot": {
+      "group": "items",
+      "label": "Carrot",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "x": 192,
+      "y": 0
+    },
+    "item.strawberry": {
+      "group": "items",
+      "label": "Strawberry",
+      "layout": "icon",
+      "src": "Items/Food/SeedBig3.png",
+      "frameWidth": 10,
+      "frameHeight": 13
+    },
+    "item.potato": {
+      "group": "items",
+      "label": "Potato",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 64,
+      "y": 208
+    },
+    "item.pumpkin": {
+      "group": "items",
+      "label": "Pumpkin",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "x": 176,
+      "y": 0
+    },
+    "item.sweet_melon": {
+      "group": "items",
+      "label": "Sweet Melon",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "x": 160,
+      "y": 144
+    },
+    "item.iron_bar": {
+      "group": "items",
+      "label": "Iron Bar",
+      "layout": "icon",
+      "src": "Items/Resource/BarIron.png",
+      "frameWidth": 16,
+      "frameHeight": 15
+    },
+    "item.oak_plank": {
+      "group": "items",
+      "label": "Oak Plank",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "x": 160,
+      "y": 32
+    },
+    "item.oak_handle": {
+      "group": "items",
+      "label": "Oak Handle",
+      "layout": "icon",
+      "src": "Items/Weapons/Stick/Sprite.png",
+      "frameWidth": 3,
+      "frameHeight": 16
+    },
+    "item.iron_fittings": {
+      "group": "items",
+      "label": "Iron Fittings",
+      "layout": "icon",
+      "src": "Items/Weapons/Hammer/Sprite.png",
+      "frameWidth": 9,
+      "frameHeight": 16
+    },
+    "item.iron_axe_head": {
+      "group": "items",
+      "label": "Iron Axe Head",
+      "layout": "icon",
+      "src": "Items/Weapons/Axe/Sprite.png",
+      "frameWidth": 11,
+      "frameHeight": 13
+    },
+    "item.iron_pickaxe_head": {
+      "group": "items",
+      "label": "Iron Pickaxe Head",
+      "layout": "icon",
+      "src": "Items/Tool/Pickaxe.png"
+    },
+    "item.iron_sickle_blade": {
+      "group": "items",
+      "label": "Iron Sickle Blade",
+      "layout": "icon",
+      "src": "Items/Tool/Sickle.png"
+    },
+    "item.iron_shovel_head": {
+      "group": "items",
+      "label": "Iron Shovel Head",
+      "layout": "icon",
+      "src": "Items/Tool/Shovel.png"
+    },
+    "item.steel_bar": {
+      "group": "items",
+      "label": "Steel Bar",
+      "layout": "icon",
+      "src": "Items/Resource/BarSilver.png",
+      "frameWidth": 16,
+      "frameHeight": 15
+    },
+    "item.cedar_plank": {
+      "group": "items",
+      "label": "Cedar Plank",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "x": 144,
+      "y": 32
+    },
+    "item.cedar_handle": {
+      "group": "items",
+      "label": "Cedar Handle",
+      "layout": "icon",
+      "src": "Items/Weapons/Club/Sprite.png",
+      "frameWidth": 8,
+      "frameHeight": 14
+    },
+    "item.steel_fittings": {
+      "group": "items",
+      "label": "Steel Fittings",
+      "layout": "icon",
+      "src": "Items/Tool/Hammer.png"
+    },
+    "item.steel_axe_head": {
+      "group": "items",
+      "label": "Steel Axe Head",
+      "layout": "icon",
+      "src": "Items/Tool/Axe.png"
+    },
+    "item.steel_pickaxe_head": {
+      "group": "items",
+      "label": "Steel Pickaxe Head",
+      "layout": "icon",
+      "src": "Items/Weapons/Pickaxe/Sprite.png",
+      "frameWidth": 11,
+      "frameHeight": 13
+    },
+    "item.steel_sickle_blade": {
+      "group": "items",
+      "label": "Steel Sickle Blade",
+      "layout": "icon",
+      "src": "Items/Tool/Sickle.png"
+    },
+    "item.steel_shovel_head": {
+      "group": "items",
+      "label": "Steel Shovel Head",
+      "layout": "icon",
+      "src": "Items/Tool/Hoe.png"
+    },
+    "item.mythril_bar": {
+      "group": "items",
+      "label": "Mythril Bar",
+      "layout": "icon",
+      "src": "Items/Resource/BarMithril.png",
+      "frameWidth": 16,
+      "frameHeight": 15
+    },
+    "item.willow_plank": {
+      "group": "items",
+      "label": "Willow Plank",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 48,
+      "y": 112
+    },
+    "item.willow_handle": {
+      "group": "items",
+      "label": "Willow Handle",
+      "layout": "icon",
+      "src": "Items/Weapons/Stick/Sprite.png",
+      "frameWidth": 3,
+      "frameHeight": 16
+    },
+    "item.mythril_fittings": {
+      "group": "items",
+      "label": "Mythril Fittings",
+      "layout": "icon",
+      "src": "Items/Tool/Anvil.png"
+    },
+    "item.mythril_axe_head": {
+      "group": "items",
+      "label": "Mythril Axe Head",
+      "layout": "icon",
+      "src": "Items/Weapons/Axe/Sprite.png",
+      "frameWidth": 11,
+      "frameHeight": 13
+    },
+    "item.mythril_pickaxe_head": {
+      "group": "items",
+      "label": "Mythril Pickaxe Head",
+      "layout": "icon",
+      "src": "Items/Tool/Pickaxe.png"
+    },
+    "item.mythril_sickle_blade": {
+      "group": "items",
+      "label": "Mythril Sickle Blade",
+      "layout": "icon",
+      "src": "Items/Tool/Sickle.png"
+    },
+    "item.mythril_shovel_head": {
+      "group": "items",
+      "label": "Mythril Shovel Head",
+      "layout": "icon",
+      "src": "Items/Tool/Shovel.png"
+    },
+    "item.emberite_bar": {
+      "group": "items",
+      "label": "Emberite Bar",
+      "layout": "icon",
+      "src": "Items/Resource/BarGold.png",
+      "frameWidth": 16,
+      "frameHeight": 15
+    },
+    "item.ashwood_plank": {
+      "group": "items",
+      "label": "Ashwood Plank",
+      "layout": "icon",
+      "src": "Items/Object/CrateEmpty.png",
+      "frameWidth": 16,
+      "frameHeight": 15
+    },
+    "item.ashwood_handle": {
+      "group": "items",
+      "label": "Ashwood Handle",
+      "layout": "icon",
+      "src": "Items/Weapons/Club/Sprite.png",
+      "frameWidth": 8,
+      "frameHeight": 14
+    },
+    "item.emberite_fittings": {
+      "group": "items",
+      "label": "Emberite Fittings",
+      "layout": "icon",
+      "src": "Items/Weapons/Hammer/Sprite.png",
+      "frameWidth": 9,
+      "frameHeight": 16
+    },
+    "item.emberite_axe_head": {
+      "group": "items",
+      "label": "Emberite Axe Head",
+      "layout": "icon",
+      "src": "Items/Tool/Axe.png"
+    },
+    "item.emberite_pickaxe_head": {
+      "group": "items",
+      "label": "Emberite Pickaxe Head",
+      "layout": "icon",
+      "src": "Items/Weapons/Pickaxe/Sprite.png",
+      "frameWidth": 11,
+      "frameHeight": 13
+    },
+    "item.emberite_sickle_blade": {
+      "group": "items",
+      "label": "Emberite Sickle Blade",
+      "layout": "icon",
+      "src": "Items/Tool/Sickle.png"
+    },
+    "item.emberite_shovel_head": {
+      "group": "items",
+      "label": "Emberite Shovel Head",
+      "layout": "icon",
+      "src": "Items/Tool/Hoe.png"
+    },
+    "item.oak_frame": {
+      "group": "items",
+      "label": "Oak Frame",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "frameWidth": 16,
+      "frameHeight": 14,
+      "x": 128,
+      "y": 2
+    },
+    "item.oak_shingles": {
+      "group": "items",
+      "label": "Oak Shingles",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 16,
+      "frameHeight": 14,
+      "x": 216,
+      "y": 12
+    },
+    "item.iron_nails": {
+      "group": "items",
+      "label": "Iron Nails",
+      "layout": "icon",
+      "src": "Items/Weapons/Sai/Sprite.png",
+      "frameWidth": 7,
+      "frameHeight": 13
+    },
+    "item.cedar_frame": {
+      "group": "items",
+      "label": "Cedar Frame",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "x": 112,
+      "y": 0
+    },
+    "item.cedar_shingles": {
+      "group": "items",
+      "label": "Cedar Shingles",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 16,
+      "frameHeight": 14,
+      "x": 160,
+      "y": 10
+    },
+    "item.willow_shingles": {
+      "group": "items",
+      "label": "Willow Shingles",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 16,
+      "frameHeight": 14,
+      "x": 224,
+      "y": 10
+    },
+    "item.mythril_rivets": {
+      "group": "items",
+      "label": "Mythril Rivets",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "x": 80,
+      "y": 48
+    },
+    "item.iron_axe": {
+      "group": "items",
+      "label": "Iron Axe",
+      "layout": "icon",
+      "src": "Items/Weapons/Axe/Sprite.png",
+      "frameWidth": 11,
+      "frameHeight": 13
+    },
+    "item.iron_pickaxe": {
+      "group": "items",
+      "label": "Iron Pickaxe",
+      "layout": "icon",
+      "src": "Items/Tool/Pickaxe.png"
+    },
+    "item.iron_sickle": {
+      "group": "items",
+      "label": "Iron Sickle",
+      "layout": "icon",
+      "src": "Items/Tool/Sickle.png"
+    },
+    "item.iron_rod": {
+      "group": "items",
+      "label": "Iron Fishing Rod",
+      "layout": "icon",
+      "src": "Items/Weapons/Fishing Rod/Sprite.png",
+      "frameWidth": 10,
+      "frameHeight": 14
+    },
+    "item.iron_bow": {
+      "group": "items",
+      "label": "Iron Bow",
+      "layout": "icon",
+      "src": "Items/Weapons/Bow/Sprite.png",
+      "frameWidth": 15,
+      "frameHeight": 7
+    },
+    "item.iron_shovel": {
+      "group": "items",
+      "label": "Iron Shovel",
+      "layout": "icon",
+      "src": "Items/Tool/Shovel.png"
+    },
+    "item.steel_axe": {
+      "group": "items",
+      "label": "Steel Axe",
+      "layout": "icon",
+      "src": "Items/Tool/Axe.png"
+    },
+    "item.steel_pickaxe": {
+      "group": "items",
+      "label": "Steel Pickaxe",
+      "layout": "icon",
+      "src": "Items/Weapons/Pickaxe/Sprite.png",
+      "frameWidth": 11,
+      "frameHeight": 13
+    },
+    "item.steel_sickle": {
+      "group": "items",
+      "label": "Steel Sickle",
+      "layout": "icon",
+      "src": "Items/Tool/Sickle.png"
+    },
+    "item.steel_rod": {
+      "group": "items",
+      "label": "Steel Fishing Rod",
+      "layout": "icon",
+      "src": "Items/Weapons/Fishing Rod/Sprite.png",
+      "frameWidth": 10,
+      "frameHeight": 14
+    },
+    "item.steel_bow": {
+      "group": "items",
+      "label": "Steel Bow",
+      "layout": "icon",
+      "src": "Items/Weapons/Bow2/Sprite.png",
+      "frameWidth": 15,
+      "frameHeight": 7
+    },
+    "item.steel_shovel": {
+      "group": "items",
+      "label": "Steel Shovel",
+      "layout": "icon",
+      "src": "Items/Tool/Hoe.png"
+    },
+    "item.mythril_axe": {
+      "group": "items",
+      "label": "Mythril Axe",
+      "layout": "icon",
+      "src": "Items/Weapons/Axe/Sprite.png",
+      "frameWidth": 11,
+      "frameHeight": 13
+    },
+    "item.mythril_pickaxe": {
+      "group": "items",
+      "label": "Mythril Pickaxe",
+      "layout": "icon",
+      "src": "Items/Tool/Pickaxe.png"
+    },
+    "item.mythril_sickle": {
+      "group": "items",
+      "label": "Mythril Sickle",
+      "layout": "icon",
+      "src": "Items/Tool/Sickle.png"
+    },
+    "item.mythril_rod": {
+      "group": "items",
+      "label": "Mythril Fishing Rod",
+      "layout": "icon",
+      "src": "Items/Weapons/Fishing Rod/Sprite.png",
+      "frameWidth": 10,
+      "frameHeight": 14
+    },
+    "item.mythril_bow": {
+      "group": "items",
+      "label": "Mythril Bow",
+      "layout": "icon",
+      "src": "Items/Weapons/Bow/Sprite.png",
+      "frameWidth": 15,
+      "frameHeight": 7
+    },
+    "item.mythril_shovel": {
+      "group": "items",
+      "label": "Mythril Shovel",
+      "layout": "icon",
+      "src": "Items/Tool/Shovel.png"
+    },
+    "item.emberite_axe": {
+      "group": "items",
+      "label": "Emberite Axe",
+      "layout": "icon",
+      "src": "Items/Weapons/AxeTool/Sprite.png",
+      "frameWidth": 9,
+      "frameHeight": 14
+    },
+    "item.emberite_pickaxe": {
+      "group": "items",
+      "label": "Emberite Pickaxe",
+      "layout": "icon",
+      "src": "Items/Weapons/Pickaxe/Sprite.png",
+      "frameWidth": 11,
+      "frameHeight": 13
+    },
+    "item.emberite_sickle": {
+      "group": "items",
+      "label": "Emberite Sickle",
+      "layout": "icon",
+      "src": "Items/Tool/Sickle.png"
+    },
+    "item.emberite_rod": {
+      "group": "items",
+      "label": "Emberite Fishing Rod",
+      "layout": "icon",
+      "src": "Items/Weapons/Fishing Rod/Sprite.png",
+      "frameWidth": 10,
+      "frameHeight": 14
+    },
+    "item.emberite_bow": {
+      "group": "items",
+      "label": "Emberite Bow",
+      "layout": "icon",
+      "src": "Items/Weapons/Bow2/Sprite.png",
+      "frameWidth": 15,
+      "frameHeight": 7
+    },
+    "item.emberite_shovel": {
+      "group": "items",
+      "label": "Emberite Shovel",
+      "layout": "icon",
+      "src": "Items/Tool/Hoe.png"
+    },
+    "item.honeyed_hazelnuts": {
+      "group": "items",
+      "label": "Honeyed Hazelnuts",
+      "layout": "icon",
+      "src": "Items/Food/Calamari.png"
+    },
+    "item.strawberry_tart": {
+      "group": "items",
+      "label": "Strawberry Tart",
+      "layout": "icon",
+      "src": "Items/Projectile/CrateDynamite.png"
+    },
+    "item.grilled_trout": {
+      "group": "items",
+      "label": "Grilled Trout",
+      "layout": "icon",
+      "src": "Items/Food/Sushi.png"
+    },
+    "item.hunters_hotpot": {
+      "group": "items",
+      "label": "Hunter's Hotpot",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 96,
+      "y": 48
+    },
+    "item.rock_bass_chowder": {
+      "group": "items",
+      "label": "Rock Bass Chowder",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 112,
+      "y": 48
+    },
+    "item.sage_roasted_boar": {
+      "group": "items",
+      "label": "Sage Roasted Boar",
+      "layout": "icon",
+      "src": "Items/Food/Meat.png",
+      "frameWidth": 15,
+      "frameHeight": 15
+    },
+    "item.melon_sage_salad": {
+      "group": "items",
+      "label": "Melon Sage Salad",
+      "layout": "icon",
+      "src": "Items/Resource/Grass.png"
+    },
+    "item.hillside_feast": {
+      "group": "items",
+      "label": "Hillside Feast",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 144,
+      "y": 126
+    },
+    "item.candied_lily_nuts": {
+      "group": "items",
+      "label": "Candied Lily Nuts",
+      "layout": "icon",
+      "src": "Items/Food/Nut.png",
+      "frameWidth": 15,
+      "frameHeight": 15
+    },
+    "item.eel_skewers": {
+      "group": "items",
+      "label": "Eel Skewers",
+      "layout": "icon",
+      "src": "Items/Food/Yakitori.png"
+    },
+    "item.fowl_pot_pie": {
+      "group": "items",
+      "label": "Fowl Pot Pie",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 112,
+      "y": 64
+    },
+    "item.mistfen_banquet": {
+      "group": "items",
+      "label": "Mistfen Banquet",
+      "layout": "icon",
+      "src": "Items/Food/Onigiri.png"
+    },
+    "item.lava_crab_boil": {
+      "group": "items",
+      "label": "Lava Crab Boil",
+      "layout": "icon",
+      "src": "Items/Food/Shrimp.png"
+    },
+    "item.ram_roast": {
+      "group": "items",
+      "label": "Ram Roast",
+      "layout": "icon",
+      "src": "Items/Food/Beaf.png"
+    },
+    "item.ember_pudding": {
+      "group": "items",
+      "label": "Ember Pudding",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "x": 0,
+      "y": 16
+    },
+    "item.caldera_feast": {
+      "group": "items",
+      "label": "Caldera Feast",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "x": 16,
+      "y": 16
+    },
+    "item.glowcap_tonic": {
+      "group": "items",
+      "label": "Glowcap Tonic",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 192,
+      "y": 112
+    },
+    "item.whisper_brew": {
+      "group": "items",
+      "label": "Whisper Brew",
+      "layout": "icon",
+      "src": "Items/Potion/MilkPot.png",
+      "frameWidth": 9,
+      "frameHeight": 11
+    },
+    "item.bone_broth_tonic": {
+      "group": "items",
+      "label": "Bone Broth Tonic",
+      "layout": "icon",
+      "src": "Items/Object/Gourd.png",
+      "frameWidth": 14,
+      "frameHeight": 14
+    },
+    "item.stonehearth_elixir": {
+      "group": "items",
+      "label": "Stonehearth Elixir",
+      "layout": "icon",
+      "src": "Items/Potion/Medipack.png",
+      "frameWidth": 10,
+      "frameHeight": 10
+    },
+    "item.marsh_tonic": {
+      "group": "items",
+      "label": "Marsh Tonic",
+      "layout": "icon",
+      "src": "Items/Potion/WaterPot.png",
+      "frameWidth": 9,
+      "frameHeight": 11
+    },
+    "item.mist_draught": {
+      "group": "items",
+      "label": "Mist Draught",
+      "layout": "icon",
+      "src": "Items/Potion/EmptyPot.png",
+      "frameWidth": 9,
+      "frameHeight": 11
+    },
+    "item.ember_tonic": {
+      "group": "items",
+      "label": "Ember Tonic",
+      "layout": "icon",
+      "src": "Items/Potion/Heart.png",
+      "frameWidth": 9,
+      "frameHeight": 8
+    },
+    "item.emberlight_elixir": {
+      "group": "items",
+      "label": "Emberlight Elixir",
+      "layout": "icon",
+      "src": "Items/Potion/LifePot.png",
+      "frameWidth": 9,
+      "frameHeight": 11
+    },
+    "prop.oak_tree": {
+      "group": "props",
+      "label": "Oak tree (Whisperwood chopping)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "x": 96,
+      "y": 128
+    },
+    "prop.iron_rock": {
+      "group": "props",
+      "label": "Iron rock (Whisperwood mining)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 26,
+      "x": 144,
+      "y": 226
+    },
+    "prop.mushroom_ring": {
+      "group": "props",
+      "label": "Mushrooms (Whisperwood foraging)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 80,
+      "y": 32
+    },
+    "prop.deer_trail": {
+      "group": "props",
+      "label": "Fallen leaves (Whisperwood hunting)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 0,
+      "y": 0
+    },
+    "prop.brook": {
+      "group": "props",
+      "label": "Brook (Whisperwood fishing)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetWater.png",
+      "frameWidth": 40,
+      "frameHeight": 16,
+      "x": 4,
+      "y": 144
+    },
+    "prop.fern": {
+      "group": "props",
+      "label": "Fern (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 64,
+      "y": 176
+    },
+    "prop.fern2": {
+      "group": "props",
+      "label": "Fern, light (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 80,
+      "y": 176
+    },
+    "prop.dark_stump": {
+      "group": "props",
+      "label": "Dark stump (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 26,
+      "x": 0,
+      "y": 132
+    },
+    "prop.orange_stump": {
+      "group": "props",
+      "label": "Orange stump (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 26,
+      "x": 32,
+      "y": 132
+    },
+    "prop.log_slice": {
+      "group": "props",
+      "label": "Log slice (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 15,
+      "x": 64,
+      "y": 128
+    },
+    "prop.round_bush": {
+      "group": "props",
+      "label": "Round bush (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 16,
+      "y": 160
+    },
+    "prop.cedar_tree": {
+      "group": "props",
+      "label": "Cedar tree (Stonecrag chopping)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 22,
+      "frameHeight": 48,
+      "x": 204,
+      "y": 256
+    },
+    "prop.coal_rock": {
+      "group": "props",
+      "label": "Grey rock (Stonecrag mining)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 30,
+      "x": 240,
+      "y": 226
+    },
+    "prop.sage_bush": {
+      "group": "props",
+      "label": "Sage shrub (Stonecrag foraging)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetDesert.png",
+      "frameWidth": 32,
+      "frameHeight": 30,
+      "x": 130,
+      "y": 160
+    },
+    "prop.boar_den": {
+      "group": "props",
+      "label": "Boar den (Stonecrag hunting)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetReliefDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 16,
+      "y": 48
+    },
+    "prop.rock_pool": {
+      "group": "props",
+      "label": "Rock pool (Stonecrag fishing)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetWater.png",
+      "frameWidth": 40,
+      "frameHeight": 40,
+      "x": 4,
+      "y": 4
+    },
+    "prop.mine_mouth": {
+      "group": "props",
+      "label": "Mine entrance (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetReliefDetail.png",
+      "frameWidth": 48,
+      "frameHeight": 40,
+      "x": 48,
+      "y": 112
+    },
+    "prop.tan_boulder": {
+      "group": "props",
+      "label": "Tan boulder (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 30,
+      "x": 240,
+      "y": 162
+    },
+    "prop.small_boulders": {
+      "group": "props",
+      "label": "Small boulders (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 48,
+      "frameHeight": 16,
+      "x": 272,
+      "y": 208
+    },
+    "prop.pebbles": {
+      "group": "props",
+      "label": "Pebbles (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 12,
+      "x": 240,
+      "y": 288
+    },
+    "prop.dry_shrub": {
+      "group": "props",
+      "label": "Dry shrub (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetDesert.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 144,
+      "y": 144
+    },
+    "prop.skull": {
+      "group": "props",
+      "label": "Skull (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 208,
+      "y": 0
+    },
+    "prop.bone_bit": {
+      "group": "props",
+      "label": "Bone (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 224,
+      "y": 0
+    },
+    "prop.willow_tree": {
+      "group": "props",
+      "label": "Willow tree (Mistfen chopping)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "x": 288,
+      "y": 0
+    },
+    "prop.mythril_rock": {
+      "group": "props",
+      "label": "Blue ore rock (Mistfen mining)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 31,
+      "x": 112,
+      "y": 253
+    },
+    "prop.reeds": {
+      "group": "props",
+      "label": "Reeds (Mistfen foraging)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 48,
+      "x": 176,
+      "y": 128
+    },
+    "prop.fowl_nest": {
+      "group": "props",
+      "label": "Nest (Mistfen hunting)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 128,
+      "y": 48
+    },
+    "prop.marsh_pool": {
+      "group": "props",
+      "label": "Marsh pool (Mistfen fishing)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetWater.png",
+      "frameWidth": 40,
+      "frameHeight": 40,
+      "x": 4,
+      "y": 100
+    },
+    "prop.bog_lily": {
+      "group": "props",
+      "label": "Bog lily (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 96,
+      "y": 176
+    },
+    "prop.marsh_leaf": {
+      "group": "props",
+      "label": "Marsh leaf (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 208,
+      "y": 176
+    },
+    "prop.marsh_sprout": {
+      "group": "props",
+      "label": "Marsh sprout (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 208,
+      "y": 192
+    },
+    "prop.reed_piece": {
+      "group": "props",
+      "label": "Reed piece (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 192,
+      "y": 144
+    },
+    "prop.sprouts": {
+      "group": "props",
+      "label": "Sprouts (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 16,
+      "y": 32
+    },
+    "prop.ashwood_tree": {
+      "group": "props",
+      "label": "Dead tree (Emberfall chopping)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "x": 64,
+      "y": 0
+    },
+    "prop.ember_rock": {
+      "group": "props",
+      "label": "Ember rock (Emberfall mining)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 27,
+      "x": 144,
+      "y": 260
+    },
+    "prop.fire_bloom": {
+      "group": "props",
+      "label": "Fire bloom (Emberfall foraging)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 0,
+      "y": 224
+    },
+    "prop.bone_pile": {
+      "group": "props",
+      "label": "Bone pile (Emberfall hunting)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 32,
+      "frameHeight": 16,
+      "x": 208,
+      "y": 0
+    },
+    "prop.ember_sparks": {
+      "group": "props",
+      "label": "Embers (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 48,
+      "y": 0
+    },
+    "prop.ember_blobs": {
+      "group": "props",
+      "label": "Cinders (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 64,
+      "y": 0
+    },
+    "prop.ash_twigs": {
+      "group": "props",
+      "label": "Ash twigs (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 96,
+      "y": 0
+    },
+    "prop.ash_twigs2": {
+      "group": "props",
+      "label": "Ash twigs (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 128,
+      "y": 0
+    },
+    "prop.leaf_pile": {
+      "group": "props",
+      "label": "Burnt leaves (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 0,
+      "y": 0
+    },
+    "prop.ember_twig": {
+      "group": "props",
+      "label": "Ember twig (decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 192,
+      "y": 176
+    },
+    "prop.lava_pool": {
+      "group": "props",
+      "label": "Lava pool (Emberfall fishing)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHole.png",
+      "frameWidth": 44,
+      "frameHeight": 44,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHole.png", "x": 2, "y": 2, "w": 44, "h": 44, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetFloor.png", "x": 186, "y": 348, "w": 28, "h": 28, "dx": 8, "dy": 8 }
+      ]
     }
   }
 }
