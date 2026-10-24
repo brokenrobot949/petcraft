@@ -71,6 +71,18 @@ export function writeSave(state, now) {
   }
 }
 
+// Journal -> Start a new game: writes a brand-new game, then deletes the backup and any damaged
+// copy, so nothing of the old game is left on this device. If the write fails, nothing is deleted.
+export function startFresh(state, now) {
+  const r = writeSave(state, now);
+  if (!r.ok) return r;
+  try {
+    localStorage.removeItem(BACKUP_KEY);
+    localStorage.removeItem(CORRUPT_KEY);
+  } catch {}
+  return { ok: true };
+}
+
 // Save code for Journal -> Settings: a prefix plus base64 of the UTF-8 JSON.
 export function exportCode(state) {
   const bytes = new TextEncoder().encode(JSON.stringify(state));

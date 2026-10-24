@@ -83,6 +83,8 @@ Phase 10: no schema change (still v8). Contract in docs/architecture.md "Phase 1
   lookups make catch-up ~3.5x faster with identical results (16 h on a 60-day save: ~55-80 ms on desktop);
   Journal -> App shows the last catch-up time on the device. iPhone install guide: copies the save across with a
   save code first (the Home Screen app has its own storage). CREDITS.md lists every audio file. Core checks: 242.
+  After Phase 10 (0.10.1, Rob): Journal -> Your save -> "Start a new game" deletes this device's game and its
+  backup after a confirmation sheet, then reloads into the egg choice. Save checks: 156.
   Lead calls Rob may want to know: five of the eight adult catalysts need Mistfen materials (Renown 10, week 2-3),
   so a pet on those branches can't become an adult before then (the day 8-10 target needs Boulder, Gem or Fang
   first); Renown ranks now cost about the same each (no big late jumps); the music tracks are Claude's picks.

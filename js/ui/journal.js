@@ -1,5 +1,5 @@
 // Journal tab. Phase 0 has Settings: sound toggles, save export/import, install, credits.
-import { el, toast, formatAgo } from './dom.js';
+import { el, toast, formatAgo, sheetWithClose } from './dom.js';
 import { exportCode, importCode } from '../core/save.js';
 import { getPref, setPref } from './device.js';
 import { createBestiary } from './bestiary.js';
@@ -92,6 +92,29 @@ export function mount(container, app) {
     },
   }, 'Load this save');
 
+  // ---- start over: delete this device's game (asks first) ----
+  const newGameBtn = el('button.btn', {
+    type: 'button',
+    onclick: () => {
+      let close = null;
+      const confirmBtn = el('button.btn.wide', {
+        type: 'button',
+        style: 'margin-bottom:8px',
+        onclick: () => {
+          const r = app.startNewGame(); // reloads the page when it works
+          if (!r.ok) {
+            close();
+            toast(`Could not start over: ${r.error}`, 3500);
+          }
+        },
+      }, 'Delete my game and start over');
+      close = sheetWithClose('Keep my game', 'Start a new game?',
+        el('p', {}, 'This deletes your game on this device: your pets, items, buildings, Renown and story. It can’t be undone.'),
+        el('p.small.muted', {}, 'Want a way back? Close this, tap Show save code and copy it somewhere safe first.'),
+        confirmBtn);
+    },
+  }, 'Start a new game');
+
   // ---- install ----
   const installBtn = el('button.btn.wide', { type: 'button', hidden: true, onclick: () => app.pwa.install() }, 'Install PetCraft on this device');
   const installHelp = el('button.btn.wide', { type: 'button', onclick: () => app.pwa.showInstallGuide() }, 'How to add to Home Screen');
@@ -154,7 +177,9 @@ export function mount(container, app) {
       exportBox,
       el('p.small', { style: 'margin-top:12px' }, 'To restore a game, paste its code below.'),
       importBox,
-      el('div.row', {}, importBtn)),
+      el('div.row', {}, importBtn),
+      el('p.small', { style: 'margin-top:12px' }, 'Start again from the first egg. Your current game is deleted.'),
+      el('div.row', {}, newGameBtn)),
     el('div.panel', {}, el('h2', {}, 'App'), installBtn, installHelp,
       versionLine, ...(catchUpLine ? [catchUpLine] : [])),
     devHost,

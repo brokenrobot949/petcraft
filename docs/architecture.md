@@ -910,3 +910,6 @@ No save schema change (still version 8). Contract changes:
 
 - iPhone install guide (pwa.js): explains that the Home Screen app keeps its own save, and copies the game across with
   a save code first.
+- Journal -> Your save -> Start a new game (after a confirmation sheet): `app.startNewGame()` stops saving, then
+  `startFresh(state, now)` (save.js) writes a new game and deletes the backup and damaged copy (nothing is deleted if the
+  write fails); the page reloads into the egg choice. The device prefs tab, worldZone and lastCatchUp are cleared.

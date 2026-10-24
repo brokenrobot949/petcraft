@@ -1,6 +1,6 @@
 // Boot: load data and save, catch up offline time, start the live loop, autosave, mount the UI.
 import { loadData } from './core/data.js';
-import { loadSave, writeSave, SAVE_KEY } from './core/save.js';
+import { loadSave, writeSave, startFresh, SAVE_KEY } from './core/save.js';
 import { createInitialState } from './core/state.js';
 import { elapsedOfflineMs, offlineCapMs } from './core/time.js';
 import { createGame } from './core/game.js';
@@ -109,6 +109,20 @@ async function boot() {
       const summary = game.catchUp(Math.min(ms, offlineCapMs(game.getState(), balance)));
       saveNow();
       showAwaySummary(app, summary, { awayMs: ms });
+    },
+    // Journal -> Start a new game: delete this device's save (and its backup) and reload into a
+    // fresh game. Saving stops first, so closing the page can't write the old game back.
+    startNewGame() {
+      suspended = true;
+      const t = Date.now();
+      const r = startFresh(createInitialState(t), t);
+      if (!r.ok) {
+        suspended = false;
+        return r;
+      }
+      for (const pref of ['tab', 'worldZone', 'lastCatchUp']) setPref(pref, undefined);
+      location.reload();
+      return r;
     },
     // Test mode: start over. The old game is kept as the backup.
     resetGame() {

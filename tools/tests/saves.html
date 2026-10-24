@@ -17,7 +17,7 @@ catch-up speed. Your own local save is put back afterwards.</p>
 import { loadData } from '../../js/core/data.js';
 import { createInitialState, validateState, SCHEMA_VERSION } from '../../js/core/state.js';
 import { createGame } from '../../js/core/game.js';
-import { parseSave, loadSave, writeSave, exportCode, importCode, SAVE_KEY } from '../../js/core/save.js';
+import { parseSave, loadSave, writeSave, startFresh, exportCode, importCode, SAVE_KEY } from '../../js/core/save.js';
 import { elapsedOfflineMs, offlineCapMs } from '../../js/core/time.js';
 import { parseKey } from '../../js/systems/bag.js';
 
@@ -218,6 +218,29 @@ async function run() {
   }
   check('storage full: reported, nothing thrown', !w.ok && /full/.test(w.error), w.error);
   check('  ...and the old save is untouched', localStorage.getItem(SAVE_KEY) === kept1);
+
+  // Journal -> Start a new game: the new game is saved, the backup and any damaged copy are gone.
+  clearKeys();
+  const oldGame = createInitialState(T0);
+  oldGame.coins = 999;
+  writeSave(oldGame, T0);
+  writeSave({ ...structuredClone(oldGame), coins: 1000 }, T0 + 1000);
+  localStorage.setItem(`${SAVE_KEY}.corrupt`, 'old damaged copy');
+  Storage.prototype.setItem = function () {
+    const e = new Error('full');
+    e.name = 'QuotaExceededError';
+    throw e;
+  };
+  try {
+    w = startFresh(createInitialState(T0 + 2000), T0 + 2000);
+  } finally {
+    Storage.prototype.setItem = realSet;
+  }
+  check('start over with storage full: refused, the old game and backup untouched', !w.ok && JSON.parse(localStorage.getItem(SAVE_KEY)).coins === 1000 && !!localStorage.getItem(`${SAVE_KEY}.bak`));
+  w = startFresh(createInitialState(T0 + 3000), T0 + 3000);
+  l = loadSave();
+  check('start over: the new game loads with nothing of the old one', w.ok && l.source === 'main' && l.state.coins === 0 && Object.keys(l.state.pets.list).length === 0);
+  check('  ...and the backup and damaged copy are deleted', !localStorage.getItem(`${SAVE_KEY}.bak`) && !localStorage.getItem(`${SAVE_KEY}.corrupt`));
 
   // ---- 3. a late-game save: size, export/import, autosave churn ----
   await pause();
