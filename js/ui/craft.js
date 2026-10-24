@@ -53,6 +53,26 @@ const state = () => app.game.getState();
 const skillName = (sid) => data().skills.skills.find((s) => s.id === sid)?.name || sid;
 const itemName = (itemId) => data().items.items[itemId]?.name || itemId;
 
+// Where an item comes from, in a short line: crafted at a station, harvested from a spot, a rare
+// find, grown in the Garden, sold in Mossbrook or dug up as treasure (first two places found).
+function whereFrom(d, itemId) {
+  const out = [];
+  const skillName = (sid) => d.skills.skills.find((s) => s.id === sid)?.name || sid;
+  const recipe = d.recipes.recipes.find((r) => r.output === itemId);
+  if (recipe) out.push(`Made at the ${d.recipes.stations.find((s) => s.id === recipe.station)?.name || recipe.station}`);
+  for (const z of d.zones.zones) {
+    for (const [skill, nodes] of Object.entries(z.harvest || {})) {
+      const node = nodes.find((n) => n.drops.some((x) => x.item === itemId));
+      if (node) out.push(`${skillName(skill)}: ${node.name} in ${z.name}`);
+      else if (z.rare?.[skill]?.some((x) => x.item === itemId)) out.push(`Rare find while ${skillName(skill).toLowerCase()} in ${z.name}`);
+    }
+  }
+  if (Object.values(d.items.items).some((it) => it.seed?.crop === itemId)) out.push('Grown in the Garden');
+  if (d.market.shop.some((s) => s.item === itemId)) out.push('Sold in Mossbrook');
+  if (d.treasure && Object.values(d.treasure.loot).some((l) => l.some((x) => x.item === itemId))) out.push('Dug up as treasure');
+  return out.length ? out.slice(0, 2).join(' - ') : 'Found on your travels';
+}
+
 function run(type, payload) {
   try {
     app.game.dispatch(type, payload);
@@ -268,13 +288,39 @@ function openPicker(stationId) {
       return el('span.need' + (have < n ? '.short' : ''), {}, itemIcon(iid, 16, itemName(iid)), ` ${have}/${n}`);
     });
     return el('button.recipe' + (locked ? '.locked' : '') + (noMats && !locked ? '.nomats' : ''),
-      { type: 'button', onclick: () => (chk.max >= 1 && !locked ? showQty(r) : toast(note)) },
+      { type: 'button', onclick: () => (chk.max >= 1 && !locked ? showQty(r) : showMissing(r)) },
       itemIcon(r.output, 32, itemName(r.output)),
       el('div.recipe-body', {},
         el('div.recipe-name', {}, itemName(r.output), r.qty > 1 && ` x${r.qty}`),
         el('div.recipe-inputs', {}, inputs),
         el('div.small.muted', {}, `${fmtTime(itemMs(st, d, r))} each - level ${r.level || 1}`),
         note && el('div.small.recipe-note', {}, note)));
+  }
+
+  // A recipe you can't start yet: what's still missing (skill level, station, materials) and where
+  // each missing material comes from.
+  function showMissing(r) {
+    const st = state();
+    const d = data();
+    const chk = recipeCheck(st, d, r.id, 1);
+    const rows = Object.entries(r.inputs).map(([iid, n]) => {
+      const have = st.bag[iid] || 0;
+      const short = Math.max(0, n - have);
+      return el('div.missing-row' + (short ? '.short' : ''), {},
+        itemIcon(iid, 24, itemName(iid)),
+        el('div.recipe-body', {},
+          el('div.recipe-name', {}, itemName(iid)),
+          el('div.small', {}, short ? `Have ${have} of ${n} - need ${short} more` : `Have ${have} of ${n}`),
+          short && el('div.small.muted', {}, whereFrom(d, iid))));
+    });
+    box.replaceChildren(...[
+      el('div.missing-head', {}, itemIcon(r.output, 32, itemName(r.output)),
+        el('div.recipe-name', {}, `${itemName(r.output)}${r.qty > 1 ? ` x${r.qty}` : ''}`)),
+      chk.reason.startsWith('Needs') && el('p.recipe-note', {}, chk.reason),
+      el('p.small', {}, 'Each one takes:'),
+      ...rows,
+      el('button.btn.wide', { type: 'button', onclick: showList }, 'Back to recipes'),
+    ].filter(Boolean));
   }
 
   function showQty(r) {

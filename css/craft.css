@@ -56,3 +56,6 @@
 .bag-quality { font-size: 11px; color: var(--pale); }
 .bag-quality.q-masterwork { color: #ffd94a; }
 .batch .bar .fill { transition: width 0.25s linear; }
+.missing-head { display: flex; align-items: center; gap: 10px; }
+.missing-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: 2px solid var(--ink); border-radius: 6px; background: var(--wood-dark); }
+.missing-row.short { border-color: #ff8a7a; }
