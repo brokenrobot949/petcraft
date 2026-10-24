@@ -59,3 +59,6 @@
 .missing-head { display: flex; align-items: center; gap: 10px; }
 .missing-row { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border: 2px solid var(--ink); border-radius: 6px; background: var(--wood-dark); }
 .missing-row.short { border-color: #ff8a7a; }
+.assist-line { display: flex; align-items: center; gap: 8px; margin: 6px 0; min-width: 0; }
+.assist-text { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.helper-chip { flex-shrink: 0; padding: 2px 8px; font-size: 13px; background: #3f6b3a; color: var(--cream); border: 2px solid var(--ink); border-radius: 4px; }

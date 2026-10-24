@@ -32,6 +32,12 @@ import { localDay } from '../../js/core/time.js';
 import { catchChance, freePetSpaces, encounterInfo, tamingNotice, rollQuality } from '../../js/systems/taming.js';
 import { digMs, mapItemFor } from '../../js/systems/treasure.js';
 import { eggSlots, hatchMs, nestNotice } from '../../js/systems/nest.js';
+import { EFFECT_KINDS, effectText, petSpeed, petSpecies, branchDef, effectValue } from '../../js/systems/petstats.js';
+import { bestiaryList, bestiaryStars } from '../../js/systems/bestiary.js';
+import { talentInfo, evolveInfo, assistInfo, petNotice, talentPicksDue, isFavoriteDish } from '../../js/systems/pets.js';
+import { stationList } from '../../js/systems/crafting.js';
+import { revealChance } from '../../js/systems/taming.js';
+import { gardenBonus } from '../../js/systems/garden.js';
 
 const out = document.getElementById('out');
 const lines = [];
@@ -77,7 +83,7 @@ try {
     workers: { player: { task: { zone: 'meadowfold', skill: 'chopping', node: 'pine' }, progressMs: 100 } }, stats: { actions: { chopping: 50 } },
   };
   const mig = parseSave(JSON.stringify(v2));
-  check('v2 save migrates to the current version and validates', !!mig.state && mig.state.version === 6, mig.error || '');
+  check('v2 save migrates to the current version and validates', !!mig.state && mig.state.version === 7, mig.error || '');
   check('migration keeps progress', mig.state?.bag.pine_log === 40 && mig.state?.skills.chopping.level === 4 && mig.state?.workers.player.task?.node === 'pine');
   const g0 = createGame(data, mig.state, { clock });
   check('migrated save needs a starter egg', g0.getState().pets.active.length === 2 && !g0.getState().pets.starter);
@@ -234,7 +240,7 @@ try {
   const v3 = JSON.parse(JSON.stringify(so));
   v3.version = 3; delete v3.crafting; delete v3.buffs; delete v3.stats.crafts;
   const m3 = parseSave(JSON.stringify(v3));
-  check('v3 save migrates to v6 and keeps pets', !!m3.state && m3.state.version === 6 && Object.keys(m3.state.pets.list).length === Object.keys(so.pets.list).length, m3.error || '');
+  check('v3 save migrates to v7 and keeps pets', !!m3.state && m3.state.version === 7 && Object.keys(m3.state.pets.list).length === Object.keys(so.pets.list).length, m3.error || '');
   const gc = freshGame(777);
   const sc = gc.getState();
   const refused = (type, payload) => { try { gc.dispatch(type, payload); return false; } catch { return true; } };
@@ -380,7 +386,7 @@ try {
   v4.crafting.stations.kitchen.queue = [{ recipe: 'berry_compote', qty: 2, done: 0, focus: null, inputs: { berries: 3 }, made: {} }];
   v4.crafting.stations.forge.queue = [{ recipe: 'copper_bar', qty: 2, done: 0, focus: null, inputs: { copper_ore: 2 }, made: {} }];
   const m4 = parseSave(JSON.stringify(v4));
-  check('v4 save migrates to v6 and validates', !!m4.state && m4.state.version === 6, m4.error || '');
+  check('v4 save migrates to v7 and validates', !!m4.state && m4.state.version === 7, m4.error || '');
   check('migration: the first busy station keeps working, the other pauses', JSON.stringify(m4.state?.crafting.working) === '["forge"]', JSON.stringify(m4.state?.crafting.working));
   const g4 = createGame(data, m4.state, { clock });
   const s4 = g4.getState();
@@ -535,7 +541,7 @@ try {
   delete v5.taming; delete v5.treasure; delete v5.nest;
   v5.version = 5;
   const m5 = parseSave(JSON.stringify(v5));
-  check('v5 save migrates to v6 and validates', m5.state?.version === 6 && validateState(m5.state) === null && !!m5.state.taming && Array.isArray(m5.state.nest.slots), m5.error || validateState(m5.state || {}) || '');
+  check('v5 save migrates to v7 and validates', m5.state?.version === 7 && validateState(m5.state) === null && !!m5.state.taming && Array.isArray(m5.state.nest.slots), m5.error || validateState(m5.state || {}) || '');
 
   // Catch-chance math (design: 35% base, +10% per trap tier above the zone, +20% matching bait, +0.5% per Taming level, cap 95%).
   const gT = freshGame(71);
@@ -732,6 +738,198 @@ try {
   for (const a of data.pets.archetypes) for (const id of Object.keys(a.release || {})) if (!data.items.items[id]) missing7.push(id);
   for (const z of data.zones.zones) if (Object.keys(z.harvest || {}).length && !mapItemFor(data, z.id)) missing7.push(`map for ${z.id}`);
   check('treasure, release and map ids all exist', !missing7.length, missing7.join(', '));
+  }
+  // ---- Phase 8: evolution, talents, gifts, assists, Scout digging, Bestiary ----
+  {
+  const refused = (g, type, p) => { try { g.dispatch(type, p); return false; } catch { return true; } };
+  const pickLevels = data.balance.pets.talents.pickLevels;
+
+  // Data: every talent, pool, catalyst and effect is consistent.
+  const bad8 = [];
+  const pooled = new Set();
+  for (const [pool, ids] of Object.entries(data.talents.pools)) for (const t of ids) { if (!data.talents.talents[t]) bad8.push(`${pool}:${t}`); pooled.add(t); }
+  for (const [t, def] of Object.entries(data.talents.talents)) {
+    if (!pooled.has(t)) bad8.push(`unpooled ${t}`);
+    for (const e of def.effects) if (!EFFECT_KINDS.includes(e.kind) || !effectText(data, e)) bad8.push(`${t} kind ${e.kind}`);
+  }
+  for (const a of data.pets.archetypes) for (const br of a.branches) {
+    if (!data.talents.pools[br.id]) bad8.push(`no pool ${br.id}`);
+    if (!data.items.items[br.catalyst] || !data.recipes.recipes.some((r) => r.output === br.catalyst && r.station === 'alchemyLab')) bad8.push(`catalyst ${br.catalyst}`);
+    for (const e of br.strength) if (!EFFECT_KINDS.includes(e.kind)) bad8.push(`${br.id} strength ${e.kind}`);
+    if (br.assist && !data.recipes.stations.some((s) => s.id === br.assist.station)) bad8.push(`${br.id} assist`);
+    if (!br.juvenile?.species || !br.adult?.species) bad8.push(`${br.id} species`);
+  }
+  check('talents, pools, catalysts and branch data are consistent', !bad8.length, bad8.join(', '));
+  check('the Bestiary has 24 entries x 5 stars', bestiaryList(freshGame(90).getState(), data).length === 24 && bestiaryStars(freshGame(90).getState(), data).max === 120);
+
+  // Gift talents by quality, a favorite dish, a pet stream.
+  const gG = freshGame(91);
+  const sG = gG.getState();
+  gG.dispatch('dev/setBuilding', { building: 'stable', tier: 5 });
+  for (const q of ['common', 'rare', 'legendary']) gG.dispatch('dev/addPet', { archetype: 'sprout', quality: q, name: q });
+  const byName = (s, n) => Object.values(s.pets.list).find((p) => p.name === n);
+  check('gift talents: Common 0, Rare 1, Legendary 2 (from the gift pool)', byName(sG, 'common').gifts.length === 0 && byName(sG, 'rare').gifts.length === 1 && byName(sG, 'legendary').gifts.length === 2
+    && byName(sG, 'legendary').gifts.every((t) => data.talents.pools.gift.includes(t)) && new Set(byName(sG, 'legendary').gifts).size === 2);
+  check('every pet has a favorite dish (a meal) and its own stream', Object.values(sG.pets.list).every((p) => data.items.items[p.favorite]?.category === 'meal' && !p.favoriteKnown && Number.isInteger(p.rng)));
+  check('a new pet fills its Bestiary star', sG.bestiary['sprout.hatchling']?.legendary === true && bestiaryStars(sG, data).have === 3);
+
+  // Talent picks: offered at level 5 from the hatchling pool, two choices, picked once.
+  const pet5 = byName(sG, 'common');
+  gG.dispatch('dev/petLevel', { pet: pet5.id, level: 4 });
+  check('no talent before level 5', pet5.offer === null && talentInfo(sG, data, pet5.id).due === 0);
+  gG.dispatch('dev/petLevel', { pet: pet5.id, level: 5 });
+  const offer = pet5.offer || [];
+  check('level 5: two hatchling talents on offer', offer.length === 2 && offer.every((t) => data.talents.pools.hatchling.includes(t)) && petNotice(sG, data));
+  check('picking a talent not on offer is refused', refused(gG, 'pets/pickTalent', { pet: pet5.id, talent: data.talents.pools.hatchling.find((t) => !offer.includes(t)) }));
+  gG.dispatch('pets/pickTalent', { pet: pet5.id, talent: offer[0] });
+  check('the talent is kept and the offer clears', pet5.talents[0] === offer[0] && pet5.offer === null && sG.stats.talentPicks === 1);
+  check('nothing more to pick until level 10', refused(gG, 'pets/pickTalent', { pet: pet5.id, talent: offer[1] }));
+
+  // Evolution to juvenile: level 10 + a path's calling; then the branch's strength counts.
+  const gE = freshGame(92);
+  const sE = gE.getState();
+  gE.dispatch('pets/hatchStarter', { archetype: 'sprout', name: 'Bud' });
+  const bud = sE.pets.list.pet1;
+  check('a hatchling below level 10 cannot evolve', refused(gE, 'pets/evolve', { pet: 'pet1', branch: 'timber' }) && !evolveInfo(sE, data, 'pet1').ready);
+  gE.dispatch('dev/petLevel', { pet: 'pet1', level: 10 });
+  check('level 10 without the calling: still no', refused(gE, 'pets/evolve', { pet: 'pet1', branch: 'timber' }) && /actions/.test(evolveInfo(sE, data, 'pet1').reason));
+  bud.actions.chopping = data.balance.pets.callingActions;
+  check('the Timber path opens after 150 chopping actions (Bloom still closed)', evolveInfo(sE, data, 'pet1').ready && refused(gE, 'pets/evolve', { pet: 'pet1', branch: 'bloom' }));
+  const chopBefore = petSpeed(data, bud, 'chopping');
+  bud.xp = 20000; // banked XP (more than level 10 -> 11 needs)
+  gE.dispatch('pets/evolve', { pet: 'pet1', branch: 'timber' });
+  check('Bud evolves into a Timber juvenile', bud.form === 'juvenile' && bud.branch === 'timber' && sE.stats.evolved.juvenile === 1 && petSpecies(data, bud) === branchDef(data, 'sprout', 'timber').juvenile.species);
+  check('banked XP counts after evolving', bud.level > 10);
+  check('Timber chops faster', near(petSpeed(data, bud, 'chopping') / chopBefore, (1 + 0.15) * (petSpeed(data, { ...bud, form: 'hatchling', branch: null }, 'chopping') / chopBefore), 1e-6) && petSpeed(data, bud, 'chopping') > chopBefore);
+  check('the juvenile Bestiary star is recorded', sE.bestiary['sprout.timber.juvenile']?.uncommon === true);
+  check('the branch is permanent', refused(gE, 'pets/evolve', { pet: 'pet1', branch: 'bloom' }));
+
+  // Adult: level 20, Bond heart 3 and the catalyst (used up). Strength doubles.
+  gE.dispatch('dev/petLevel', { pet: 'pet1', level: 20 });
+  check('an adult needs heart 3', refused(gE, 'pets/evolve', { pet: 'pet1' }) && /heart/.test(evolveInfo(sE, data, 'pet1').reason));
+  gE.dispatch('dev/petBond', { pet: 'pet1', bond: data.balance.pets.bond.hearts[2] });
+  check('... and the catalyst', refused(gE, 'pets/evolve', { pet: 'pet1' }) && evolveInfo(sE, data, 'pet1').catalyst.item === 'heartwood_resin');
+  gE.dispatch('dev/grant', { item: 'heartwood_resin', qty: 1 });
+  gE.dispatch('pets/evolve', { pet: 'pet1' });
+  check('Bud becomes an adult and the catalyst is used', bud.form === 'adult' && !sE.bag.heartwood_resin && sE.stats.evolved.adult === 1 && sE.achievements.done.first_adult);
+  check('adult strength is doubled', near(effectValue(data, bud, 'speed', 'chopping') - talentSum(bud, 'speed', 'chopping'), 0.15 * data.balance.pets.evolve.adultStrengthMult, 1e-9));
+  check('fully grown: nothing more', !evolveInfo(sE, data, 'pet1').next && refused(gE, 'pets/evolve', { pet: 'pet1' }));
+  function talentSum(p, kind, skill) {
+    let v = 0;
+    for (const t of [...p.gifts, ...p.talents]) for (const e of data.talents.talents[t].effects) if (e.kind === kind && (!e.skills || e.skills.includes(skill))) v += e.value;
+    return v;
+  }
+  check('talent picks at 10, 15, 20 come from the right pools', (() => {
+    const s = { ...bud };
+    return sE.pets.list.pet1.offer !== null && talentPicksDue(data, bud) >= 1;
+  })());
+  while (bud.offer) gE.dispatch('pets/pickTalent', { pet: 'pet1', talent: bud.offer[0] });
+  check('after level 10 the picks come from the Timber pool', bud.talents.length === pickLevels.filter((l) => l <= bud.level).length
+    && bud.talents.slice(2).every((t) => data.talents.pools.timber.includes(t) || data.talents.pools.hatchling.includes(t)) && data.talents.pools.timber.includes(bud.talents[2]));
+
+  // Station assist: a stabled adult keeps its station running while the player works elsewhere.
+  const assistSetup = (gx) => {
+    gx.dispatch('pets/hatchStarter', { archetype: 'sprout', name: 'Bud' });
+    gx.dispatch('dev/addPet', { archetype: 'stone', quality: 'common', name: 'Rocky' });
+    const p = gx.getState().pets.list.pet1;
+    p.form = 'adult'; p.branch = 'timber'; p.level = 20;
+    gx.dispatch('pets/stable', { pet: 'pet1' });
+    gx.dispatch('dev/grant', { item: 'pine_log', qty: 200 });
+    gx.dispatch('dev/grant', { item: 'stone', qty: 200 });
+    gx.dispatch('dev/grant', { item: 'copper_ore', qty: 200 });
+    gx.dispatch('dev/setLevel', { skill: 'carpentry', level: 5 });
+    gx.dispatch('crafting/start', { recipe: 'pine_plank', qty: 30 });
+    gx.dispatch('crafting/start', { recipe: data.recipes.recipes.find((r) => r.station === 'forge' && r.level <= 1).id, qty: 30 });
+    gx.dispatch('pets/assist', { pet: 'pet1', station: 'workbench' });
+    gx.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'chopping', node: 'pine' });
+  };
+  const aL = freshGame(93); assistSetup(aL);
+  const sA = aL.getState();
+  check('only an adult in the Stable can help', assistInfo(sA, data, 'pet1').posted === 'workbench' && refused(aL, 'pets/assist', { pet: 'pet2', station: 'forge' }));
+  check('an assisted station is not one of the player\'s working slots', !sA.crafting.working.includes('workbench') && sA.crafting.working.includes('forge'));
+  check('the Workbench is listed as helped', stationList(sA, data).find((s) => s.id === 'workbench').status === 'assisted');
+  check('switching to a helped station is refused', refused(aL, 'crafting/work', { station: 'workbench' }));
+  const planksMs = itemMs(sA, data, data.recipes.recipes.find((r) => r.id === 'pine_plank'));
+  check('the helper speeds its station up', near(planksMs, data.recipes.recipes.find((r) => r.id === 'pine_plank').seconds * 1000 / (1 + data.pets.archetypes[0].branches[1].assist.speed), 1));
+  const aO = freshGame(93); assistSetup(aO);
+  runChunks(aL, 0.5 * H, 250);
+  aO.catchUp(0.5 * H);
+  const sO8 = aO.getState();
+  check('both stations ran at once (one by the player, one by the helper)', (sO8.bag.pine_plank || 0) > 0 && Object.keys(sO8.stats.crafts).length >= 2, sortedJson(sO8.stats.crafts));
+  check('assists: live ticks and catch-up agree', sortedJson(sA.bag) === sortedJson(sO8.bag), `${sortedJson(sA.bag)} vs ${sortedJson(sO8.bag)}`);
+  aO.dispatch('pets/setActive', { pet: 'pet1', slot: 1 });
+  check('making the helper active ends its post', !sO8.crafting.assists.workbench);
+  const gq = freshGame(94);
+  gq.dispatch('pets/hatchStarter', { archetype: 'stone', name: 'Gemmy' });
+  gq.dispatch('dev/addPet', { archetype: 'stone', quality: 'common', name: 'Rocky' });
+  Object.assign(gq.getState().pets.list.pet1, { form: 'adult', branch: 'gem', level: 20 });
+  gq.dispatch('pets/stable', { pet: 'pet1' });
+  gq.dispatch('dev/setLevel', { skill: 'smithing', level: 20 });
+  const toolRecipe = data.recipes.recipes.find((r) => r.station === 'forge' && data.items.items[r.output]?.quality);
+  const before = qualityOdds(gq.getState(), data, toolRecipe).fine;
+  gq.dispatch('pets/assist', { pet: 'pet1', station: 'forge' });
+  check('a Gem helper improves quality odds at the Forge', qualityOdds(gq.getState(), data, toolRecipe).fine > before);
+  check('a Gem pet cannot help at the Kitchen', refused(gq, 'pets/assist', { pet: 'pet1', station: 'kitchen' }));
+
+  // Scout pets dig treasure, then go back to harvesting; live and offline agree.
+  const scoutSetup = (gx) => {
+    gx.dispatch('pets/hatchStarter', { archetype: 'wild', name: 'Scout' });
+    Object.assign(gx.getState().pets.list.pet1, { form: 'juvenile', branch: 'scout', level: 10 });
+    gx.dispatch('harvest/assign', { worker: 'pet1', zone: 'meadowfold', skill: 'hunting', node: data.zones.zones[0].harvest.hunting[0].id });
+    gx.dispatch('dev/grant', { item: 'map_meadowfold', qty: 3 });
+    gx.dispatch('dev/grant', { item: 'rabbit_roast', qty: 20 });
+    gx.dispatch('treasure/dig', { zone: 'meadowfold', worker: 'pet1' });
+  };
+  const sdL = freshGame(95); scoutSetup(sdL);
+  const sdO = freshGame(95); scoutSetup(sdO);
+  check('a hatchling cannot dig', (() => { const g = freshGame(96); g.dispatch('pets/hatchStarter', { archetype: 'wild', name: 'W' }); g.dispatch('dev/grant', { item: 'map_meadowfold', qty: 1 }); return refused(g, 'treasure/dig', { zone: 'meadowfold', worker: 'pet1' }); })());
+  runChunks(sdL, 2 * H, 250);
+  const sumS = sdO.catchUp(2 * H);
+  const ss8 = sdO.getState();
+  check('the Scout dug all 3 maps, then went back to hunting', ss8.stats.digs >= 3 && ss8.workers.pet1.task?.skill === 'hunting' && sumS.pets.pet1?.digs === ss8.stats.digs, `${ss8.stats.digs} digs, ${JSON.stringify(ss8.workers.pet1.task)}`);
+  check('the player kept their own task', ss8.workers.player.task === null);
+  check('Scout digs: live ticks and catch-up agree', sortedJson(sdL.getState().bag) === sortedJson(ss8.bag) && sdL.getState().coins === ss8.coins && near(sdL.getState().pets.list.pet1.energy, ss8.pets.list.pet1.energy, 1e-6),
+    `${sortedJson(sdL.getState().bag)} vs ${sortedJson(ss8.bag)}`);
+
+  // Favorite dish, Heart 4 gifts, tracking and garden bonuses.
+  const gF = freshGame(97);
+  const sF = gF.getState();
+  gF.dispatch('pets/hatchStarter', { archetype: 'tide', name: 'Drip' });
+  const drip = sF.pets.list.pet1;
+  gF.dispatch('dev/grant', { item: drip.favorite, qty: 1 });
+  gF.dispatch('dev/petEnergy', { pet: 'pet1', energy: 0 });
+  const bond0 = drip.bond;
+  gF.dispatch('pets/feed', { pet: 'pet1', item: drip.favorite });
+  const typeBond = isFavoriteDish(data, drip, drip.favorite) ? data.balance.pets.bond.favoriteDish : 0;
+  check('the favorite dish gives +40 Bond and is revealed', drip.favoriteKnown && near(drip.bond - bond0, data.balance.pets.bond.personalDish + typeBond, 1e-9));
+  gF.dispatch('dev/petBond', { pet: 'pet1', bond: data.balance.pets.bond.hearts[3] });
+  gF.dispatch('dev/grant', { item: 'minnow_stew', qty: 400 });
+  gF.dispatch('harvest/assign', { worker: 'pet1', zone: 'meadowfold', skill: 'fishing', node: data.zones.zones[0].harvest.fishing[0].id });
+  const sumF = gF.catchUp(48 * H);
+  check('a Heart 4 pet brings gifts now and then', sF.stats.petGifts > 0 && Object.keys(sumF.pets.pet1?.gifts || {}).length > 0, `${sF.stats.petGifts} gifts`);
+  const gT = freshGame(98);
+  gT.dispatch('pets/hatchStarter', { archetype: 'wild', name: 'Sniff' });
+  const r0 = revealChance(gT.getState(), data);
+  Object.assign(gT.getState().pets.list.pet1, { form: 'adult', branch: 'scout', level: 20 });
+  check('an active Scout helps the player track', near(revealChance(gT.getState(), data) - r0, 0.02 * data.balance.pets.evolve.adultStrengthMult, 1e-9));
+  check('a Bloom pet makes the Garden yield more', (() => { const s = gT.getState(); const b0 = gardenBonus(s, data); Object.assign(s.pets.list.pet1, { archetype: 'sprout', branch: 'bloom', form: 'juvenile' }); return b0 === 0 && near(gardenBonus(s, data), 0.1, 1e-9); })());
+
+  // Migration from v6: pets get streams, gifts and a dish; assists and the Bestiary start empty.
+  const v6 = JSON.parse(JSON.stringify(freshGame(99).getState()));
+  {
+    const g6 = createGame(data, v6, { clock });
+    g6.dispatch('pets/hatchStarter', { archetype: 'stone', name: 'Old' });
+    g6.dispatch('dev/addPet', { archetype: 'tide', quality: 'epic', name: 'Shiny' });
+  }
+  for (const p of Object.values(v6.pets.list)) { delete p.rng; delete p.offer; delete p.favorite; delete p.favoriteKnown; p.gifts = []; p.talents = []; p.level = 7; }
+  delete v6.crafting.assists; delete v6.bestiary; v6.version = 6;
+  const m6 = parseSave(JSON.stringify(v6));
+  const s6 = m6.state && createGame(data, m6.state, { clock }).getState();
+  check('v6 save migrates to v7 and validates', s6?.version === 7 && validateState(s6) === null, m6.error || validateState(s6 || {}) || '');
+  check('migrated pets: a stream, a dish, gifts by quality, a talent pick due at level 7', Object.values(s6.pets.list).every((p) => Number.isInteger(p.rng) && p.favorite && p.offer?.length === 2)
+    && byName(s6, 'Shiny').gifts.length === 1 && byName(s6, 'Old').gifts.length === 0);
+  check('migrated: Bestiary filled from current pets, no assists', bestiaryStars(s6, data).have === 2 && Object.keys(s6.crafting.assists).length === 0);
+  check('Phase 8 state is valid', [sG, sE, sA, sO8, ss8, sF].every((x) => validateState(x) === null), [sG, sE, sA, sO8, ss8, sF].map(validateState).filter(Boolean).join(', '));
   }
 } catch (err) {
   failed++;

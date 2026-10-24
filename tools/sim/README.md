@@ -1,4 +1,4 @@
-# PetCraft balance simulator (v2, dev only, never shipped)
+# PetCraft balance simulator (v4, dev only, never shipped)
 
 Plays the real game with a scripted player for N days and reports pacing. It imports the same
 game modules as the app (`createGame`, the systems, `loadData`); there is no copied game logic.
@@ -86,6 +86,22 @@ Each check-in, in this order (the policy only sends commands and reads selectors
       (20 = overnight only). With the old map rates this stalled every harvest skill; with pet Luck multiplying the map
       chance (about 17 maps a day) it does not. Keeps `floor(10 h / digMs)` maps and sells the rest.
 
+11. **Evolution, talents, assistants, Scouts (Phase 8, v4)**, all through commands and the exported selectors:
+    - Before the stations are planned: every pet whose evolveInfo says eady evolves (pets/evolve). A hatchling picks
+      an unlocked branch whose calling matches the skill it is working, else one in its archetype's affinity, else the
+      first unlocked. A juvenile becomes an adult. Hatchlings within 2 levels of the cap with no unlocked branch are sent
+      to the best node of a calling skill (affinity first) at the end of the run.
+    - Catalysts: a juvenile within 3 levels of the adult cap adds its branch's catalyst (recipe id = item id) to the
+      wants, so the stations make it (with its parts); an adult blocked only by its catalyst gets the recipe queued
+      directly at the Alchemy Lab when ecipeCheck allows.
+    - Talents: when pet.offer is set, pick the first of speed, extraItem, drain by effect kind, else the first offered
+      (pets/pickTalent).
+    - Assistants: a stabled adult whose ssistInfo(...).can is true is posted (pets/assist) to its station if that
+      station has no assistant; stations with the most queued work first. The player's work slots skip assisted stations.
+      The scripted player keeps its best pets active, so an adult only helps once a better pet takes its slot.
+    - Scouts: an active pet with canDig and no dig in hand digs (	reasure/dig with worker) when the player is not
+      digging and a map is held; harvest assignment leaves a digging pet alone (the game sends it back to its harvest task).
+
 ## What the page shows
 
 Milestones (now incl. "Second pet tamed", first dig, "First egg hatched", Nest built) with the design-doc target (middle of a range, in days since the start) and a status
@@ -97,10 +113,11 @@ milestones more than 25% off, pet rest share. Coin flow (earned by selling/commi
 blueprints, seeds, scrolls). Charts: skill levels, Renown rank (with coins/100), Renown XP per day, stockpiles.
 New series per day (daily table, a chart and the CSV): Taming level, pets owned, tamed total, digs, maps found/held, eggs found/held, hatched, relics held, coins from treasure; flags for maps/eggs piling up. Daily table, refused commands, final state (buildings, tools, pets) and a CSV download (skill levels, XP, coins,
 Renown rank and XP, every bag item, one row per day).
+v4 adds per day (daily table, a chart and the CSV): juveniles, adults, talent picks, posted assistants, pet gifts, pet digs; milestones "First stage-2 evolution" (target day 2) and "First stage-3 evolution" (target day 9); an info flag with the evolution totals and flags when no pet reaches adult.
 
 ## What the simulator cannot measure yet
 
-Evolution, Grand Projects themselves (only the Renown 12 mark), Phase 8+ zone content (mythics), and the Focus mini-game (the policy always assumes a 'good' result). Pet feeding is whatever auto-feed
+Grand Projects themselves (only the Renown 12 mark), Phase 8+ zone content (mythics), and the Focus mini-game (the policy always assumes a 'good' result). Pet feeding is whatever auto-feed
 does. Milestones during time away are accurate to 30 minutes. The policy checks in only at its check-in times, so
 the "first building upgrade in 10 minutes" target cannot be met by a 4-check-in player (it lands at the first
 check-in after enough materials exist).

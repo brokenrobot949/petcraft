@@ -373,13 +373,38 @@ export async function createHomeScene(host, game, options = {}) {
     agent.x = a.x; agent.y = a.y;
   }
 
-  function addAgent(id, roleId) {
+  // The station an assistant pet works at, or null (state.crafting.assists = { stationId: petId }).
+  function postOf(state, petId) {
+    const assists = state.crafting?.assists;
+    if (!assists) return null;
+    for (const st in assists) if (assists[st] === petId && buildings.has(st)) return st;
+    return null;
+  }
+
+  // Stand just to the side of the station (right, or left if the right is off screen), facing it.
+  function postSpot(agent) {
+    const b = buildings.get(agent.post);
+    if (!b || !b.rect) return;
+    const gap = hcfg.assistSideGapPx * scale;
+    let right = true;
+    let x = b.rect.x1 + gap;
+    if (x > bounds.maxX) { right = false; x = b.rect.x0 - gap; }
+    agent.x = Math.min(Math.max(x, bounds.minX), bounds.maxX);
+    agent.y = Math.min(Math.max(b.y, bounds.minY), bounds.maxY);
+    agent.dir = right ? 'left' : 'right';
+    agent.state = 'pause';
+    agent.actor.play('idle', agent.dir);
+    place(agent);
+  }
+
+  function addAgent(id, roleId, post = null) {
     const dir = rand.pick(dirs);
     const actor = createActor(bank, roleId, { anim: 'idle', dir });
     actor.view.scale.set(scale);
     world.addChild(actor.view);
     const agent = {
-      id, roleId, actor,
+      id, roleId, actor, post,
+      workMs: 0,
       isPlayer: id === 'player',
       x: 0, y: 0,
       state: 'pause',
@@ -392,7 +417,9 @@ export async function createHomeScene(host, game, options = {}) {
       shadow: polish.addShadow(actor.view, hcfg.shadowCharacterWidthPx),
     };
     agents.set(id, agent);
-    if (bounds.maxX > 0) { randomSpot(agent); settle(agent); }
+    if (bounds.maxX > 0) {
+      if (post) postSpot(agent); else { randomSpot(agent); settle(agent); }
+    }
     return agent;
   }
   function removeAgent(id) {
@@ -411,10 +438,11 @@ export async function createHomeScene(host, game, options = {}) {
     for (const id of [...agents.keys()]) {
       if (id === 'player') continue;
       const a = agents.get(id);
-      if (!pets[id] || petRole(pets[id]) !== a.roleId || petStatus(state, id) === 'working') removeAgent(id);
+      // Rebuilt when the pet leaves, goes out working, evolves (a different sprite role) or its post changes.
+      if (!pets[id] || petRole(pets[id]) !== a.roleId || a.post !== postOf(state, id) || petStatus(state, id) === 'working') removeAgent(id);
     }
     for (const id of Object.keys(pets)) {
-      if (!agents.has(id) && petStatus(state, id) !== 'working') addAgent(id, petRole(pets[id]));
+      if (!agents.has(id) && petStatus(state, id) !== 'working') addAgent(id, petRole(pets[id]), postOf(state, id));
     }
   }
 
@@ -426,7 +454,10 @@ export async function createHomeScene(host, game, options = {}) {
     for (const a of agents.values()) a.actor.view.scale.set(scale);
     computeBounds();
     drawGround();
-    for (const a of agents.values()) { a.remaining = 0; settle(a); }
+    for (const a of agents.values()) {
+      a.remaining = 0;
+      if (a.post) postSpot(a); else settle(a);
+    }
   }
 
   function startPause(agent) {
@@ -530,7 +561,10 @@ export async function createHomeScene(host, game, options = {}) {
   randomSpot(agents.get('player'));
   settle(agents.get('player'));
   syncAgents();
-  for (const a of agents.values()) { if (!a.isPlayer) { randomSpot(a); settle(a); } }
+  for (const a of agents.values()) {
+    if (a.isPlayer) continue;
+    if (a.post) postSpot(a); else { randomSpot(a); settle(a); }
+  }
   refreshMarkers();
   const unsubscribe = game.subscribe(syncAgents);
   const unsubEvents = game.onEvents((events) => {
@@ -572,7 +606,13 @@ export async function createHomeScene(host, game, options = {}) {
         a.actor.sprite.play();
         startPause(a);
       }
-      step(a, ms);
+      if (a.post) {
+        // Working at its station: stays put, hops now and then.
+        a.workMs += ms;
+        if (a.hopMs < 0 && a.workMs >= hcfg.assistHopEveryMs) { a.workMs = 0; a.hopMs = 0; }
+      } else {
+        step(a, ms);
+      }
       updateHop(a, ms);
       a.actor.update(ticker);
     }

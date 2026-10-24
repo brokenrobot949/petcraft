@@ -1,8 +1,8 @@
 // Test mode commands (docs/handoff.md "Test mode"): grant items, set skill levels, add coins.
 // Opened from a hidden panel in Journal -> Settings. Removed from the shipped build in Phase 10.
 import { addItem, itemKey } from './bag.js';
-import { createPet } from './pets.js';
-import { archetypeOf, petMaxEnergy, petLevelCap } from './petstats.js';
+import { createPet, addPetXp } from './pets.js';
+import { archetypeOf, petMaxEnergy, petLevelCap, branchDef } from './petstats.js';
 import { addRenownXp } from './renown.js';
 import { newDay } from './village.js';
 import { randomInt } from '../core/rng.js';
@@ -60,6 +60,7 @@ export const commands = {
     const p = devPet(state, pet);
     p.level = Math.min(petLevelCap(ctx.data, p), Math.max(1, Math.floor(level) || 1));
     p.xp = 0;
+    addPetXp(state, ctx, p, 0); // a talent pick may be due at the new level
   },
   'dev/petBond': (state, { pet, bond }) => {
     devPet(state, pet).bond = Math.max(0, Math.floor(bond) || 0);
@@ -81,6 +82,31 @@ export const commands = {
     for (const e of state.nest.slots) if (e && e.msLeft > 0) e.msLeft = Math.min(e.msLeft, 1);
     const task = state.workers.player.task;
     if (task?.skill === 'treasure') state.treasure.progress[task.zone] = Math.max(0, digMs(state, ctx.data) - 1);
+  },
+  // Evolution: fill both paths' calling progress so the branch choice opens.
+  'dev/petCalling': (state, { pet }, ctx) => {
+    const p = devPet(state, pet);
+    const n = ctx.data.balance.pets.callingActions;
+    for (const br of archetypeOf(ctx.data, p.archetype).branches) p.actions[br.calling] = Math.max(p.actions[br.calling] || 0, n);
+  },
+  // Make a pet ready for its next evolution: the level cap, calling progress, Bond heart 3 and its
+  // catalyst in the bag.
+  'dev/petReadyToEvolve': (state, { pet }, ctx) => {
+    const { data } = ctx;
+    const p = devPet(state, pet);
+    const b = data.balance.pets;
+    for (const br of archetypeOf(data, p.archetype).branches) p.actions[br.calling] = Math.max(p.actions[br.calling] || 0, b.callingActions);
+    p.level = Math.max(p.level, petLevelCap(data, p));
+    p.xp = 0;
+    const need = b.bond.hearts[b.evolve.adultHearts - 1];
+    if (p.form === 'juvenile' && p.bond < need) p.bond = need;
+    const cat = branchDef(data, p.archetype, p.branch)?.catalyst;
+    if (p.form === 'juvenile' && cat && !state.bag[cat]) addItem(state, cat, 1);
+    addPetXp(state, ctx, p, 0);
+  },
+  // Every catalyst, one each.
+  'dev/catalysts': (state, _p, ctx) => {
+    for (const a of ctx.data.pets.archetypes) for (const br of a.branches) if (br.catalyst) addItem(state, br.catalyst, 1);
   },
   // Lets the daily pat be tried again today.
   'dev/clearPat': (state, { pet }) => {

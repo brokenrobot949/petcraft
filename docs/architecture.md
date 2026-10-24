@@ -637,3 +637,101 @@ qualityLuckPerLevel, trapMinutes, catch { base, perTrapTier, bait, perLevel, cap
 trapKeptOnEscape, escapeStayHours, catchXp, maxResults }`, `treasure { mapChance { fishing, other },
 petLuckMapMult, digMinutes, shovelSpeedPerTier, eggChance, byTier { coins, rolls, relic } }`,
 `nest { hatchHours }`.
+
+## Phase 8: evolution
+
+### Save schema v7 (migration 6 -> 7)
+
+```js
+pet: + rng,                         // the pet's own stream (petSeed in core/state.js): talent offers, gift talents, favorite dish
+       offer: null | [talentId],    // the choices for its next talent pick
+       favorite: itemId | null,     // personal favorite dish (a meal up to bond.personalDishMaxTier), rolled at birth
+       favoriteKnown: false,        // revealed the first time it eats that dish
+       gifts: [talentId], talents: [talentId]   // (fields existed since v3, now used)
+crafting: + assists: { stationId: petId }      // one adult assistant per station
+bestiary: { entryId: { qualityId: true } }      // stars collected (js/systems/bestiary.js)
+stats: + evolved { juvenile, adult }, talentPicks, petGifts
+workers[petId]: + resume (a Scout pet's harvest task while it digs); task may be { zone, skill: 'treasure', node: 'dig' }
+```
+Migration gives every pet a stream, an empty offer and an unknown dish; `pets.init` rolls missing gift
+talents (a Rare+ pet from before Phase 8 gets them on load) and the dish, and offers any pick already due.
+
+### Rules
+
+- **Evolution** (`pets/evolve`): a hatchling at `stageLevelCaps[0]` chooses a branch whose calling skill it
+  has done `callingActions` times (`pet.actions`). A juvenile at `stageLevelCaps[1]` with Bond heart
+  `evolve.adultHearts` uses one of its branch's `catalyst` (Alchemy Lab) and becomes an adult. Banked XP then
+  counts toward the new stage. Permanent.
+- **Effects** (js/systems/petstats.js `petEffects`, `effectValue`): branch `strength` (x1 juvenile, x
+  `evolve.adultStrengthMult` adult) + gift talents + chosen talents. Kinds (`EFFECT_KINDS`; value meaning):
+  `speed` (+fraction work speed, optional `skills`), `rare` (+absolute rare chance, skills), `extraItem` (chance of +1
+  main drop, skills), `byproduct` (drops with chance < 1 x (1+v), skills), `maps` (map chance x (1+v)), `drain` (-fraction),
+  `stamina` (+fraction max energy), `rest`, `meal` (+fraction energy from food), `bond` (+fraction Bond from every source),
+  `xp` (+fraction pet XP), `track` (+absolute reveal chance; the best active pet), `garden` (+fraction Garden yield; the best of
+  all pets; the fraction is a chance of one more), `gift` (Heart gift chance x (1+v)), `dig` (Scout: can dig; dig speed +v).
+- **Talents** (data/talents.json): picks at `talents.pickLevels`; each pick offers `talents.choices` from the hatchling pool
+  (pick levels up to `stageLevelCaps[0]`) or the branch's pool (later), never one the pet holds; a short pool is topped up from
+  the hatchling pool. Offers are rolled when a pick comes due (level up, evolve, previous pick) and wait until chosen.
+  Gift talents: `qualities.<q>.gifts` from the gift pool, at birth.
+- **Favorite dish:** eating `pet.favorite` (hand or auto) gives `bond.personalDish` Bond (plus the archetype dish Bond if it also
+  matches) and reveals it.
+- **Heart gifts:** at heart `heartGifts.minHearts`+, each Bond point from work rolls `chancePerBondPoint x (1 + gift)` for one pick
+  from data/treasure.json `loot[zone tier]` (worker stream).
+- **Station assist** (`pets/assist`): an adult, stabled pet whose branch `assist.station` matches; the station must be built. The
+  station then runs on its own (not in `crafting.working`, no player slot) with `assist.speed` added to its speed and its
+  quality odds x (1 + `assist.quality`) before the Focus caps. Making the pet active or releasing it ends the post; `crafting.init`
+  drops invalid posts. One assistant per station (posting a second replaces the first).
+- **Scout digging:** `treasure/dig { zone, worker: petId }` for an active pet with a `dig` effect. The pets system advances it
+  like work (energy drain, rest, feeding, Bond); a dig takes `digMs / (1 + dig)` (the player's Shovel), uses the map, rolls the
+  reward from the pet's worker stream, gives `treasure.petDigXp` pet XP. No maps left: back to its `resume` harvest task, or idle.
+  `pets.nextBoundaryMs` stops the tick where a pet's dig would finish.
+- **Bestiary** (js/systems/bestiary.js): 4 hatchlings + 8 juveniles + 8 adults + 4 mythics (pets.json `mythics`, Phase 9) =
+  24 entries x 5 qualities. A star is recorded when a pet of that form and quality is created or evolves; `init` records every
+  current pet.
+
+### Events (Phase 8)
+
+```js
+{ type: 'petEvolved', pet, form, branch, species }   { type: 'talentReady', pet }   { type: 'talentPicked', pet, talent }
+{ type: 'petGift', pet, item, qty }   { type: 'favoriteFound', pet, item }   { type: 'assistSet', pet, station }
+{ type: 'bestiary', entry, quality }  { type: 'petAte', ..., personal }  { type: 'dig', ..., worker }
+```
+Summary additions: `pets[id].gifts { item: n }`, `.digs`, `.talentReady`, `.favorite`; `bestiary: [{ entry, quality }]`.
+
+### Commands (Phase 8)
+
+`pets/evolve { pet, branch? }` (branch only for the first evolution), `pets/pickTalent { pet, talent }`,
+`pets/assist { pet, station | null }`, `treasure/dig { zone, worker? }`.
+Test mode: `dev/petCalling { pet }`, `dev/petReadyToEvolve { pet }` (level cap, callings, heart 3, its catalyst), `dev/catalysts`.
+
+### Selectors (Phase 8)
+
+- petstats.js: `branchDef(data, archetype, branch)`, `petSpecies(data, pet)`, `talentDef(data, id)`, `petEffects`, `effectValue(data,
+  pet, kind, skill?)`, `bestEffect(data, pets, kind)`, `effectText(data, effect) -> string`, `canDig(data, pet)`, `EFFECT_KINDS`,
+  `petRareBonus(data, pet, skill?)`.
+- pets.js: `evolveInfo(state, data, petId) -> { stage, form, next: 'juvenile'|'adult'|null, levelNeed, level, ready, reason,
+  branches: [{ ...branchDef, have, need, unlocked }], hearts, heartsNeed, catalyst: { item, have } | null }`,
+  `talentInfo(state, data, petId) -> { gifts: [id], picks: [{ level, talent|null }], due, offer: [id] | null }`,
+  `assistInfo(state, data, petId) -> { station, posted, can, reason, bonus: { station, speed?, quality? } | null }`,
+  `assistValid`, `petNotice(state, data)` (Pets tab badge: evolve ready or a talent to pick), `talentPicksDue(data, pet)`,
+  `petDigMs(state, data, pet)`.
+- crafting.js: `assistantOf(state, stationId)`, `assistBonus(state, data, stationId) -> { speed, quality }`; `stationList`
+  entries gain `assistant` and status `'assisted'`.
+- garden.js: `gardenBonus(state, data)`.
+- bestiary.js: `entryIdOf(pet)`, `bestiaryList(state, data) -> [{ id, archetype, branch, form, species, desc, role, stars: { q: bool },
+  count, seen }]`, `bestiaryStars(state, data) -> { have, max, seen, entries }`.
+
+### Data (Phase 8)
+
+- pets.json archetype `bestiary` (hatchling text); branch `catalyst`, `strength: [Effect]`, `assist: { station, speed?, quality? } | null`,
+  `juvenile` / `adult: { species, desc }`; `mythics: [{ archetype, species, desc }]`; lines `evolved` ({name} {species}),
+  `gift` ({name} {item}), `favorite` ({name} {food}).
+- data/talents.json: `{ pools: { hatchling, <branchId> x8, gift: [id] }, talents: { id: { name, desc, effects: [Effect] } } }`.
+  Effect: `{ kind, value, skills? }`.
+- items.json category `catalyst` (8 items, Alchemy Lab recipes). achievements `when.kind` gains `evolved { form, n }`,
+  `bestiary { n }` (stars), `talentPicks { n }`, `petGifts { n }`.
+
+### balance.json additions (Phase 8)
+
+`pets.bond.personalDish`, `pets.bond.personalDishMaxTier`, `pets.evolve { adultHearts, adultStrengthMult }`,
+`pets.talents { pickLevels, choices }`, `pets.heartGifts { minHearts, chancePerBondPoint }`, `treasure.petDigXp`.

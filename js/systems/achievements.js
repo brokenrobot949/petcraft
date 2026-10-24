@@ -51,6 +51,10 @@ export function conditionProgress(state, data, w) {
     case 'tamed': return progress(state.stats.tamed || 0, w.n);
     case 'digs': return progress(state.stats.digs || 0, w.n);
     case 'hatched': return progress(state.stats.hatched || 0, w.n);
+    case 'evolved': return progress(state.stats.evolved?.[w.form] || 0, w.n);
+    case 'bestiary': return progress(Object.values(state.bestiary || {}).reduce((n, s) => n + Object.keys(s).length, 0), w.n);
+    case 'talentPicks': return progress(state.stats.talentPicks || 0, w.n);
+    case 'petGifts': return progress(state.stats.petGifts || 0, w.n);
     case 'petLevel': return progress(Math.max(0, ...pets.map((p) => p.level)), w.level);
     case 'petHearts': return progress(Math.max(0, ...pets.map((p) => petHearts(data, p).hearts)), w.hearts);
     case 'toolTier': {

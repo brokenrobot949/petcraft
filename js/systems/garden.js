@@ -6,9 +6,10 @@
 // Each plot rolls from its own random stream, so any chunk size gives the same harvests (the one
 // exception: two plots replanting from the last seeds in the bag in the same chunk).
 // Not built yet: fertilizer (Alchemy) and the Terraced Gardens bonus.
-import { deriveSeed, randomInt } from '../core/rng.js';
+import { deriveSeed, randomInt, chance } from '../core/rng.js';
 import { addItem, removeItem } from './bag.js';
 import { buildingTier } from './buildings.js';
+import { bestEffect } from './petstats.js';
 
 export const id = 'garden';
 
@@ -60,18 +61,31 @@ export function seedList(state, data) {
     .map(([id, count]) => ({ id, item: data.items.items[id], count, ...seedDef(data, id) }));
 }
 
+// Extra Garden yield from the best gardener among all pets (Bloom branch, talents), as a fraction.
+export function gardenBonus(state, data) {
+  return bestEffect(data, Object.values(state.pets.list), 'garden');
+}
+
+// qty x (1 + bonus): the whole part always, the fraction as a chance of one more (plot stream).
+function boosted(p, qty, bonus) {
+  if (!(bonus > 0)) return qty;
+  const extra = qty * bonus;
+  return qty + Math.floor(extra) + (chance(p, extra - Math.floor(extra)) ? 1 : 0);
+}
+
 // ---- time ----
 
 export function advance(state, ms, ctx) {
   const { data } = ctx;
   ensurePlots(state, data);
+  const bonus = gardenBonus(state, data);
   state.garden.plots.forEach((p, index) => {
     if (!p.seed) return;
     p.ms += ms;
     let dur = growMs(data, p.seed);
     while (p.seed && p.ms >= dur - EPS) {
       const s = seedDef(data, p.seed);
-      const qty = randomInt(p, s.yield[0], s.yield[1]);
+      const qty = boosted(p, randomInt(p, s.yield[0], s.yield[1]), bonus);
       addItem(state, s.crop, qty);
       state.stats.garden += 1;
       ctx.emit?.({ type: 'gardenHarvest', plot: index, seed: p.seed, item: s.crop, qty });

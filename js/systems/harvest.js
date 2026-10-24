@@ -6,7 +6,7 @@
 import { chance, random, randomInt, deriveSeed } from '../core/rng.js';
 import { addItem } from './bag.js';
 import { addXp, skillLevel } from './skills.js';
-import { isPet, petSpeed, petRareBonus } from './petstats.js';
+import { isPet, petSpeed, petRareBonus, effectValue } from './petstats.js';
 import { buffSpeed } from './buffs.js';
 
 export const id = 'harvest';
@@ -124,18 +124,19 @@ function rareChance(state, data, workerId, task) {
   const b = data.balance.harvest;
   const tool = toolFor(state, data, task.skill);
   const p = b.rareFindBase + (tool ? b.toolQualityRare[tool.quality] || 0 : 0);
-  if (isPet(state, workerId)) return p + petRareBonus(data, state.pets.list[workerId]);
+  if (isPet(state, workerId)) return p + petRareBonus(data, state.pets.list[workerId], task.skill);
   return workerId === 'player' ? p * b.playerRareMult : p;
 }
 
 // Chance per action of finding a treasure map (fishing finds more). A pet's Luck multiplies it: its
-// rare-find bonus measured in base rare chances, times petLuckMapMult.
+// rare-find bonus measured in base rare chances, times petLuckMapMult; the Deep branch and talents add more.
 function mapChance(state, data, workerId, task) {
   const b = data.balance.treasure;
   const p = b.mapChance[task.skill] ?? b.mapChance.other;
   if (!isPet(state, workerId)) return p;
-  const luck = petRareBonus(data, state.pets.list[workerId]) / data.balance.harvest.rareFindBase;
-  return p * (1 + luck * b.petLuckMapMult);
+  const pet = state.pets.list[workerId];
+  const luck = petRareBonus(data, pet) / data.balance.harvest.rareFindBase;
+  return p * (1 + luck * b.petLuckMapMult) * (1 + effectValue(data, pet, 'maps'));
 }
 
 function pickWeighted(stream, list) {
@@ -158,11 +159,18 @@ export function completeAction(state, ctx, workerId) {
   const node = findNode(data, task);
   const pet = isPet(state, workerId);
   const items = {};
+  // Pet talents and branches: by-product drops (chance below 1) come more often; extraItem may add
+  // one more of the main drop. Workers without these effects roll exactly as before.
+  const p = pet ? state.pets.list[workerId] : null;
+  const byproduct = p ? effectValue(data, p, 'byproduct', task.skill) : 0;
   for (const d of node.drops) {
-    if (d.chance < 1 && !chance(w, d.chance)) continue;
+    if (d.chance < 1 && !chance(w, Math.min(1, d.chance * (1 + byproduct)))) continue;
     const qty = randomInt(w, d.qty[0], d.qty[1]);
     if (qty > 0) items[d.item] = (items[d.item] || 0) + qty;
   }
+  const extra = p ? effectValue(data, p, 'extraItem', task.skill) : 0;
+  const main = node.drops.find((d) => d.chance >= 1);
+  if (extra > 0 && main && chance(w, extra)) items[main.item] = (items[main.item] || 0) + 1;
   let rare = false;
   const rares = zoneById(data, task.zone).rare?.[task.skill];
   if (rares && rares.length && chance(w, rareChance(state, data, workerId, task))) {

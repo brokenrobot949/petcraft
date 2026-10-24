@@ -142,6 +142,14 @@
     { "id": "nut_bait", "station": "kitchen", "level": 3, "seconds": 4, "inputs": { "hazelnut": 2 }, "output": "nut_bait", "qty": 2 },
     { "id": "fish_bait", "station": "kitchen", "level": 4, "seconds": 4, "inputs": { "minnow": 2 }, "output": "fish_bait", "qty": 2 },
     { "id": "meat_bait", "station": "kitchen", "level": 5, "seconds": 4, "inputs": { "rabbit_meat": 2 }, "output": "meat_bait", "qty": 2 },
-    { "id": "wild_lure", "station": "alchemyLab", "level": 8, "seconds": 8, "inputs": { "meadow_herb": 2, "pine_sap": 1, "honeycomb": 1 }, "output": "wild_lure", "qty": 1 }
+    { "id": "wild_lure", "station": "alchemyLab", "level": 8, "seconds": 8, "inputs": { "meadow_herb": 2, "pine_sap": 1, "honeycomb": 1 }, "output": "wild_lure", "qty": 1 },
+    { "id": "verdant_essence", "station": "alchemyLab", "level": 25, "seconds": 40, "inputs": { "mountain_sage": 3, "cedar_resin": 1, "bog_lily": 1 }, "output": "verdant_essence", "qty": 1 },
+    { "id": "heartwood_resin", "station": "alchemyLab", "level": 26, "seconds": 40, "inputs": { "cedar_resin": 3, "willow_sap": 1, "cedar_log": 2 }, "output": "heartwood_resin", "qty": 1 },
+    { "id": "prism_dust", "station": "alchemyLab", "level": 28, "seconds": 45, "inputs": { "rough_gem": 3, "garnet": 1, "moonstone": 1 }, "output": "prism_dust", "qty": 1 },
+    { "id": "granite_heart", "station": "alchemyLab", "level": 28, "seconds": 45, "inputs": { "stone": 20, "coal": 4, "fossil_resin": 1 }, "output": "granite_heart", "qty": 1 },
+    { "id": "abyssal_pearl", "station": "alchemyLab", "level": 35, "seconds": 60, "inputs": { "mist_pearl": 1, "marsh_eel": 3, "river_opal": 1 }, "output": "abyssal_pearl", "qty": 1 },
+    { "id": "rushing_tonic", "station": "alchemyLab", "level": 32, "seconds": 50, "inputs": { "rock_bass": 3, "marsh_reed": 3, "willow_sap": 1 }, "output": "rushing_tonic", "qty": 1 },
+    { "id": "hunters_musk", "station": "alchemyLab", "level": 30, "seconds": 45, "inputs": { "boar_tusk": 2, "bone": 3, "mountain_sage": 2 }, "output": "hunters_musk", "qty": 1 },
+    { "id": "pathfinder_oil", "station": "alchemyLab", "level": 36, "seconds": 60, "inputs": { "feathers": 3, "silver_sprig": 1, "ghost_orchid": 1, "willow_sap": 1 }, "output": "pathfinder_oil", "qty": 1 }
   ]
 }

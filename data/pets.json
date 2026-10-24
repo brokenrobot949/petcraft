@@ -9,10 +9,17 @@
       "dish": "fruit",
       "release": { "plant_fiber": 4, "berries": 4 },
       "blurb": "Loves gathering berries and tidying up fallen branches.",
+      "bestiary": "A sleepy little sprout that wakes up at the smell of ripe berries. It loves tidying up fallen leaves and branches.",
       "egg": { "name": "Mossy Egg", "desc": "Soft and speckled green, it feels warm, as if something inside is dreaming of sun.", "colors": ["#8bc34a", "#4e7d2a", "#f4e9a8"] },
       "branches": [
-        { "id": "bloom", "name": "Bloom", "calling": "foraging" },
-        { "id": "timber", "name": "Timber", "calling": "chopping" }
+        { "id": "bloom", "name": "Bloom", "calling": "foraging", "catalyst": "verdant_essence",
+          "strength": [ { "kind": "rare", "skills": ["foraging"], "value": 0.01 }, { "kind": "garden", "value": 0.1 } ],
+          "assist": { "station": "alchemyLab", "speed": 0.1 },
+          "juvenile": { "species": "Petalin", "desc": "A flower-crowned sprite that follows the bees and knows where every wild blossom grows. Good at gathering petals and berries." }, "adult": { "species": "Blossomere", "desc": "A gentle garden guardian with a crown of blooms that makes every crop flourish. Helps the garden grow lush and bright." } },
+        { "id": "timber", "name": "Timber", "calling": "chopping", "catalyst": "heartwood_resin",
+          "strength": [ { "kind": "speed", "skills": ["chopping"], "value": 0.15 } ],
+          "assist": { "station": "workbench", "speed": 0.1 },
+          "juvenile": { "species": "Barkling", "desc": "A young creature with bark-plated cheeks and a woodsy smell. Quick with an axe and happy to clear away fallen branches." }, "adult": { "species": "Thornwood", "desc": "A sturdy, leafy friend as tall and steady as an old oak. Chops with patience and helps the timber grow." } }
       ]
     },
     {
@@ -24,10 +31,17 @@
       "dish": "nut",
       "release": { "stone": 4, "copper_ore": 3 },
       "blurb": "Loves digging gently through the soil for shiny stones.",
+      "bestiary": "A round, shy mole with pebble-smooth paws. It digs gently for shiny stones and hums happily when it finds one.",
       "egg": { "name": "Pebbly Egg", "desc": "Heavy and grey with flecks of quartz, it hums softly like a sleepy cave.", "colors": ["#a3a3a3", "#5f5f6b", "#e0d6c2"] },
       "branches": [
-        { "id": "gem", "name": "Gem", "calling": "mining" },
-        { "id": "boulder", "name": "Boulder", "calling": "chopping" }
+        { "id": "gem", "name": "Gem", "calling": "mining", "catalyst": "prism_dust",
+          "strength": [ { "kind": "rare", "skills": ["mining"], "value": 0.01 }, { "kind": "rare", "value": 0.003 } ],
+          "assist": { "station": "forge", "quality": 0.25 },
+          "juvenile": { "species": "Glimmock", "desc": "A little crystal-speckled creature that glints whenever it is happy. Has a knack for spotting gems and a little extra luck." }, "adult": { "species": "Jewelcrest", "desc": "A grand, glittering creature with a crest of polished gems. Its shine draws rare treasures and good fortune." } },
+        { "id": "boulder", "name": "Boulder", "calling": "chopping", "catalyst": "granite_heart",
+          "strength": [ { "kind": "speed", "skills": ["mining"], "value": 0.15 }, { "kind": "stamina", "value": 0.1 } ],
+          "assist": { "station": "forge", "speed": 0.2 },
+          "juvenile": { "species": "Stonehog", "desc": "A round, sturdy little digger that never tires of a good dig. Steady as a hill and strong at mining." }, "adult": { "species": "Graniback", "desc": "A broad, mossy-backed giant of granite. Mines with great strength and keeps the forge humming along." } }
       ]
     },
     {
@@ -39,10 +53,17 @@
       "dish": "fish",
       "release": { "minnow": 4, "river_shell": 3 },
       "blurb": "Loves paddling by the water and fishing for little fish.",
+      "bestiary": "A soft, cool water blob that bubbles happily beside streams. It loves paddling about and fishing for little fish.",
       "egg": { "name": "Ripple Egg", "desc": "Cool and smooth as river glass, it gurgles gently when you hold it close.", "colors": ["#5ab4e0", "#2d6f9a", "#e8f6ff"] },
       "branches": [
-        { "id": "deep", "name": "Deep", "calling": "fishing" },
-        { "id": "current", "name": "Current", "calling": "foraging" }
+        { "id": "deep", "name": "Deep", "calling": "fishing", "catalyst": "abyssal_pearl",
+          "strength": [ { "kind": "maps", "value": 0.5 }, { "kind": "rare", "skills": ["fishing"], "value": 0.01 } ],
+          "assist": { "station": "alchemyLab", "speed": 0.1 },
+          "juvenile": { "species": "Pearlet", "desc": "A small, pearly blob that loves cool, quiet water. Dives for rare fish and tucked-away treasure maps." }, "adult": { "species": "Coralune", "desc": "A graceful, coral-crowned creature from the deepest water. Keen-eyed at fishing and forever finding treasure maps." } },
+        { "id": "current", "name": "Current", "calling": "foraging", "catalyst": "rushing_tonic",
+          "strength": [ { "kind": "speed", "skills": ["fishing"], "value": 0.15 } ],
+          "assist": { "station": "kitchen", "speed": 0.1 },
+          "juvenile": { "species": "Rivulet", "desc": "A quick, bubbly stream spirit that dances along the rapids. Fishes swiftly and slips through the water with ease." }, "adult": { "species": "Torrentail", "desc": "A swift, flowing creature with a long, shimmering tail. Carries the river's gift to the fishing spots and never tires." } }
       ]
     },
     {
@@ -54,10 +75,17 @@
       "dish": "meat",
       "release": { "rabbit_hide": 4, "sinew": 3 },
       "blurb": "Loves quietly tracking small game through the tall grass.",
+      "bestiary": "A tawny little hunter-cat with twitchy ears and soft freckles. It quietly tracks small game through the tall grass.",
       "egg": { "name": "Tawny Egg", "desc": "Warm tawny shell with soft freckles, and a faint rustle comes from within.", "colors": ["#d9894a", "#8a4b26", "#f7e1c4"] },
       "branches": [
-        { "id": "fang", "name": "Fang", "calling": "hunting" },
-        { "id": "scout", "name": "Scout", "calling": "foraging" }
+        { "id": "fang", "name": "Fang", "calling": "hunting", "catalyst": "hunters_musk",
+          "strength": [ { "kind": "speed", "skills": ["hunting"], "value": 0.1 }, { "kind": "byproduct", "skills": ["hunting"], "value": 0.3 } ],
+          "assist": { "station": "kitchen", "speed": 0.1 },
+          "juvenile": { "species": "Sablepaw", "desc": "A sleek, keen-eyed young cat with soft sable paws. Tracks small game quietly and brings home a gentle catch." }, "adult": { "species": "Dusklynx", "desc": "A graceful lynx who hunts at dusk with a careful, kind heart. Quick on the trail and often brings back extra hides." } },
+        { "id": "scout", "name": "Scout", "calling": "foraging", "catalyst": "pathfinder_oil",
+          "strength": [ { "kind": "track", "value": 0.02 }, { "kind": "dig", "value": 0.1 } ],
+          "assist": null,
+          "juvenile": { "species": "Tracklet", "desc": "A curious young explorer with a sharp nose and bright ears. Follows faint tracks and sniffs out hidden spots." }, "adult": { "species": "Delvefox", "desc": "A clever fox with a keen nose for paths and buried things. Digs up treasure and finds the way through any trail." } }
       ]
     }
   ],
@@ -72,6 +100,12 @@
     { "id": "rare", "name": "Rare", "stars": 3 },
     { "id": "epic", "name": "Epic", "stars": 4 },
     { "id": "legendary", "name": "Legendary", "stars": 5 }
+  ],
+  "mythics": [
+    { "archetype": "sprout", "species": "Sylvareth", "desc": "An ancient guardian of the Heartgrove, older than its oldest tree. Those who tend the grove say they can hear it humming in the leaves." },
+    { "archetype": "stone", "species": "Tellurion", "desc": "A slow, gentle giant of crystal and moss that sleeps beneath the grove's roots. Some say it only wakes when the Heartgrove is truly at peace." },
+    { "archetype": "tide", "species": "Serenthe", "desc": "A calm river spirit that drifts through the still pools of the Heartgrove. Its song is said to carry lost things back home." },
+    { "archetype": "wild", "species": "Vesperine", "desc": "A silent, silver-furred guardian that watches over the grove at dusk. Few have seen it, but its paw prints appear in the morning dew." }
   ],
   "suggestedNames": [
     "Pip", "Bramble", "Mochi", "Biscuit", "Clover", "Noodle",
@@ -100,6 +134,26 @@
       "{name} savors every bite of the {food}.",
       "{name} looks delighted by the {food}.",
       "{name} licks the last crumbs of the {food}."
+    ],
+    "evolved": [
+      "{name} shimmers and grows into a {species}!",
+      "Warm light wraps around {name} as they become a {species}.",
+      "{name} stretches tall and blinks in surprise. They are a {species} now!",
+      "What a big day! {name} has grown into a {species}.",
+      "{name} gives a happy little cheer. Hello, {species}!"
+    ],
+    "gift": [
+      "{name} proudly brings you a {item}.",
+      "{name} drops a {item} at your feet with a happy bounce.",
+      "{name} found a {item} and wanted you to have it.",
+      "{name} tucks a {item} into your hands with a shy smile.",
+      "Look! {name} has brought you a {item} from their wanderings."
+    ],
+    "favorite": [
+      "{name} adores the {food}! It's their favorite.",
+      "One bite of the {food} and {name} melts with joy. Their favorite!",
+      "{name} hums happily over the {food}. Now you know their favorite.",
+      "{name} will remember the {food} forever. It's their favorite dish."
     ]
   }
 }

@@ -11,10 +11,13 @@ import { itemIcon, faceIcon } from './icons.js';
 import { localDay } from '../core/time.js';
 import {
   petList, getPet, needsStarter, canPatToday, petStatus, pantryList, foodList, workHoursLeft,
+  evolveInfo, talentInfo, assistInfo,
 } from '../systems/pets.js';
 import {
   archetypeOf, petProgress, petHearts, petMaxEnergy, petDrainPerHour, petRestPerHour, petSpeed, petRole,
+  petSpecies, branchDef, talentDef, effectText, petEffects,
 } from '../systems/petstats.js';
+import { stationDef } from '../systems/crafting.js';
 
 export const id = 'pets';
 export const label = 'Pets';
@@ -215,12 +218,20 @@ export function hide() {
 
 // ---- rendering ----
 
+// What changes the Evolution panel's layout: readiness, which paths are open, whether the catalyst is in the bag.
+function evolveKey(st, p) {
+  const info = evolveInfo(st, gdata(), p.id);
+  return `${info.ready ? 1 : 0}${info.branches.map((b) => (b.unlocked ? 1 : 0)).join('')}${info.catalyst && info.catalyst.have > 0 ? 1 : 0}${info.hearts >= (info.heartsNeed ?? 99) ? 1 : 0}`;
+}
+
 function petKey(st, p, day) {
   const d = gdata();
   const t = st.workers[p.id]?.task;
   return [
     p.id, p.name, p.level, p.form, petHearts(d, p).hearts, petStatus(st, p.id), t ? `${t.zone}/${t.skill}` : '',
     canPatToday(st, p.id, day) ? 1 : 0, p.autoFeed ? 1 : 0, petProgress(d, p).capped ? 1 : 0,
+    p.branch || '-', (p.talents || []).length, (p.gifts || []).length, (p.offer || []).join('+'), p.favoriteKnown ? 1 : 0,
+    evolveKey(st, p), Object.keys(st.crafting.assists || {}).filter((s) => st.crafting.assists[s] === p.id).join('+'),
   ].join(':');
 }
 
@@ -495,15 +506,17 @@ function releaseSheet(pet) {
 
 function petCard(st, pet, day) {
   const d = gdata();
-  const arch = archetypeOf(d, pet.archetype);
   const form = d.pets.forms.find((f) => f.id === pet.form);
+  const evolveReady = evolveInfo(st, d, pet.id).ready;
   return el('button.panel.pet-card', { type: 'button', onclick: () => openPet(pet.id), 'aria-label': `${pet.name}, open pet page` },
     faceIcon(petRole(pet), 48, pet.name),
     el('span.pet-card-body', {},
       el('span.pet-card-top', {},
         el('b.pet-name', {}, pet.name),
-        canPatToday(st, pet.id, day) && el('span.pet-pat-badge', {}, 'Pat me!')),
-      el('span.small.muted.pet-sub', {}, `${arch?.species || pet.archetype} - ${form?.name || ''} - Level ${pet.level}`),
+        canPatToday(st, pet.id, day) && el('span.pet-pat-badge', {}, 'Pat me!'),
+        evolveReady && el('span.pet-tag', {}, 'Ready to evolve'),
+        pet.offer && el('span.pet-tag', {}, 'Talent to choose')),
+      el('span.small.muted.pet-sub', {}, `${petSpecies(d, pet)} - ${form?.name || ''} - Level ${pet.level}`),
       stars(pet),
       energyRow(pet.id),
       el('span.pet-card-hearts', {}, el('span.small.muted', {}, 'Bond'), hearts(pet)),
@@ -592,6 +605,167 @@ function barBlock(fillRef) {
   return el('div.bar.big', { 'aria-hidden': 'true' }, fillRef);
 }
 
+// ---- evolution, talents, helping (Phase 8) ----
+
+function assistText(d, br) {
+  if (!br?.assist?.station) return 'Digs up treasure';
+  return `Helps at the ${stationDef(d, br.assist.station)?.name || br.assist.station} as an adult`;
+}
+
+function confirmEvolve(pet, branchId, speciesName, branchName) {
+  let close = () => {};
+  const go = () => {
+    const wasForm = pet.form;
+    if (!act('pets/evolve', branchId ? { pet: pet.id, branch: branchId } : { pet: pet.id })) return;
+    close();
+    const after = getPet(gstate(), pet.id);
+    if (after && after.form !== wasForm) {
+      setNote(fmt(pick(gdata().pets.lines.evolved), { name: after.name, species: petSpecies(gdata(), after) }));
+      spawnHearts();
+    }
+  };
+  close = sheetWithClose('Not yet', `Evolve ${pet.name}?`,
+    el('p', {}, `This is permanent. ${pet.name} will become a ${speciesName}${branchName ? ` (${branchName} path)` : ''}.`),
+    el('button.btn.wide', { type: 'button', onclick: go }, 'Evolve'));
+}
+
+function checkRow(ok, text) {
+  return el('div.pet-check', {}, el('span.pet-check-mark', { 'aria-hidden': 'true' }, ok ? '✓' : '○'), el('span', {}, text));
+}
+
+function buildEvolution(st, pet) {
+  const d = gdata();
+  const b = d.balance.pets;
+  const pid = pet.id;
+  const info = evolveInfo(st, d, pid);
+  const panel = panelOf('Evolution');
+  if (info.next === 'juvenile') {
+    const atLevel = pet.level >= info.levelNeed;
+    panel.append(el('p.small.muted', {}, `At level ${info.levelNeed}, ${pet.name} can choose a path. Do a path's work to open it. The choice is permanent.`));
+    if (info.reason) panel.append(el('p.small', {}, info.reason));
+    for (const br of info.branches) {
+      const f = el('div.fill', {});
+      const t = el('span.small', {});
+      live((s) => {
+        const p = getPet(s, pid);
+        if (!p) return;
+        const n = Math.min(b.callingActions, Math.floor(p.actions?.[br.calling] || 0));
+        f.style.width = `${(n / b.callingActions) * 100}%`;
+        t.textContent = `${n} / ${b.callingActions} ${skillName(br.calling)} actions`;
+      });
+      const card = el('div.pet-branch', {},
+        el('div.pet-branch-top', {},
+          faceIcon(`pet.${pet.archetype}.${br.id}.juvenile`, 48, br.juvenile?.species),
+          el('div.pet-branch-text', {},
+            el('b', {}, `${br.name} path`),
+            el('span.small.muted', {}, `Becomes a ${br.juvenile?.species}`))),
+        t, barBlock(f),
+        ...br.strength.map((e) => el('p.small.pet-effect', {}, effectText(d, e))),
+        el('p.small.muted', {}, `As an adult: ${b.evolve.adultStrengthMult} times as strong`),
+        el('p.small.muted', {}, assistText(d, br)));
+      if (atLevel && br.unlocked) {
+        card.append(el('button.btn.wide', { type: 'button', onclick: () => confirmEvolve(pet, br.id, br.juvenile?.species, br.name) }, `Choose ${br.name}`));
+      }
+      panel.append(card);
+    }
+  } else if (info.next === 'adult') {
+    const br = branchDef(d, pet.archetype, pet.branch);
+    const adultName = br?.adult?.species || 'adult';
+    panel.append(el('div.pet-branch-top', {},
+      faceIcon(`pet.${pet.archetype}.${pet.branch}.adult`, 48, adultName),
+      el('div.pet-branch-text', {},
+        el('b', {}, `${br?.name || ''} path`),
+        el('span.small.muted', {}, `Becomes a ${adultName}`))));
+    if (br?.adult?.desc) panel.append(el('p.small.muted', {}, br.adult.desc));
+    panel.append(checkRow(pet.level >= info.levelNeed, `Level ${info.levelNeed} (now ${pet.level})`));
+    panel.append(checkRow(info.hearts >= info.heartsNeed, `Bond heart ${info.heartsNeed} (now ${info.hearts})`));
+    if (info.catalyst) {
+      const cat = info.catalyst;
+      const have = el('b', {}, `${Math.min(1, cat.have)} / 1`);
+      live((s) => { have.textContent = `${Math.min(1, s.bag[cat.item] || 0)} / 1`; });
+      panel.append(el('div.pet-check', {},
+        el('span.pet-check-mark', { 'aria-hidden': 'true' }, cat.have >= 1 ? '✓' : '○'),
+        itemIcon(cat.item, 32, itemLabel(d, cat.item)),
+        el('span.pet-check-name', {}, itemLabel(d, cat.item), cat.have >= 1 ? '' : el('span.small.muted', {}, ' - make it at the Alchemy Lab')),
+        have));
+    }
+    if (!info.ready && info.reason) panel.append(el('p.small.muted', {}, info.reason));
+    panel.append(el('button.btn.wide', { type: 'button', disabled: !info.ready, onclick: () => confirmEvolve(pet, null, adultName, br?.name) }, `Evolve into ${adultName}`));
+  } else {
+    panel.append(el('p', {}, 'Fully grown.'));
+    const eff = petEffects(d, pet);
+    for (const e of eff) panel.append(el('p.small.pet-effect', {}, effectText(d, e)));
+  }
+  return panel;
+}
+
+function talentCard(id, gift) {
+  const t = talentDef(gdata(), id);
+  return el('div.pet-talent', {},
+    el('b', {}, gift ? el('span.pet-gift-star', { 'aria-hidden': 'true' }, '★ ') : '', t?.name || id, gift ? el('span.small.muted', {}, ' (Gift)') : ''),
+    el('span.small', {}, t?.desc || ''));
+}
+
+function talentSheet(pet, offer) {
+  let close = () => {};
+  const cards = offer.map((id) => {
+    const t = talentDef(gdata(), id);
+    return el('button.pet-talent-card', {
+      type: 'button',
+      onclick: () => { if (act('pets/pickTalent', { pet: pet.id, talent: id })) close(); },
+    }, el('b', {}, t?.name || id), el('span.small', {}, t?.desc || ''));
+  });
+  close = sheetWithClose('Later', `Choose a talent for ${pet.name}`, ...cards);
+}
+
+function buildTalents(st, pet) {
+  const d = gdata();
+  const info = talentInfo(st, d, pet.id);
+  const panel = panelOf('Talents');
+  for (const g of info.gifts) panel.append(talentCard(g, true));
+  let nextDue = true;
+  for (const pk of info.picks) {
+    if (pk.talent) {
+      panel.append(talentCard(pk.talent, false));
+    } else if (pk.level <= pet.level && nextDue && info.offer) {
+      nextDue = false;
+      panel.append(el('div.pet-talent.due', {},
+        el('b', {}, `Level ${pk.level} talent`),
+        el('button.btn.wide', { type: 'button', onclick: () => talentSheet(pet, info.offer) }, 'Choose a talent')));
+    } else {
+      panel.append(el('div.pet-talent.later', {}, el('span.small.muted', {}, `Level ${pk.level}`)));
+    }
+  }
+  return panel;
+}
+
+function buildHelping(st, pet) {
+  const d = gdata();
+  const pid = pet.id;
+  const info = assistInfo(st, d, pid);
+  if (pet.form !== 'adult') {
+    return panelOf('Helping', el('p.small.muted', {}, 'Adults can help at a crafting station.'));
+  }
+  if (!info.station) {
+    return panelOf('Helping', el('p.small', {}, 'Scouts dig for treasure instead: assign them on the World tab.'));
+  }
+  const name = stationDef(d, info.station)?.name || info.station;
+  const bonus = [];
+  if (info.bonus?.speed) bonus.push(`+${Math.round(info.bonus.speed * 100)}% speed`);
+  if (info.bonus?.quality) bonus.push('better quality odds');
+  const panel = panelOf('Helping', el('p.small', {}, `Can help at the ${name}: ${bonus.join(' and ') || 'a steady hand'}.`));
+  if (info.posted) {
+    panel.append(
+      el('p', {}, `Helping at the ${stationDef(d, info.posted)?.name || info.posted}: it keeps running while you work elsewhere.`),
+      el('button.btn.wide', { type: 'button', onclick: () => act('pets/assist', { pet: pid, station: null }) }, 'Stop helping'));
+  } else if (info.can) {
+    panel.append(el('button.btn.wide', { type: 'button', onclick: () => act('pets/assist', { pet: pid, station: info.station }) }, `Help at the ${name}`));
+  } else {
+    panel.append(el('p.small.muted', {}, info.reason));
+  }
+  return panel;
+}
+
 function buildPage(st, day, pet) {
   const d = gdata();
   const b = d.balance.pets;
@@ -624,7 +798,7 @@ function buildPage(st, day, pet) {
       el('div.pet-name-row', {},
         el('h2.pet-title', {}, pet.name),
         el('button.btn', { type: 'button', onclick: () => renameSheet(pet) }, 'Rename')),
-      el('p.small.muted', {}, `${arch?.species || pet.archetype} - ${form?.name || pet.form}`),
+      el('p.small.muted', {}, `${petSpecies(d, pet)} - ${form?.name || pet.form}`),
       el('p.pet-quality', {}, stars(pet), el('span.small', {}, quality?.name || pet.quality)))),
     patBtn,
     refs.note);
@@ -653,7 +827,11 @@ function buildPage(st, day, pet) {
       'aria-label': `Feed ${e.label} to ${pet.name}`,
       onclick: () => {
         if (act('pets/feed', { pet: pid, item: e.id })) {
-          setNote(fmt(pick(lines.ate), { name: pet.name, food: e.label }));
+          const after = getPet(gstate(), pid);
+          if (after && after.favoriteKnown && !pet.favoriteKnown) {
+            setNote(fmt(pick(lines.favorite), { name: pet.name, food: itemLabel(d, after.favorite) }));
+            spawnHearts();
+          } else setNote(fmt(pick(lines.ate), { name: pet.name, food: e.label }));
         }
       },
     }, r.parts);
@@ -669,6 +847,9 @@ function buildPage(st, day, pet) {
     el('div.pet-energy', {}, barBlock(fill), eText),
     el('p.pet-status-line', {}, statusInfo(st, pet).text),
     leftText,
+    el('p.small.pet-favorite', {}, pet.favoriteKnown && pet.favorite
+      ? `Favorite dish: ${itemLabel(d, pet.favorite)}`
+      : 'Favorite dish: not found yet (try feeding different meals)'),
     el('h3.pet-sub-h', {}, 'Feed'),
     foods.length ? el('div.pet-feed-list', {}, feedRows) : el('p.small.muted', {}, 'No food in your bag. Forage berries, fish or hunt in Meadowfold.'),
     el('div.toggle-row', {},
@@ -696,7 +877,9 @@ function buildPage(st, day, pet) {
     el('p', {}, `Level ${prog.level}`),
     barBlock(xpFill),
     xpText,
-    prog.capped && el('p.small.muted', {}, `Highest level for a ${(form?.name || 'pet').toLowerCase()}. It can evolve in a later update; new XP is saved.`)));
+    prog.capped && el('p.small.muted', {}, evolveInfo(st, d, pid).next
+      ? `Highest level for a ${(form?.name || 'pet').toLowerCase()}. See the Evolution panel below to grow further; new XP is saved.`
+      : 'Fully grown. New XP is saved.')));
 
   // Bond
   const bondFill = el('div.fill', {});
@@ -731,22 +914,15 @@ function buildPage(st, day, pet) {
     el('p.small', {}, speedText),
     el('p.small', {}, `Max energy: ${Math.round(petMaxEnergy(d, pet))}`),
     el('p.small', {}, `Energy used while working: ${round1(petDrainPerHour(d, pet))} per hour`),
-    el('p.small', {}, `Energy gained while resting: ${round1(petRestPerHour(st, d, pet))} per hour`)));
+    el('p.small', {}, `Energy gained while resting: ${round1(petRestPerHour(st, d, pet))} per hour`),
+    el('h3.pet-sub-h', {}, 'Bonuses'),
+    ...(petEffects(d, pet).length
+      ? petEffects(d, pet).map((e) => el('p.small.pet-effect', {}, effectText(d, e)))
+      : [el('p.small.muted', {}, 'No bonuses yet')])));
 
-  // Calling progress
-  const callRows = (arch?.branches || []).map((br) => {
-    const f = el('div.fill', {});
-    const t = el('span.small', {});
-    live((s) => {
-      const p = getPet(s, pid);
-      if (!p) return;
-      const n = Math.min(b.callingActions, Math.floor(p.actions?.[br.calling] || 0));
-      f.style.width = `${(n / b.callingActions) * 100}%`;
-      t.textContent = `${br.name}: ${n} / ${b.callingActions} ${skillName(br.calling)} actions`;
-    });
-    return el('div.pet-calling', {}, t, barBlock(f));
-  });
-  out.push(panelOf(`Paths for evolution (level ${b.stageLevelCaps[0]})`, callRows));
+  out.push(buildEvolution(st, pet));
+  out.push(buildTalents(st, pet));
+  out.push(buildHelping(st, pet));
 
   // Active / Stable
   const active = st.pets.active.includes(pid);

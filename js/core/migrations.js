@@ -1,7 +1,7 @@
 // Save migrations. MIGRATIONS[n] upgrades a version-n save to version n+1.
 // Rules: never delete a migration, never edit one that has shipped, and add one for every
 // SCHEMA_VERSION bump in state.js. Each migration must set the new version number.
-import { SCHEMA_VERSION, newVillage, newTamingState } from './state.js';
+import { SCHEMA_VERSION, newVillage, newTamingState, petSeed } from './state.js';
 import { deriveSeed } from './rng.js';
 
 const MIGRATIONS = {
@@ -56,6 +56,24 @@ const MIGRATIONS = {
   5: (s) => {
     Object.assign(s, newTamingState(s.rng));
     s.version = 6;
+    return s;
+  },
+  // 6 -> 7 (Phase 8): evolution and talents. Each pet gets its own random stream (talent offers,
+  // gift talents, its favorite dish), an empty talent offer, and an unknown favorite dish; the
+  // pets system's init rolls the gifts and the dish from data. Stations gain assistants; the
+  // Bestiary starts empty and is filled from the pets the player has.
+  6: (s) => {
+    for (const pet of Object.values(s.pets.list)) {
+      pet.rng = petSeed(s.rng, pet.id);
+      pet.talents = Array.isArray(pet.talents) ? pet.talents : [];
+      pet.gifts = Array.isArray(pet.gifts) ? pet.gifts : [];
+      pet.offer = null;
+      pet.favorite = null;
+      pet.favoriteKnown = false;
+    }
+    s.crafting.assists = {};
+    s.bestiary = {};
+    s.version = 7;
     return s;
   },
 };

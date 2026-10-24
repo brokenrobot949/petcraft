@@ -133,3 +133,31 @@ button.pet-row:active { background: #5a4a30; border-color: var(--orange); }
 .pet-release .btn { min-height: var(--tap); }
 @media (prefers-reduced-motion: reduce) { .egg-wobble-loop { animation: none; } }
 .nest-problem { margin: 0; color: #ff9d8a; min-height: 0; }
+
+/* ---- evolution, talents, helping (Phase 8) ---- */
+.pet-tag {
+  padding: 2px 8px; font-size: 12px; background: var(--orange); color: var(--ink);
+  border: 2px solid var(--ink); border-radius: 6px;
+}
+.pet-card-top { flex-wrap: wrap; }
+.pet-favorite { margin: 6px 0 0; }
+.pet-effect { margin: 2px 0; }
+.pet-branch, .pet-talent {
+  display: flex; flex-direction: column; gap: 4px; min-width: 0; margin-top: 8px; padding: 8px;
+  background: var(--wood-dark); border: 2px solid var(--ink); border-radius: 6px;
+}
+.pet-talent.due { border-color: var(--orange); }
+.pet-talent.later { opacity: 0.7; }
+.pet-branch p, .pet-talent p { margin: 0; }
+.pet-branch-top { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.pet-branch-text { display: flex; flex-direction: column; min-width: 0; }
+.pet-check { display: flex; align-items: center; gap: 8px; min-height: 36px; }
+.pet-check-mark { width: 1.2em; text-align: center; }
+.pet-check-name { flex: 1; min-width: 0; }
+.pet-gift-star { color: var(--orange); }
+.pet-talent-card {
+  display: flex; flex-direction: column; gap: 4px; width: 100%; min-height: 56px; margin-top: 8px; padding: 10px;
+  text-align: left; font: inherit; color: inherit; background: var(--wood-dark);
+  border: 2px solid var(--ink); border-radius: 6px;
+}
+.pet-branch .btn, .pet-talent .btn { min-height: var(--tap); }

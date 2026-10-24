@@ -3,6 +3,7 @@ import { el, toast, formatAgo } from './dom.js';
 import { exportCode, importCode } from '../core/save.js';
 import { getPref, setPref } from './device.js';
 import { createDevPanel } from './devpanel.js';
+import { createBestiary } from './bestiary.js';
 import { openMossbrook } from './mossbrook.js';
 import { rankInfo } from '../systems/renown.js';
 import { boardList, greatCommission } from '../systems/village.js';
@@ -22,6 +23,7 @@ export function mount(container, app) {
 
   // ---- Renown, commissions, achievements ----
   const progressHost = el('div');
+  const bestiary = createBestiary(game);
 
   // ---- sound ----
   const toggles = ['music', 'sound'].map((key) => {
@@ -118,7 +120,8 @@ export function mount(container, app) {
   container.append(
     el('h1', {}, 'Journal'),
     progressHost,
-    el('p.small.muted', {}, 'Coming soon: Bestiary (Phase 8), Story journal and Elder Grove (Phase 9).'),
+    bestiary.node,
+    el('p.small.muted', {}, 'Coming soon: Story journal and Elder Grove (Phase 9).'),
     el('div.panel', {}, el('h2', {}, 'Sound'), ...toggles.map((t) => t.row),
       el('p.small.muted', {}, 'Music and sound arrive in Phase 10. Your choice is remembered.')),
     el('div.panel', {},
@@ -224,7 +227,10 @@ export function mount(container, app) {
     }
   }
   function render(state) {
-    if (!container.hidden) renderProgress(state);
+    if (!container.hidden) {
+      renderProgress(state);
+      bestiary.update(state);
+    }
     for (const t of toggles) t.btn.textContent = state.settings[t.key] ? 'On' : 'Off';
     const opened = state.meta.launches;
     saveInfo.textContent = `Saved ${formatAgo(Date.now() - state.meta.lastSavedAt)}. Opened ${opened} time${opened === 1 ? '' : 's'} on this save.`;
@@ -232,6 +238,9 @@ export function mount(container, app) {
   game.subscribe(render);
   render(game.getState());
   renderProgress(game.getState());
-  showRender = () => renderProgress(game.getState());
+  showRender = () => {
+    renderProgress(game.getState());
+    bestiary.update(game.getState());
+  };
   setInterval(() => !container.hidden && render(game.getState()), 5000);
 }

@@ -3311,6 +3311,14 @@
       "layout": "icon",
       "src": "Items/Food/Beaf.png"
     },
+    "item.verdant_essence": { "group": "items", "label": "Verdant Essence", "layout": "icon", "src": "Items/Potion/LifePot.png", "frameWidth": 9, "frameHeight": 11 },
+    "item.heartwood_resin": { "group": "items", "label": "Heartwood Resin", "layout": "icon", "src": "Items/Food/Honey.png" },
+    "item.prism_dust": { "group": "items", "label": "Prism Dust", "layout": "icon", "src": "Items/Resource/GemPurple.png" },
+    "item.granite_heart": { "group": "items", "label": "Granite Heart", "layout": "icon", "src": "Items/Resource/Rock.png" },
+    "item.abyssal_pearl": { "group": "items", "label": "Abyssal Pearl", "layout": "icon", "src": "Items/Potion/MilkPot.png", "frameWidth": 9, "frameHeight": 11 },
+    "item.rushing_tonic": { "group": "items", "label": "Rushing Tonic", "layout": "icon", "src": "Items/Potion/WaterPot.png", "frameWidth": 9, "frameHeight": 11 },
+    "item.hunters_musk": { "group": "items", "label": "Hunter's Musk", "layout": "icon", "src": "Items/Object/Gourd.png", "frameWidth": 14, "frameHeight": 14 },
+    "item.pathfinder_oil": { "group": "items", "label": "Pathfinder Oil", "layout": "icon", "src": "Items/Potion/Heart.png", "frameWidth": 9, "frameHeight": 8 },
     "item.wild_lure": {
       "group": "items",
       "label": "Wild Lure",

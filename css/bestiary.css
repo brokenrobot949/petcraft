@@ -1,0 +1,18 @@
+/* Bestiary (Journal tab) */
+.be-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin: 6px 0 10px; }
+@media (min-width: 420px) { .be-grid { grid-template-columns: repeat(4, 1fr); } }
+.be-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  min-height: 88px; padding: 6px 2px; border-radius: 8px;
+  background: rgba(0, 0, 0, .2); border: 1px solid rgba(255, 255, 255, .1);
+  color: var(--text); font: inherit; cursor: pointer; min-width: 0;
+}
+.be-tile .item-icon { flex: none; }
+.be-name { font-size: 11px; line-height: 1.1; text-align: center; overflow-wrap: anywhere; }
+.be-stars { display: flex; justify-content: center; gap: 1px; font-size: 11px; line-height: 1; color: var(--muted); }
+.be-star.on { color: var(--pale); }
+.be-silhouette { filter: brightness(0); opacity: .35; }
+.be-tile.unseen .be-name { color: var(--muted); }
+.be-detail { display: flex; justify-content: center; margin: 8px 0; }
+.be-detail + p, .sheet .be-stars { text-align: center; }
+.sheet .be-stars { font-size: 18px; gap: 3px; margin: 6px 0; }

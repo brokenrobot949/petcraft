@@ -3,8 +3,8 @@
 // Cottage tier 3: balance.crafting.workSlotsByCottageTier), alongside harvesting and offline too.
 // state.crafting.working lists them; the other queues wait, paused. When a worked queue runs empty
 // the player moves on to the next station with work waiting (data order) and the leftover time
-// carries over, so nothing sits idle while something is queued. (Phase 8: an adult pet assistant
-// keeps its station running without using a slot.) A queue holds batches (one
+// carries over, so nothing sits idle while something is queued. An adult pet assistant (Phase 8,
+// state.crafting.assists) keeps its station running without using a slot. A queue holds batches (one
 // recipe x a quantity); the front batch makes its items one by one, then the next batch starts.
 // Materials for a whole batch leave the bag when it is queued, so nothing else can use them;
 // cancelling returns the materials for items not made yet.
@@ -17,6 +17,8 @@ import { addXp, skillLevel } from './skills.js';
 import { buffSpeed } from './buffs.js';
 import { isUpgrade, equip } from './tools.js';
 import { addRenownXp } from './renown.js';
+import { assistValid } from './pets.js';
+import { branchDef } from './petstats.js';
 
 export const id = 'crafting';
 
@@ -33,6 +35,10 @@ export function init(state, ctx) {
   if (!state.stats.quality) state.stats.quality = { fine: 0, masterwork: 0 };
   if (!Array.isArray(state.crafting.working)) state.crafting.working = [];
   if (!state.crafting.known) state.crafting.known = {};
+  if (!state.crafting.assists) state.crafting.assists = {};
+  for (const [sid, petId] of Object.entries(state.crafting.assists)) {
+    if (!stationDef(data, sid) || !assistValid(state, data, sid, petId)) delete state.crafting.assists[sid];
+  }
   normalizeWorking(state, data);
 }
 
@@ -71,21 +77,35 @@ export function isWorking(state, stationId) {
   return state.crafting.working.includes(stationId);
 }
 
+// The adult pet posted at this station (pets/assist), or null. An assisted station runs on its own,
+// without using one of the player's working slots.
+export function assistantOf(state, stationId) {
+  return state.crafting.assists?.[stationId] || null;
+}
+
+// The assistant's bonus at its station (pets.json branch `assist`): { speed, quality } fractions.
+export function assistBonus(state, data, stationId) {
+  const pet = state.pets.list[assistantOf(state, stationId)];
+  const a = pet ? branchDef(data, pet.archetype, pet.branch)?.assist : null;
+  return { speed: a?.speed || 0, quality: a?.quality || 0 };
+}
+
 // Built and has something queued: the player could work here.
 function busy(state, data, stationId) {
   return !!stationDef(data, stationId) && stationTier(state, stationId) > 0 && (state.crafting.stations[stationId]?.queue.length || 0) > 0;
 }
 
-// The first station (data order) with work queued that the player isn't working at.
+// The first station (data order) with work queued that nobody is working at (the player or an assistant).
 function nextWaiting(state, data) {
-  return data.recipes.stations.find((s) => !isWorking(state, s.id) && busy(state, data, s.id))?.id || null;
+  return data.recipes.stations.find((s) => !isWorking(state, s.id) && !assistantOf(state, s.id) && busy(state, data, s.id))?.id || null;
 }
 
-// Keeps state.crafting.working to busy stations, at most workSlots, filling free slots in data order.
+// Keeps state.crafting.working to busy stations without an assistant, at most workSlots, filling
+// free slots in data order.
 function normalizeWorking(state, data) {
   const c = state.crafting;
   const slots = workSlots(state, data);
-  c.working = c.working.filter((sid, i, a) => a.indexOf(sid) === i && busy(state, data, sid)).slice(0, slots);
+  c.working = c.working.filter((sid, i, a) => a.indexOf(sid) === i && !assistantOf(state, sid) && busy(state, data, sid)).slice(0, slots);
   while (c.working.length < slots) {
     const next = nextWaiting(state, data);
     if (!next) break;
@@ -99,7 +119,7 @@ function normalizeWorking(state, data) {
 export function itemMs(state, data, recipe) {
   const c = data.balance.crafting;
   const skill = stationDef(data, recipe.station).skill;
-  const speed = 1 + c.stationSpeedPerTier * (stationTier(state, recipe.station) - 1) + buffSpeed(state, skill);
+  const speed = 1 + c.stationSpeedPerTier * (stationTier(state, recipe.station) - 1) + buffSpeed(state, skill) + assistBonus(state, data, recipe.station).speed;
   return (recipe.seconds * 1000) / speed;
 }
 
@@ -119,7 +139,7 @@ export function qualityOdds(state, data, recipe, focus = null) {
   if (!makesQuality(data, recipe)) return { fine: 0, masterwork: 0 };
   const q = data.balance.crafting.quality;
   const above = Math.max(0, skillLevel(state, stationDef(data, recipe.station).skill) - (recipe.level || 1));
-  const mult = data.balance.crafting.focus.mult[focus] ?? 1;
+  const mult = (data.balance.crafting.focus.mult[focus] ?? 1) * (1 + assistBonus(state, data, recipe.station).quality);
   const mw = Math.min(q.masterworkFocusCap, Math.min(q.masterworkCap, q.masterworkBase + q.masterworkPerLevel * above) * mult);
   const fine = Math.min(q.fineFocusCap, Math.min(q.fineCap, q.fineBase + q.finePerLevel * above) * mult, 1 - mw);
   return { fine, masterwork: mw };
@@ -149,15 +169,17 @@ export function recipeCheck(state, data, recipeId, qty = 1) {
   return { ok: true, reason: '', max };
 }
 
-// Stations for display: [{ id, name, skill, tier, slots, queue, progressMs, notice, working, status }].
-// status: 'unbuilt' | 'working' | 'paused' (work queued, the player is at another station) | 'idle'.
+// Stations for display: [{ id, name, skill, tier, slots, queue, progressMs, notice, working, status, assistant }].
+// status: 'unbuilt' | 'working' | 'assisted' (an assistant keeps it running) | 'paused' (work queued,
+// the player is at another station) | 'idle'. assistant: the posted pet's id or null.
 export function stationList(state, data) {
   return data.recipes.stations.map((s) => {
     const st = state.crafting.stations[s.id];
     const tier = stationTier(state, s.id);
     const working = isWorking(state, s.id);
-    const status = tier < 1 ? 'unbuilt' : working ? 'working' : st.queue.length ? 'paused' : 'idle';
-    return { ...s, tier, slots: queueSlots(state, data, s.id), queue: st.queue, progressMs: st.progressMs, notice: st.notice, working, status };
+    const assistant = assistantOf(state, s.id);
+    const status = tier < 1 ? 'unbuilt' : assistant && st.queue.length ? 'assisted' : working ? 'working' : st.queue.length ? 'paused' : 'idle';
+    return { ...s, tier, slots: queueSlots(state, data, s.id), queue: st.queue, progressMs: st.progressMs, notice: st.notice, working, status, assistant };
   });
 }
 
@@ -248,13 +270,14 @@ export function nextBoundaryMs(state, ctx) {
   const { data } = ctx;
   let next = Infinity;
   const waiting = !!nextWaiting(state, data);
-  for (const stationId of state.crafting.working) {
+  const assisted = Object.keys(state.crafting.assists);
+  for (const stationId of [...state.crafting.working, ...assisted]) {
     const st = state.crafting.stations[stationId];
     const batch = st?.queue[0];
     const recipe = batch && recipeDef(data, batch.recipe);
     if (!recipe || !stationDef(data, stationId)) continue;
     if (data.items.items[recipe.output]?.tool) next = Math.min(next, itemMs(state, data, recipe) - st.progressMs);
-    if (waiting) next = Math.min(next, stationTimeLeft(state, data, stationId).total);
+    if (waiting && isWorking(state, stationId)) next = Math.min(next, stationTimeLeft(state, data, stationId).total);
   }
   return next;
 }
@@ -276,7 +299,17 @@ export function advance(state, ms, ctx) {
       sid = next;
     }
   }
+  // Stations with an assistant run on their own; time left when one runs empty is not passed on.
+  for (const sid of Object.keys(c.assists)) {
+    if (busy(state, data, sid)) advanceStation(state, ctx, sid, c.stations[sid], ms);
+  }
   normalizeWorking(state, data);
+}
+
+// After any command (an assistant posted or called back, a pet made active, a building raised):
+// keep the player's working stations in step at once rather than at the next tick.
+export function afterCommand(state, ctx) {
+  normalizeWorking(state, ctx.data);
 }
 
 function refund(state, batch) {
@@ -311,6 +344,8 @@ export const commands = {
     const def = stationDef(data, station);
     if (!def) throw new Error("There's no such station.");
     if (isWorking(state, station)) return;
+    const helper = state.pets.list[assistantOf(state, station)];
+    if (helper) throw new Error(`${helper.name} already keeps the ${def.name} running.`);
     if (!busy(state, data, station)) throw new Error(`Queue something at the ${def.name} first.`);
     const c = state.crafting;
     c.working.push(station);

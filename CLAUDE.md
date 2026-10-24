@@ -60,10 +60,29 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 7 done (2026-10-23)
-Next: Phase 8 (callings, branch choice, catalysts, talents, gifts, station assists, Bestiary). Phase 8 makes
-  station assist "an adult assistant keeps that station running" (no player slot used); Scout pets dig;
-  gift talents are rolled for caught and hatched pets.
+Phase: 8 done (2026-10-23)
+Next: Phase 9 (Grand Projects, story journal and scenes, ending, Heartgrove, mythics, Starmetal, Elder Grove,
+  heir eggs, Mastery stars). Bestiary already lists the 4 mythics (pets.json `mythics`; no sprites or way to get
+  them yet). Elder legacy bonus should reuse the effect system (petstats.js effectValue / EFFECT_KINDS).
+Phase 8: save schema v7 (migration 6->7: per-pet stream, talent offer, favorite dish; crafting.assists;
+  bestiary). Contract in docs/architecture.md "Phase 8: evolution". Evolution (pets/evolve): level 10 + 150
+  actions of a path's calling skill -> juvenile (player picks the path, permanent); level 20 + Bond heart 3 +
+  the path's catalyst (8 new Alchemy Lab recipes, tier 3-4 inputs) -> adult. One effect system
+  (petstats.js petEffects): path strengths (adults x2), talents and gift talents all use 15 effect kinds.
+  data/talents.json: 47 talents (8 hatchling, 4 per path, 7 gift); picks at levels 5/10/15/20/25/30 from two
+  choices. Gift talents by quality (Rare/Epic 1, Legendary 2) for every new pet; old Rare+ pets get theirs on
+  load. Personal favorite dish (+40 Bond, revealed on first feed; any meal up to tier 3). Heart 4+ pets bring
+  gifts (a treasure-loot roll, 10% per Bond point from work). Station assist: a stabled adult posted at its
+  path's station keeps it running without using the player's slot (+speed; Gem: better quality); making it
+  active ends the post. Scout pets dig (treasure/dig with worker). Bloom pets raise Garden yield, Scouts help
+  tracking. Bestiary in the Journal (24 entries x 5 stars). Pets tab badge for "ready to evolve" / "talent to
+  choose". Home scene: assistants stand and hop beside their station. Test mode: Ready to evolve, Fill
+  callings, All catalysts. Core checks: 208. Simulator v4 evolves, picks talents, makes catalysts, posts
+  assistants, sends Scouts digging: regular player first juvenile day 1.0 (target 2, flagged early), first
+  adult day 8.2 (target 8-10); light player adult day 14.
+  Lead calls Rob may want to know: renamed the adult Timber species "Oakthorn" to "Thornwood" (reads "a
+  Thornwood"); Boulder's calling is Chopping and Scout's is Foraging, exactly as the design table says, though
+  it reads oddly (Rob may want Mining / Hunting).
 Phase 7: save schema v6 (migration 5->6: taming, treasure, nest; workers.player.resume). Contract in
   docs/architecture.md "Phase 7: taming and treasure". Tracking is a player task (js/systems/taming.js):
   each try gives Taming XP and may reveal one wild hatchling per zone (hint "Looks ordinary" / "Something
@@ -156,7 +175,11 @@ Known issues:
   willow/ashwood frames reuse plank icons, traps are crates/baskets/chest/cauldron, lures reuse potion
   bottles, two map scrolls match blueprint icons, the scene trap is one basket for every tier, the dig site
   is a twig piece.
-- A pet's personal favorite dish (+40 Bond, revealed on first feed) is not built yet (Phase 8 with gifts).
+- Phase 8 icons reuse other items' pictures: catalysts are potion bottles, honey (Heartwood Resin), a gourd
+  (Hunter's Musk), a milk pot (Abyssal Pearl: the pack has no pearl). Unseen Bestiary entries show as dark boxes.
+- Assistants use no energy and earn no XP or Bond while posted. The simulator's player keeps its best pets
+  active, so it posts only ~2 assistants and its Scouts rarely dig (Phase 10 policy question).
+- Heart 4 gifts (simulator: ~260 in 30 days) add to the coin and loot pile-up; tune heartGifts in Phase 10.
 - Pet XP is a placeholder: a pet reaches the hatchling cap (level 10) in about a day of work.
 - Simulator: the scripted player acts only at check-ins, so "first building upgrade" shows 10 h (it must
   build the Forge first now); an active player needs about 5-10 minutes. The policy reads zone rares and

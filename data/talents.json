@@ -1,0 +1,72 @@
+{
+  "pools": {
+    "hatchling": ["sure_footed", "keen_nose", "second_wind", "packrat", "hearty_eater", "sunny_disposition", "quick_learner", "deep_reserves"],
+    "bloom": ["petal_sense", "green_thumb", "dewdrop_eyes", "herb_whisperer"],
+    "timber": ["swift_chopper", "bark_reader", "sawdust_luck", "woodland_stride"],
+    "gem": ["gem_glimmer", "glint_eyes", "lucky_chip", "crystal_nose"],
+    "boulder": ["rock_hauler", "sturdy_back", "steady_pace", "mountain_heart"],
+    "deep": ["map_sniffer", "pearl_diver", "deep_calm", "tide_luck"],
+    "current": ["quick_cast", "river_sense", "silver_scales", "patient_ripples"],
+    "fang": ["swift_forager", "pelt_finder", "keen_tracker", "feather_collector"],
+    "scout": ["trail_finder", "digging_paws", "far_sight", "path_marker"],
+    "gift": ["lucky_charm", "golden_touch", "gift_bringer", "treasure_sense", "wonder_heart", "star_blessed", "bountiful"]
+  },
+  "talents": {
+    "sure_footed": { "name": "Sure-footed", "desc": "Uses 15% less energy while working.", "effects": [ { "kind": "drain", "value": 0.15 } ] },
+    "keen_nose": { "name": "Keen Nose", "desc": "Finds rare items more often (+3 points).", "effects": [ { "kind": "rare", "value": 0.03 } ] },
+    "second_wind": { "name": "Second Wind", "desc": "Rests 25% faster.", "effects": [ { "kind": "rest", "value": 0.25 } ] },
+    "packrat": { "name": "Packrat", "desc": "10% chance of an extra item on each harvest.", "effects": [ { "kind": "extraItem", "value": 0.1 } ] },
+    "hearty_eater": { "name": "Hearty Eater", "desc": "Gets 50% more energy from food.", "effects": [ { "kind": "meal", "value": 0.5 } ] },
+    "sunny_disposition": { "name": "Sunny Disposition", "desc": "Gains 25% more Bond.", "effects": [ { "kind": "bond", "value": 0.25 } ] },
+    "quick_learner": { "name": "Quick Learner", "desc": "Gains 20% more pet XP.", "effects": [ { "kind": "xp", "value": 0.2 } ] },
+    "deep_reserves": { "name": "Deep Reserves", "desc": "Has 15% more maximum energy.", "effects": [ { "kind": "stamina", "value": 0.15 } ] },
+
+    "petal_sense": { "name": "Petal Sense", "desc": "Finds rare items 1 point more often while foraging.", "effects": [ { "kind": "rare", "value": 0.01, "skills": ["foraging"] } ] },
+    "green_thumb": { "name": "Green Thumb", "desc": "Garden harvests give 15% more.", "effects": [ { "kind": "garden", "value": 0.15 } ] },
+    "dewdrop_eyes": { "name": "Dewdrop Eyes", "desc": "Forages 10% faster.", "effects": [ { "kind": "speed", "value": 0.1, "skills": ["foraging"] } ] },
+    "herb_whisperer": { "name": "Herb Whisperer", "desc": "10% chance of an extra item when foraging.", "effects": [ { "kind": "extraItem", "value": 0.1, "skills": ["foraging"] } ] },
+
+    "swift_chopper": { "name": "Swift Chopper", "desc": "Chops 15% faster.", "effects": [ { "kind": "speed", "value": 0.15, "skills": ["chopping"] } ] },
+    "bark_reader": { "name": "Bark Reader", "desc": "Wood by-products drop 30% more often.", "effects": [ { "kind": "byproduct", "value": 0.3, "skills": ["chopping"] } ] },
+    "sawdust_luck": { "name": "Sawdust Luck", "desc": "10% chance of an extra log when chopping.", "effects": [ { "kind": "extraItem", "value": 0.1, "skills": ["chopping"] } ] },
+    "woodland_stride": { "name": "Woodland Stride", "desc": "Chops 8% faster and uses 10% less energy.", "effects": [ { "kind": "speed", "value": 0.08, "skills": ["chopping"] }, { "kind": "drain", "value": 0.1 } ] },
+
+    "gem_glimmer": { "name": "Gem Glimmer", "desc": "Finds rare items 2 points more often while mining.", "effects": [ { "kind": "rare", "value": 0.02, "skills": ["mining"] } ] },
+    "glint_eyes": { "name": "Glint Eyes", "desc": "Mining by-products drop 40% more often.", "effects": [ { "kind": "byproduct", "value": 0.4, "skills": ["mining"] } ] },
+    "lucky_chip": { "name": "Lucky Chip", "desc": "8% chance of an extra item when mining.", "effects": [ { "kind": "extraItem", "value": 0.08, "skills": ["mining"] } ] },
+    "crystal_nose": { "name": "Crystal Nose", "desc": "Finds rare items 1 point more often and mines 5% faster.", "effects": [ { "kind": "rare", "value": 0.01, "skills": ["mining"] }, { "kind": "speed", "value": 0.05, "skills": ["mining"] } ] },
+
+    "rock_hauler": { "name": "Rock Hauler", "desc": "Mines 15% faster.", "effects": [ { "kind": "speed", "value": 0.15, "skills": ["mining"] } ] },
+    "sturdy_back": { "name": "Sturdy Back", "desc": "Has 25% more maximum energy.", "effects": [ { "kind": "stamina", "value": 0.25 } ] },
+    "steady_pace": { "name": "Steady Pace", "desc": "Uses 20% less energy while working.", "effects": [ { "kind": "drain", "value": 0.2 } ] },
+    "mountain_heart": { "name": "Mountain Heart", "desc": "Has 15% more energy and rests 15% faster.", "effects": [ { "kind": "stamina", "value": 0.15 }, { "kind": "rest", "value": 0.15 } ] },
+
+    "map_sniffer": { "name": "Map Sniffer", "desc": "Finds treasure maps 40% more often.", "effects": [ { "kind": "maps", "value": 0.4 } ] },
+    "pearl_diver": { "name": "Pearl Diver", "desc": "Finds rare items 2 points more often while fishing.", "effects": [ { "kind": "rare", "value": 0.02, "skills": ["fishing"] } ] },
+    "deep_calm": { "name": "Deep Calm", "desc": "Fishing by-products drop 30% more often.", "effects": [ { "kind": "byproduct", "value": 0.3, "skills": ["fishing"] } ] },
+    "tide_luck": { "name": "Tide Luck", "desc": "Finds treasure maps 25% more often and rare items 1 point more often.", "effects": [ { "kind": "maps", "value": 0.25 }, { "kind": "rare", "value": 0.01 } ] },
+
+    "quick_cast": { "name": "Quick Cast", "desc": "Fishes 15% faster.", "effects": [ { "kind": "speed", "value": 0.15, "skills": ["fishing"] } ] },
+    "river_sense": { "name": "River Sense", "desc": "10% chance of an extra fish on each catch.", "effects": [ { "kind": "extraItem", "value": 0.1, "skills": ["fishing"] } ] },
+    "silver_scales": { "name": "Silver Scales", "desc": "Fishes 8% faster and finds rare fish 1 point more often.", "effects": [ { "kind": "speed", "value": 0.08, "skills": ["fishing"] }, { "kind": "rare", "value": 0.01, "skills": ["fishing"] } ] },
+    "patient_ripples": { "name": "Patient Ripples", "desc": "Uses 15% less energy while working.", "effects": [ { "kind": "drain", "value": 0.15 } ] },
+
+    "swift_forager": { "name": "Quick Paws", "desc": "Hunts 15% faster.", "effects": [ { "kind": "speed", "value": 0.15, "skills": ["hunting"] } ] },
+    "pelt_finder": { "name": "Pelt Finder", "desc": "Hunting by-products drop 50% more often.", "effects": [ { "kind": "byproduct", "value": 0.5, "skills": ["hunting"] } ] },
+    "keen_tracker": { "name": "Keen Tracker", "desc": "Finds rare items 2 points more often while hunting.", "effects": [ { "kind": "rare", "value": 0.02, "skills": ["hunting"] } ] },
+    "feather_collector": { "name": "Feather Collector", "desc": "10% chance of an extra item when hunting.", "effects": [ { "kind": "extraItem", "value": 0.1, "skills": ["hunting"] } ] },
+
+    "trail_finder": { "name": "Trail Finder", "desc": "Your tracking finds wild monsters 2 points more often.", "effects": [ { "kind": "track", "value": 0.02 } ] },
+    "digging_paws": { "name": "Digging Paws", "desc": "Finds treasure maps 30% more often.", "effects": [ { "kind": "maps", "value": 0.3 } ] },
+    "far_sight": { "name": "Far Sight", "desc": "Your tracking finds wild monsters 1 point more often.", "effects": [ { "kind": "track", "value": 0.01 } ] },
+    "path_marker": { "name": "Path Marker", "desc": "Finds treasure maps 20% more often and uses 15% less energy.", "effects": [ { "kind": "maps", "value": 0.2 }, { "kind": "drain", "value": 0.15 } ] },
+
+    "lucky_charm": { "name": "Lucky Charm", "desc": "Finds rare items more often (+3 points).", "effects": [ { "kind": "rare", "value": 0.03 } ] },
+    "golden_touch": { "name": "Golden Touch", "desc": "15% chance of an extra item on each harvest.", "effects": [ { "kind": "extraItem", "value": 0.15 } ] },
+    "gift_bringer": { "name": "Gift Bringer", "desc": "50% more likely to bring you gifts.", "effects": [ { "kind": "gift", "value": 0.5 } ] },
+    "treasure_sense": { "name": "Treasure Sense", "desc": "Finds treasure maps 50% more often.", "effects": [ { "kind": "maps", "value": 0.5 } ] },
+    "wonder_heart": { "name": "Wonder Heart", "desc": "Gains 30% more Bond and 25% more pet XP.", "effects": [ { "kind": "bond", "value": 0.3 }, { "kind": "xp", "value": 0.25 } ] },
+    "star_blessed": { "name": "Star-blessed", "desc": "Works 15% faster and uses 15% less energy.", "effects": [ { "kind": "speed", "value": 0.15 }, { "kind": "drain", "value": 0.15 } ] },
+    "bountiful": { "name": "Bountiful", "desc": "Garden harvests give 20% more and food gives 30% more energy.", "effects": [ { "kind": "garden", "value": 0.2 }, { "kind": "meal", "value": 0.3 } ] }
+  }
+}

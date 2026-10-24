@@ -5,7 +5,8 @@ import { itemIcon, faceIcon } from './icons.js';
 import { skillProgress } from '../systems/skills.js';
 import { zoneUnlocked, nodeCheck, actionMs, workerTask, toolFor, isHarvestTask } from '../systems/harvest.js';
 import { getPet, needsStarter, petStatus } from '../systems/pets.js';
-import { petRole, petMaxEnergy, petRestPerHour, archetypeOf } from '../systems/petstats.js';
+import { petRole, petMaxEnergy, petRestPerHour, archetypeOf, canDig } from '../systems/petstats.js';
+import { petDigMs } from '../systems/pets.js';
 import {
   trackMs, revealChance, catchChance, encounterInfo, trapOptions, baitOptions, trapCheck, lureInfo, lureList, tamingNotice,
 } from '../systems/taming.js';
@@ -153,7 +154,7 @@ const taskKey = (t) => (t ? `${t.zone}/${t.skill}/${t.node}` : '-');
 function keyFor() {
   const s = state();
   const ws = workerList(s);
-  const who = ws.map((w) => `${w.id}:${w.name}:${w.pet?.form || ''}:${taskKey(s.workers[w.id].task)}:${w.pet ? petStatus(s, w.id) : ''}`).join(',');
+  const who = ws.map((w) => `${w.id}:${w.name}:${w.pet?.form || ''}${w.pet && canDig(data(), w.pet) ? 'D' : ''}:${taskKey(s.workers[w.id].task)}:${w.pet ? petStatus(s, w.id) : ''}`).join(',');
   const base = `${who}|${selectedWorker(s)}|${s.renown.rank}|${needsStarter(s) ? 'starter' : ''}`;
   if (!zoneId) return `${base}|${data().zones.zones.map((z) => zoneMarkKey(s, z.id)).join(',')}`;
   // Levels only: XP changes every action and is updated in place (rebuilding the buttons that
@@ -382,7 +383,10 @@ function renderZone() {
       const where = task.zone !== z.id && tz ? ` in ${tz.name}` : '';
       rec.fill = el('div.fill');
       rec.text = el('span.small.muted');
-      parts.push(el('p', {}, `${taskLabel(d, task, node)}${where}`),
+      const digLine = w.pet && task.skill === 'treasure'
+        ? `${w.name} is digging (${mapCount(s, d, task.zone)} ${mapCount(s, d, task.zone) === 1 ? 'map' : 'maps'} left)${where}`
+        : null;
+      parts.push(el('p', {}, digLine || `${taskLabel(d, task, node)}${where}`),
         el('div.bar.big', {}, rec.fill), rec.text);
     } else {
       parts.push(el('p', {}, w.pet ? 'Not working yet.' : "You're resting. Pick something to do below."));
@@ -456,7 +460,7 @@ function wildCard(s, d, z) {
     el('h2', {}, 'Wild monsters ', el('span.muted', {}, `Taming ${p.level}`)),
     el('div.bar', {}, xpFill),
     xpText,
-    el('p.small', {}, `Each try takes ${(trackMs(s, d, z.id) / 1000).toFixed(1)} s and has a ${pct(revealChance(s, d))} chance to find a monster. Once you find one, you go back to what you were harvesting.`),
+    el('p.small', {}, `Each try takes ${(trackMs(s, d, z.id) / 1000).toFixed(1)} s and has a ${pct(revealChance(s, d))} chance to find a monster. Once you find one, you go back to what you were harvesting. Active Scout pets help you track.`),
     el(`button.btn.wide${tracking ? '.on' : ''}`, {
       type: 'button',
       'aria-pressed': tracking ? 'true' : 'false',
@@ -639,6 +643,7 @@ function treasureCard(s, d, z) {
     el('div.map-line', {}, itemIcon(mapItem, 32, 'Map'),
       el('span', {}, el('b', {}, `${info.maps} ${info.maps === 1 ? 'map' : 'maps'}`), ` for ${z.name}`)),
     el('p.small.muted', {}, 'Maps turn up while harvesting, most often while fishing. You dig them up one after another, then go back to what you were doing.'),
+    ...withScoutNote(scoutRows(s, d, z, none)),
     el(`button.btn.wide${info.digging ? '.on' : ''}`, {
       type: 'button',
       'aria-pressed': info.digging ? 'true' : 'false',
@@ -648,6 +653,46 @@ function treasureCard(s, d, z) {
     none ? el('p.small.warn', {}, 'No maps to dig yet.') : null,
     el('div.bar.big', {}, fill),
     t);
+}
+
+function withScoutNote(rows) {
+  return rows.length ? [el('p.small.muted', {}, 'Scout pets can dig too:'), ...rows] : [];
+}
+
+// One "Dig treasure" button per active Scout pet (pets that can dig), with a live bar while it digs.
+function scoutRows(s, d, z, none) {
+  const rows = [];
+  for (const pid of s.pets.active) {
+    const pet = pid ? getPet(s, pid) : null;
+    if (!pet || !s.workers[pid] || !canDig(d, pet)) continue;
+    const task = s.workers[pid].task;
+    const here = task?.skill === 'treasure' && task.zone === z.id;
+    const elsewhere = task?.skill === 'treasure' && !here;
+    const fill = el('div.fill');
+    const t = el('span.small.muted');
+    live.push((st, dd, now) => {
+      const w = st.workers[pid];
+      const p = getPet(st, pid);
+      if (!w || !p || w.task?.skill !== 'treasure' || w.task.zone !== z.id) return;
+      const dur = petDigMs(st, dd, p);
+      const moving = petStatus(st, pid) === 'working';
+      const shown = Math.max(0, Math.min(dur, smooth(`petdig${pid}`, w.progressMs, 1, moving, now)));
+      const n = mapCount(st, dd, z.id);
+      fill.style.width = `${(shown / dur) * 100}%`;
+      t.textContent = `${p.name} is digging (${n} ${n === 1 ? 'map' : 'maps'} left) - ${fmtTime(dur - shown)} on this map`;
+    });
+    rows.push(el('div.scout-row', {},
+      el(`button.btn.wide${here ? '.on' : ''}`, {
+        type: 'button',
+        'aria-pressed': here ? 'true' : 'false',
+        disabled: none && !here,
+        onclick: () => send('treasure/dig', { zone: z.id, worker: pid }),
+      }, faceIcon(petRole(pet), 24, pet.name), el('span', {}, here ? ` ${pet.name} is digging...` : ` Dig treasure with ${pet.name}`)),
+      elsewhere ? el('p.small.muted', {}, `${pet.name} is digging in another zone. Tapping sends it here.`) : null,
+      here ? el('div.bar.big', {}, fill) : null,
+      here ? t : null));
+  }
+  return rows;
 }
 
 // ---------- smooth progress bar ----------
@@ -694,6 +739,10 @@ function tickBar() {
         dur = actionMs(s, d, wid, task);
       } else if (task.skill === 'taming') {
         dur = trackMs(s, d, task.zone);
+      } else if (rec.pet) {
+        const pet = getPet(s, wid);
+        dur = pet ? petDigMs(s, d, pet) : 1;
+        value = w.progressMs;
       } else {
         dur = digInfo(s, d, task.zone).total;
         value = s.treasure.progress[task.zone] || 0;

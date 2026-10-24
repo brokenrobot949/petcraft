@@ -16,7 +16,8 @@ import { skillLevel } from '../../js/systems/skills.js';
 import { nodeCheck, zoneUnlocked, toolFor } from '../../js/systems/harvest.js';
 import { stationList, recipeCheck, recipeDef, recipesFor, itemMs, itemXp, makesQuality, stationTier, workSlots, isWorking } from '../../js/systems/crafting.js';
 import { buffOf, buffSpeed } from '../../js/systems/buffs.js';
-import { petList, canPatToday, needsStarter, canAutoFeed } from '../../js/systems/pets.js';
+import { petList, canPatToday, needsStarter, canAutoFeed, evolveInfo, assistInfo } from '../../js/systems/pets.js';
+import { canDig, talentDef } from '../../js/systems/petstats.js';
 import { localDay } from '../../js/core/time.js';
 import { buildingList, upgradeCheck } from '../../js/systems/buildings.js';
 import { boardList, greatCommission, rerollInfo, shopList, scrollList, merchantList, sellPrice } from '../../js/systems/village.js';
@@ -485,6 +486,117 @@ export function createPolicy(data) {
     }
   }
 
+  // ---- evolution, talents, assistants, Scouts (Phase 8) ----
+  const TALENT_ORDER = ['speed', 'extraItem', 'drain'];   // talent kinds the policy likes, best first
+  const CATALYST_LEVEL_LEAD = 3;                          // juveniles this close to the adult cap get their catalyst made
+  const branchOf = (arch, id) => arch?.branches?.find((b) => b.id === id);
+  const archOf = (id) => data.pets.archetypes.find((a) => a.id === id);
+  let evolveCounts = { juvenile: 0, adult: 0 };
+  let talentPicked = 0;
+  let assistsPosted = 0;
+  let petDigsSent = 0;
+
+  // A hatchling at its level cap picks a branch (its calling matching the job it does, else its affinity);
+  // a juvenile that is ready becomes an adult. Done before the stations are planned.
+  function evolvePets(game) {
+    for (const p of petList(game.getState())) {
+      const state = game.getState();
+      const info = evolveInfo(state, data, p.id);
+      if (!info.ready) continue;
+      if (info.next === 'juvenile') {
+        const open = info.branches.filter((b) => b.unlocked);
+        const job = state.workers[p.id]?.task?.skill;
+        const aff = archOf(p.archetype)?.affinity || [];
+        const pick = open.find((b) => b.calling === job) || open.find((b) => aff.includes(b.calling)) || open[0];
+        if (pick && act(game, 'pets/evolve', { pet: p.id, branch: pick.id })) evolveCounts.juvenile++;
+      } else if (info.next === 'adult') {
+        if (act(game, 'pets/evolve', { pet: p.id })) evolveCounts.adult++;
+      }
+    }
+  }
+  // Catalysts the juveniles close to adulthood will need (the stations make them like any want).
+  function catalystWants(state) {
+    const list = [];
+    for (const p of petList(state)) {
+      if (p.form !== 'juvenile') continue;
+      const info = evolveInfo(state, data, p.id);
+      const item = branchOf(archOf(p.archetype), p.branch)?.catalyst;
+      if (!item || (state.bag[item] || 0) >= 1 || list.some((e) => e[0] === item)) continue;
+      if (p.level >= info.levelNeed - CATALYST_LEVEL_LEAD && reachable(state, item)) list.push([item, 1]);
+    }
+    return list;
+  }
+  // An adult held back only by its catalyst: queue the Alchemy recipe when it can be made right now.
+  function queueCatalysts(game) {
+    for (const p of petList(game.getState())) {
+      const state = game.getState();
+      const info = evolveInfo(state, data, p.id);
+      if (info.next !== 'adult' || info.ready || !info.catalyst || info.catalyst.have >= 1) continue;
+      if (info.level < info.levelNeed || info.hearts < info.heartsNeed) continue;
+      const rid = info.catalyst.item; // the recipe id equals the item id
+      const r = recipeDef(data, rid);
+      if (!r || !stationFree(state, r.station)) continue;
+      if (state.crafting.stations[r.station].queue.some((b) => b.recipe === rid)) continue;
+      if (recipeCheck(state, data, rid, 1).ok) act(game, 'crafting/start', { recipe: rid, qty: 1, focus: makesQuality(data, r) ? 'good' : null });
+    }
+  }
+  // Talent picks: speed, then extra items, then less drain, then whatever is first.
+  function pickTalents(game) {
+    for (const p of petList(game.getState())) {
+      if (!p.offer || !p.offer.length) continue;
+      const rank = (id) => {
+        const kinds = (talentDef(data, id)?.effects || []).map((e) => e.kind);
+        const i = TALENT_ORDER.findIndex((k) => kinds.includes(k));
+        return i < 0 ? TALENT_ORDER.length : i;
+      };
+      const best = p.offer.slice().sort((a, b) => rank(a) - rank(b))[0];
+      if (act(game, 'pets/pickTalent', { pet: p.id, talent: best })) talentPicked++;
+    }
+  }
+  // Stabled adults help at their station; a station with queued work gets its assistant first.
+  function postAssistants(game) {
+    const state = game.getState();
+    const cands = [];
+    for (const p of petList(state)) {
+      const info = assistInfo(state, data, p.id);
+      if (!info.can || info.posted || state.crafting.assists[info.station]) continue;
+      cands.push({ pet: p.id, station: info.station, work: state.crafting.stations[info.station]?.queue.length || 0 });
+    }
+    cands.sort((a, b) => b.work - a.work);
+    for (const c of cands) {
+      if (game.getState().crafting.assists[c.station]) continue;
+      if (act(game, 'pets/assist', { pet: c.pet, station: c.station })) assistsPosted++;
+    }
+  }
+  // Hatchlings near their cap with no unlocked branch work a node of a calling skill (their affinity first).
+  function steerCallings(game) {
+    const state = game.getState();
+    const cap = data.balance.pets.stageLevelCaps[0];
+    for (const petId of state.pets.active.filter(Boolean)) {
+      const p = state.pets.list[petId];
+      if (p.form !== 'hatchling' || p.level < cap - 2) continue;
+      const info = evolveInfo(state, data, petId);
+      if (info.branches.some((b) => b.unlocked)) continue;
+      const aff = archOf(p.archetype)?.affinity || [];
+      const callings = info.branches.map((b) => b.calling);
+      const cur = state.workers[petId]?.task?.skill;
+      if (callings.includes(cur)) continue;
+      const skill = callings.find((c) => aff.includes(c)) || callings[0];
+      assign(game, state, petId, levelTask(state, skill));
+    }
+  }
+  // Active Scouts dig the maps the player is not digging.
+  function scoutDigs(game) {
+    const state = game.getState();
+    if (state.workers.player.task?.skill === 'treasure') return;
+    for (const petId of state.pets.active.filter(Boolean)) {
+      const st = game.getState();
+      if (st.workers[petId]?.task?.skill === 'treasure' || !canDig(data, st.pets.list[petId]) || st.pets.list[petId].resting) continue;
+      const maps = mapList(st, data).filter((m) => zoneUnlocked(st, data, m.zone)).sort((a, b) => b.count - a.count)[0];
+      if (maps && act(game, 'treasure/dig', { zone: maps.zone, worker: petId })) petDigsSent++;
+    }
+  }
+
   // ---- wants ----
   function analyse(state) {
     const goals = [];
@@ -510,6 +622,7 @@ export function createPolicy(data) {
       { c: 0, set: toolSet, list: goals.map((id) => [id, 1]) },
       { c: 2, set: otherSet, list: commission ? Object.entries(commission.items) : [] },
       { c: 2, set: otherSet, list: tameWants(state) },
+      { c: 2, set: otherSet, list: catalystWants(state) },
     ];
     for (const g of groups) {
       for (const [id, n] of g.list) {
@@ -626,6 +739,8 @@ export function createPolicy(data) {
     const active = state.pets.active.filter(Boolean);
     active.forEach((petId, j) => {
       const pet = state.pets.list[petId];
+      if (state.workers[petId]?.task?.skill === 'treasure') return; // a Scout mid-dig keeps digging
+
       const affinity = data.pets.archetypes.find((a) => a.id === pet.archetype)?.affinity || [];
       let pick;
       if (food) {
@@ -734,7 +849,7 @@ export function createPolicy(data) {
     const foodLow = foodInBag(state) < FOOD_TARGET;
     const cands = [];
     for (const st of stationList(state, data)) {
-      if (st.status === 'unbuilt' || !st.queue.length) continue;
+      if (st.status === 'unbuilt' || st.assistant || !st.queue.length) continue;
       let cls = 9;
       for (const b of st.queue) {
         const out = recipeDef(data, b.recipe)?.output;
@@ -792,16 +907,22 @@ export function createPolicy(data) {
     tendGarden(game);
     learnScrolls(game);
 
+    evolvePets(game);
+    pickTalents(game);
     const plan = analyse(game.getState());
     planCrafts(game, plan, info.horizonMs);
+    queueCatalysts(game);
     tendNest(game);
     arrangePets(game);
+    postAssistants(game);
     sellExtraMaps(game);
     const plan2 = analyse(game.getState());
     const playerTask = planHarvest(game, plan2);
     eat(game, playerTask?.skill || game.getState().workers.player.task?.skill);
+    steerCallings(game);
     chooseStations(game, plan2);
     tame(game, info);
+    scoutDigs(game);
   }
 
   return {
@@ -810,5 +931,9 @@ export function createPolicy(data) {
     get dispatches() { return dispatches; },
     get mapsSold() { return mapsSold; },
     get petsReleased() { return petsReleased; },
+    get evolveCounts() { return evolveCounts; },
+    get talentPicked() { return talentPicked; },
+    get assistsPosted() { return assistsPosted; },
+    get petDigsSent() { return petDigsSent; },
   };
 }

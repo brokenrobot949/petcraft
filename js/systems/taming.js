@@ -10,7 +10,7 @@ import { addXp, skillLevel } from './skills.js';
 import { buffSpeed } from './buffs.js';
 import { zoneUnlocked, isHarvestTask } from './harvest.js';
 import { createPet } from './pets.js';
-import { archetypeOf } from './petstats.js';
+import { archetypeOf, bestEffect } from './petstats.js';
 import { petCapacity } from './buildings.js';
 
 export const id = 'taming';
@@ -73,10 +73,12 @@ export function trackMs(state, data, zoneId) {
   return baseTrackMs(data, zoneById(data, zoneId)) / (1 + buffSpeed(state, 'taming'));
 }
 
-// Chance per tracking action of finding an encounter (when the zone has none).
+// Chance per tracking action of finding an encounter (when the zone has none). The best tracker
+// among the active pets (Scout branch, talents) adds its track bonus.
 export function revealChance(state, data) {
   const b = data.balance.taming;
-  return b.revealBase + b.revealPerLevel * skillLevel(state, 'taming');
+  const helpers = state.pets.active.filter(Boolean).map((id) => state.pets.list[id]).filter(Boolean);
+  return b.revealBase + b.revealPerLevel * skillLevel(state, 'taming') + bestEffect(data, helpers, 'track');
 }
 
 // Pet spaces left for new pets: Stable capacity minus pets and traps already set (a set trap

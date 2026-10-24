@@ -1,15 +1,16 @@
 // Craft tab: buffs, the four stations (queues, recipe picker, Focus tap), equipped tools and the bag.
 import { el, sheet, sheetWithClose, toast } from './dom.js';
-import { itemIcon } from './icons.js';
+import { itemIcon, faceIcon } from './icons.js';
 import { getPref, setPref } from './device.js';
 import { bagList, itemLabel, itemKey } from '../systems/bag.js';
 import { skillProgress } from '../systems/skills.js';
 import {
-  stationList, recipesFor, recipeDef, recipeCheck, itemMs, itemXp, makesQuality, qualityOdds, stationTimeLeft, workSlots,
+  stationList, recipesFor, recipeDef, recipeCheck, itemMs, itemXp, makesQuality, qualityOdds, stationTimeLeft, workSlots, assistBonus,
 } from '../systems/crafting.js';
 import { activeBuffs, buffOf } from '../systems/buffs.js';
 import { isUpgrade } from '../systems/tools.js';
-import { foodValue } from '../systems/pets.js';
+import { foodValue, getPet } from '../systems/pets.js';
+import { petRole } from '../systems/petstats.js';
 import { sellPrice } from '../systems/village.js';
 
 export const id = 'craft';
@@ -129,7 +130,7 @@ function renderBuffs() {
 
 function renderStations() {
   const list = stationList(state(), data());
-  const key = list.map((s) => `${s.id}/${s.slots}/${s.status}/${s.queue.map((b) => `${b.recipe}x${b.qty}`).join('+')}`).join('|');
+  const key = list.map((s) => `${s.id}/${s.slots}/${s.status}/${s.assistant || ""}:${s.assistant ? getPet(state(), s.assistant)?.name : ""}/${s.queue.map((b) => `${b.recipe}x${b.qty}`).join('+')}`).join('|');
   if (changed('stations', key)) buildStations(list);
   updateStations(list);
   renderWorkLine();
@@ -141,7 +142,7 @@ function renderWorkLine() {
   const tiers = data().balance.crafting.workSlotsByCottageTier;
   const text = `You work at ${n} station${n === 1 ? '' : 's'} at a time.`;
   const more = tiers.findIndex((x) => x > n);
-  workLine.textContent = more >= 0 ? `${text} (${tiers[more]} from Cottage tier ${more + 1})` : text;
+  workLine.textContent = `${more >= 0 ? `${text} (${tiers[more]} from Cottage tier ${more + 1})` : text} Adult pets resting in the Stable can help at a station (on their pet page).`;
 }
 
 function buildStations(list) {
@@ -162,7 +163,17 @@ function stationCard(s, _i, list) {
     else slots.push(el('button.btn.wide.craft-add', { type: 'button', onclick: () => openPicker(s.id) }, '+ Craft something'));
   }
   let status = null;
-  if (s.status === 'working') status = el('p.station-status', {}, "You're working here.");
+  const helper = s.assistant ? getPet(state(), s.assistant) : null;
+  if (helper) {
+    const b = assistBonus(state(), data(), s.id);
+    const bonus = [b.speed ? `+${pct(b.speed)} speed` : '', b.quality ? 'better quality' : ''].filter(Boolean).join(', ');
+    status = el('div.assist-line', {},
+      el('span.helper-chip', {}, 'Helper'),
+      faceIcon(petRole(helper), 24, helper.name),
+      el('div.assist-text', {},
+        el('div', {}, s.status === 'assisted' ? `${helper.name} is helping: keeps running` : `${helper.name} is helping (queue something)`),
+        bonus && el('div.small.muted', {}, bonus)));
+  } else if (s.status === 'working') status = el('p.station-status', {}, "You're working here.");
   else if (s.status === 'paused') {
     const other = list.find((x) => x.working);
     status = el('div', {},

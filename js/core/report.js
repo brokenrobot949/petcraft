@@ -4,14 +4,16 @@
 //   stations: { stationId: { items: { key: n }, xp, skill } }, equipped: [bag key], buffsEnded: [itemId],
 //   renown: { xp, rank (the new rank, or null) }, achievements: [id], garden: { itemId: n },
 //   taming: { found: [{ zone, archetype }], results: [TrapResult], lureEnded }, treasure: { digs, coins, items: { key: n } },
-//   nest: { ready: n } }
+//   nest: { ready: n }, bestiary: [{ entry, quality }] }
+// pets[id] also has gifts: { itemId: n } (Heart 4 gifts), digs (Scout digs, also counted in treasure),
+// talentReady (a talent pick came up) and favorite (its favorite dish, if found while away).
 // Tracking actions count in workers.player (actions, xp.taming).
 // pets[id].level / .hearts are set only when the pet reached a new level / heart while away.
 export function createReport(ms) {
   const summary = { ms, workers: {}, levelUps: {}, pets: {}, stations: {}, equipped: [], buffsEnded: [], renown: { xp: 0, rank: null }, achievements: [], garden: {},
-    taming: { found: [], results: [], lureEnded: false }, treasure: { digs: 0, coins: 0, items: {} }, nest: { ready: 0 } };
+    taming: { found: [], results: [], lureEnded: false }, treasure: { digs: 0, coins: 0, items: {} }, nest: { ready: 0 }, bestiary: [] };
   const worker = (id) => summary.workers[id] || (summary.workers[id] = { actions: 0, items: {}, xp: {}, petXp: 0 });
-  const pet = (id) => summary.pets[id] || (summary.pets[id] = { workMs: 0, restMs: 0, ate: {}, level: null, hearts: null });
+  const pet = (id) => summary.pets[id] || (summary.pets[id] = { workMs: 0, restMs: 0, ate: {}, level: null, hearts: null, gifts: {}, digs: 0, talentReady: false, favorite: null });
   function add(e) {
     if (e.type === 'harvest') {
       const w = worker(e.worker);
@@ -63,8 +65,18 @@ export function createReport(ms) {
       summary.taming.lureEnded = true;
     } else if (e.type === 'dig') {
       summary.treasure.digs += 1;
+      if (e.worker && e.worker !== 'player') pet(e.worker).digs += 1;
       summary.treasure.coins += e.coins;
       for (const [id, n] of Object.entries(e.items)) summary.treasure.items[id] = (summary.treasure.items[id] || 0) + n;
+    } else if (e.type === 'petGift') {
+      const g = pet(e.pet).gifts;
+      g[e.item] = (g[e.item] || 0) + e.qty;
+    } else if (e.type === 'talentReady') {
+      pet(e.pet).talentReady = true;
+    } else if (e.type === 'favoriteFound') {
+      pet(e.pet).favorite = e.item;
+    } else if (e.type === 'bestiary') {
+      summary.bestiary.push({ entry: e.entry, quality: e.quality });
     } else if (e.type === 'eggReady') {
       summary.nest.ready += 1;
     }

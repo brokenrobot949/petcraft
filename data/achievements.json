@@ -67,6 +67,14 @@
     { "id": "egg_keeper", "name": "Egg Keeper", "desc": "Hatch 5 eggs.", "group": "pets", "renown": 70, "title": null, "when": { "kind": "hatched", "n": 5 } },
     { "id": "first_dig", "name": "X Marks the Spot", "desc": "Dig up your first treasure.", "group": "collection", "renown": 25, "title": null, "when": { "kind": "digs", "n": 1 } },
     { "id": "treasure_trove", "name": "Treasure Trove", "desc": "Dig up 10 treasures.", "group": "collection", "renown": 60, "title": null, "when": { "kind": "digs", "n": 10 } },
-    { "id": "treasure_hunter", "name": "Treasure Hunter", "desc": "Dig up 50 treasures.", "group": "collection", "renown": 150, "title": "Treasure Hunter", "when": { "kind": "digs", "n": 50 } }
+    { "id": "treasure_hunter", "name": "Treasure Hunter", "desc": "Dig up 50 treasures.", "group": "collection", "renown": 150, "title": "Treasure Hunter", "when": { "kind": "digs", "n": 50 } },
+    { "id": "first_juvenile", "name": "Growing Up", "desc": "Evolve a pet into its juvenile form.", "group": "pets", "renown": 40, "title": null, "when": { "kind": "evolved", "form": "juvenile", "n": 1 } },
+    { "id": "first_adult", "name": "All Grown Up", "desc": "Evolve a pet into its adult form.", "group": "pets", "renown": 80, "title": null, "when": { "kind": "evolved", "form": "adult", "n": 1 } },
+    { "id": "grown_family", "name": "Grown Family", "desc": "Evolve 5 pets into adults.", "group": "pets", "renown": 200, "title": "Pet Whisperer", "when": { "kind": "evolved", "form": "adult", "n": 5 } },
+    { "id": "bestiary_start", "name": "Curious Collector", "desc": "Collect 10 Bestiary stars.", "group": "collection", "renown": 30, "title": null, "when": { "kind": "bestiary", "n": 10 } },
+    { "id": "bestiary_keeper", "name": "Bestiary Keeper", "desc": "Collect 30 Bestiary stars.", "group": "collection", "renown": 90, "title": null, "when": { "kind": "bestiary", "n": 30 } },
+    { "id": "bestiary_master", "name": "Bestiary Master", "desc": "Collect 60 Bestiary stars.", "group": "collection", "renown": 250, "title": "Bestiary Master", "when": { "kind": "bestiary", "n": 60 } },
+    { "id": "talent_scout", "name": "Talent Scout", "desc": "Choose 10 pet talents.", "group": "pets", "renown": 60, "title": null, "when": { "kind": "talentPicks", "n": 10 } },
+    { "id": "thoughtful_gifts", "name": "Thoughtful Gifts", "desc": "Receive 10 gifts from your pets.", "group": "pets", "renown": 50, "title": null, "when": { "kind": "petGifts", "n": 10 } }
   ]
 }

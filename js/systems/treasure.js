@@ -7,6 +7,7 @@ import { random, randomInt, chance } from '../core/rng.js';
 import { addItem, removeItem } from './bag.js';
 import { earnCoins } from './coins.js';
 import { zoneUnlocked, isHarvestTask, mapItemFor } from './harvest.js';
+import { canDig } from './petstats.js';
 
 export const id = 'treasure';
 export { mapItemFor };
@@ -80,11 +81,19 @@ function pickWeighted(stream, list) {
   return list[list.length - 1];
 }
 
-// Uses one map and rolls the reward (from the treasure stream).
-function finishDig(state, ctx, zoneId) {
+// One weighted pick from data/treasure.json loot for a zone tier (also used for pets' Heart 4 gifts),
+// or null when the tier has no loot.
+export function pickLoot(stream, data, tier) {
+  const loot = data.treasure.loot[String(tier)] || [];
+  return loot.length ? pickWeighted(stream, loot) : null;
+}
+
+// Uses one map and rolls the reward. The player rolls from the treasure stream; a digging pet from
+// its own worker stream (so pet digs don't change the player's results).
+export function finishDig(state, ctx, zoneId, stream = state.treasure, worker = 'player') {
   const { data } = ctx;
   const b = data.balance.treasure;
-  const tr = state.treasure;
+  const tr = stream;
   removeItem(state, mapItemFor(data, zoneId), 1);
   const tier = zoneById(data, zoneId).tier;
   const i = Math.min(tier, b.byTier.rolls.length) - 1;
@@ -97,14 +106,14 @@ function finishDig(state, ctx, zoneId) {
   };
   const loot = data.treasure.loot[String(tier)] || [];
   for (let r = 0; r < b.byTier.rolls[i] && loot.length; r++) {
-    const pick = pickWeighted(tr, loot);
+    const pick = pickLoot(tr, data, tier);
     add(pick.item, randomInt(tr, pick.qty[0], pick.qty[1]));
   }
   if (chance(tr, b.byTier.relic[i])) add(data.treasure.relicItem, 1);
   if (chance(tr, b.eggChance)) add(data.treasure.eggItem, 1);
   for (const [item, n] of Object.entries(items)) addItem(state, item, n);
   state.stats.digs += 1;
-  ctx.emit?.({ type: 'dig', zone: zoneId, coins, items });
+  ctx.emit?.({ type: 'dig', zone: zoneId, coins, items, worker });
 }
 
 // No maps left: back to the harvest task from before digging (with the rest of the span), or idle.
@@ -140,14 +149,17 @@ export function advance(state, ms, ctx) {
 // ---- commands ----
 
 export const commands = {
-  // The player digs up this zone's maps one after another. A harvest task is remembered and taken
-  // up again when the maps run out.
-  'treasure/dig': (state, { zone: zoneId }, ctx) => {
+  // The player (or an active Scout pet: worker = its id) digs up this zone's maps one after another.
+  // A harvest task is remembered and taken up again when the maps run out. A pet's dig progress is
+  // its worker's progressMs (the pets system advances it).
+  'treasure/dig': (state, { zone: zoneId, worker = 'player' }, ctx) => {
     const zone = zoneById(ctx.data, zoneId);
     if (!zone || !mapItemFor(ctx.data, zoneId)) throw new Error("There's no treasure to find there.");
     if (!zoneUnlocked(state, ctx.data, zoneId)) throw new Error(`${zone.name} isn't open yet.`);
     if (mapCount(state, ctx.data, zoneId) <= 0) throw new Error(`You have no ${zone.name} maps. They turn up while harvesting.`);
-    const w = state.workers.player;
+    const w = state.workers[worker];
+    if (!w) throw new Error('Nobody is there to do that.');
+    if (worker !== 'player' && !canDig(ctx.data, state.pets.list[worker])) throw new Error('Only Scout pets know how to dig.');
     if (w.task?.skill === 'treasure' && w.task.zone === zoneId) return;
     if (isHarvestTask(ctx.data, w.task)) w.resume = w.task;
     w.task = { zone: zoneId, skill: 'treasure', node: 'dig' };

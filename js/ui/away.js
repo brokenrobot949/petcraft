@@ -58,6 +58,11 @@ export function showAwaySummary(app, summary, { awayMs }) {
         if (times.length) extra.push(el('p.small', {}, times.join(', ')));
         const ate = Object.entries(info.ate || {}).map(([id, n]) => `${n} ${itemName(id)}`);
         if (ate.length) extra.push(el('p.small', {}, `Ate ${ate.join(', ')}`));
+        const gifts = Object.entries(info.gifts || {}).map(([id, n]) => `${n} ${itemName(id)}`);
+        if (gifts.length) extra.push(el('p.away-levelup', {}, `Brought you ${gifts.join(', ')}`));
+        if (info.digs > 0) extra.push(el('p.small', {}, `Dug up ${info.digs} treasure${info.digs === 1 ? '' : 's'}`));
+        if (info.talentReady) extra.push(el('p.away-levelup', {}, 'Has a new talent to choose'));
+        if (info.favorite) extra.push(el('p.away-levelup', {}, `Loves ${itemName(info.favorite)}!`));
         if (info.level != null) extra.push(el('p.away-levelup', {}, `${name} reached level ${info.level}!`));
         if (info.hearts != null) extra.push(el('p.away-levelup', {}, `${name} now has ${info.hearts} heart${info.hearts === 1 ? '' : 's'}!`));
       }
@@ -122,6 +127,7 @@ export function showAwaySummary(app, summary, { awayMs }) {
   if (summary.nest?.ready > 0) {
     scroll.append(el('p.away-levelup', {}, summary.nest.ready === 1 ? 'An egg is ready to hatch' : `${summary.nest.ready} eggs are ready to hatch`));
   }
+  if (summary.bestiary?.length) scroll.append(el('p.away-levelup', {}, `New Bestiary stars: ${summary.bestiary.length}`));
   for (const id of summary.achievements || []) {
     const a = data.achievements.achievements.find((x) => x.id === id);
     scroll.append(el('p.away-levelup', {}, `Achievement: ${a?.name || id}`));

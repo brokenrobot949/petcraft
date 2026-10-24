@@ -3,7 +3,7 @@
 import { el, toast } from './dom.js';
 import { getPref, setPref } from './device.js';
 import { offlineCapMs, localDay } from '../core/time.js';
-import { needsStarter, petList, canPatToday } from '../systems/pets.js';
+import { needsStarter, petList, canPatToday, petNotice } from '../systems/pets.js';
 import { craftNotice } from '../systems/crafting.js';
 import { canUpgradeAny } from '../systems/buildings.js';
 import { villageNotice } from '../systems/village.js';
@@ -86,10 +86,11 @@ export function mountShell(app) {
     const e = entries.find((x) => x.tab.id === id);
     if (e) e.badge.hidden = !on;
   };
-  // Pets badge: the starter egg is waiting, an egg in the Nest is ready, or a pet hasn't had today's pat.
+  // Pets badge: the starter egg is waiting, an egg in the Nest is ready, a pet hasn't had today's pat,
+  // or a pet can evolve or has a talent to choose.
   const petsBadge = (state) => {
     const today = localDay(Date.now());
-    setBadge('pets', needsStarter(state) || nestNotice(state) || petList(state).some((p) => canPatToday(state, p.id, today)));
+    setBadge('pets', needsStarter(state) || nestNotice(state) || petNotice(state, app.game.data) || petList(state).some((p) => canPatToday(state, p.id, today)));
   };
   app.game.subscribe(petsBadge);
   petsBadge(app.game.getState());

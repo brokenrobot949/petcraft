@@ -24,3 +24,6 @@
 .zone-marks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .zone-mark { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 14px; background: var(--wood-dark); border: 2px solid var(--ink); border-radius: 6px; color: var(--cream); }
 .zone-mark.alert { color: var(--pale); border-color: var(--orange); }
+.scout-row { margin-top: 8px; }
+.scout-row .btn.wide { display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 0; }
+.scout-row .bar.big { margin: 8px 0 4px; }

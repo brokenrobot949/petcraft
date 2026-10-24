@@ -3,7 +3,7 @@
 // Per-skill and per-tool entries are filled from data by each system's init(), not here.
 import { newSeed, deriveSeed } from './rng.js';
 
-export const SCHEMA_VERSION = 6;
+export const SCHEMA_VERSION = 7;
 
 export function createInitialState(now) {
   const seed = newSeed();
@@ -33,12 +33,13 @@ export function createInitialState(now) {
     stats: { actions: {}, crafts: {} },
     pets: { nextId: 1, active: [], list: {} },
     pantry: {},
-    crafting: { stations: {}, working: [], known: {} },
+    crafting: { stations: {}, working: [], known: {}, assists: {} },
     buffs: {},
     village: newVillage(seed),
     garden: { plots: [], rng: deriveSeed(seed, 3000) },
     achievements: { done: {}, title: null },
     ...newTamingState(seed),
+    bestiary: {},
   };
 }
 
@@ -49,6 +50,11 @@ export function newTamingState(seed) {
     treasure: { progress: {}, rng: deriveSeed(seed, 5100) },
     nest: { slots: [], rng: deriveSeed(seed, 5200) },
   };
+}
+
+// A pet's own random stream (v7): talent offers, gift talents and its favorite dish.
+export function petSeed(seed, petId) {
+  return deriveSeed(seed, 7000 + (Number(String(petId).replace(/\D/g, '')) || 0));
 }
 
 // Mossbrook (v5): today's Commission Board, this week's Great Commission and merchant stock.
@@ -144,5 +150,13 @@ export function validateState(s) {
   for (const e of s.nest.slots) {
     if (e !== null && !(isObj(e) && typeof e.archetype === 'string' && typeof e.quality === 'string' && isCount(e.msLeft))) return 'bad nest egg';
   }
+  if (s.version < 7) return null;
+  for (const pet of Object.values(p.list)) {
+    if (!Number.isInteger(pet.rng) || !Array.isArray(pet.talents) || !Array.isArray(pet.gifts)) return 'bad pet talents';
+    if (pet.offer != null && !(Array.isArray(pet.offer) && pet.offer.every((t) => typeof t === 'string'))) return 'bad talent offer';
+  }
+  if (!isObj(s.crafting.assists)) return 'bad assists';
+  for (const petId of Object.values(s.crafting.assists)) if (!p.list[petId]) return 'assistant is missing';
+  if (!isObj(s.bestiary)) return 'bad bestiary';
   return null;
 }
