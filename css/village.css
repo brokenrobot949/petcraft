@@ -72,3 +72,7 @@ button.gd-plot { cursor: pointer; touch-action: manipulation; }
 /* Home buttons */
 .home-btns { position: absolute; top: calc(env(safe-area-inset-top) + 8px); right: calc(env(safe-area-inset-right) + 10px); z-index: 5; display: flex; gap: 8px; }
 .home-btns .home-buildings-btn { position: static; }
+.mb-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; }
+.mb-head h2 { margin: 0; }
+.mb-purse { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 2px solid var(--ink); border-radius: 6px; background: var(--wood-dark); }
+.mb-purse b { font-weight: normal; color: var(--cream); font-size: 18px; }

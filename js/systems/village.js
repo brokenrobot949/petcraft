@@ -1,7 +1,7 @@
 // Mossbrook, the village down the road (docs/design.md "Village and economy"): the market (sell
 // anything at a fixed price; buy seeds, blueprints and recipe scrolls), the Commission Board
 // (3 requests a day, reset at local midnight, 1 free reroll a day), the weekly Great Commission and
-// the traveling merchant (3 rotating offers a week).
+// the traveling merchant (3 rotating offers a day, changing at local midnight like the board).
 // Days and weeks change only through the village/newDay command (the UI sends it on load, when
 // the page comes back and once a minute; the balance simulator at every check-in), because
 // advance() never reads the clock. Each board is rolled from the village's own random stream.
@@ -109,7 +109,7 @@ function rollMerchant(state, data) {
   return out;
 }
 
-// Fills a new day's board, and a new week's Great Commission and merchant. Idempotent.
+// Fills a new day's board and merchant stock, and a new week's Great Commission. Idempotent.
 export function newDay(state, ctx) {
   const { data } = ctx;
   const v = state.village;
@@ -121,6 +121,7 @@ export function newDay(state, ctx) {
       const c = rollDaily(state, data, v.board.map((b) => b.template));
       if (c) v.board.push(c);
     }
+    v.merchant = rollMerchant(state, data);
     v.seen = false;
     ctx.emit?.({ type: 'newBoard', day: ctx.day });
   }
@@ -128,7 +129,6 @@ export function newDay(state, ctx) {
   if (v.week !== week) {
     v.week = week;
     v.great = null;
-    v.merchant = rollMerchant(state, data);
   }
   // A brand-new player may not meet any Great Commission's needs yet: keep trying until one fits.
   if (!v.great) {
@@ -222,7 +222,7 @@ export function scrollList(state, data) {
   });
 }
 
-// This week's merchant offers: [{ index, item, def, price, left, normal (shop price or null) }].
+// Today's merchant offers: [{ index, item, def, price, left, normal (shop price or null) }].
 export function merchantList(state, data) {
   return state.village.merchant.map((m, index) => ({
     index, item: m.item, def: data.items.items[m.item], price: m.price, left: m.left,

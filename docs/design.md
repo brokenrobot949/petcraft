@@ -344,7 +344,7 @@ Mossbrook turns surplus into coins and gives each day a few goals. Coins are the
 **Mossbrook**
 
 - **Market:** sell any item at a fixed price; buy seeds, basic bait, blueprints, recipe scrolls and decor.
-- **Traveling merchant:** once a week, three rotating rare items (a rare egg, a strong lure, a blueprint discount).
+- **Traveling merchant:** every day, three rotating rare items (a rare egg, a strong lure, a blueprint discount). (Changed by Rob, 2026-10-23: was once a week.)
 - **Commission Board:** 3 daily commissions, reset at local midnight, 1 free reroll a day. Requests scale to the tiers you've unlocked ("Deliver 40 oak planks", "Cook 5 trout stews"). Rewards: coins, Renown XP, sometimes a lure or relic fragment.
 - **Great Commission:** one per week, bigger delivery, bigger reward.
 

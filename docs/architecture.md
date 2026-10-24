@@ -449,7 +449,8 @@ Stats fields are filled by each system's init.
   commissions (Phase 7: treasure). Sinks: building tiers 2-5 coins, blueprints, seeds, scrolls, merchant, paid rerolls.
 - **Mossbrook** (js/systems/village.js): `village/newDay` (sent by the UI on load, on return to the page and
   every minute; by the simulator at each check-in) fills a new board when `ctx.day` changed (local midnight) and a
-  new Great Commission and merchant stock when the Monday-based week changed. Templates are eligible when
+  new Great Commission when the Monday-based week changed. The merchant restocks with the board every day
+  (Rob, 2026-10-23). Templates are eligible when
   their `tier` <= `reachableTier` (highest open zone tier the player has a harvest tool for) and within
   `tierSpread` of it, and their `needs` skill levels are met. Coins = max(minCoins, sell value x coinMult).
   Deliveries take any quality, Normal first. 1 free reroll a day, then `rerollCost` coins.
@@ -476,8 +477,8 @@ Summary additions: `renown: { xp, rank|null }`, `achievements: [id]`, `garden: {
 `village/newDay`, `village/seen`, `village/deliver { slot }` (slot 0..2 or 'great'), `village/reroll { slot }`,
 `market/sell { item: key, qty }`, `market/buy { item, qty }`, `market/learn { recipe }`, `market/buyMerchant { index }`,
 `crafting/work { station }`, `garden/plant { plot, seed }`, `garden/clear { plot }`, `garden/auto { plot, on }`,
-`achievements/setTitle { id|null }`. Test mode: `dev/addRenownXp { amount }`, `dev/newDay` (fresh board, Great
-Commission and merchant), `dev/setRenown` now also clears the rank's XP.
+`achievements/setTitle { id|null }`. Test mode: `dev/addRenownXp { amount }`, `dev/newDay` (fresh board, merchant and Great
+Commission), `dev/setRenown` now also clears the rank's XP.
 
 ### Selectors (Phase 6)
 

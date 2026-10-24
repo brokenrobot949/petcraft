@@ -1,4 +1,4 @@
-// The Mossbrook sheet: Commission Board, Market (sell, buy, scrolls) and the weekly Merchant.
+// The Mossbrook sheet: Commission Board, Market (sell, buy, scrolls) and the daily Merchant.
 // The UI only reads state and selectors, and changes things with game.dispatch.
 import { el, toast } from './dom.js';
 import { itemIcon } from './icons.js';
@@ -52,6 +52,7 @@ export function openMossbrook(app, startTab = 'board') {
   function tabs() { return TABS.map((t) => t[0]); }
 
   const body = el('div.hs-body');
+  const purse = el('b'); // the player's coins, always in view while shopping
   const segButtons = TABS.map(([id, name]) => el('button.mb-seg', {
     type: 'button', role: 'tab', 'data-tab': id, onclick: () => setTab(id),
   }, name));
@@ -59,7 +60,8 @@ export function openMossbrook(app, startTab = 'board') {
   const foot = el('div.hs-foot', {}, el('button.btn.wide', { type: 'button', onclick: closeMossbrook }, 'Close'));
   const backdrop = el('div.sheet-backdrop.home-sheet-backdrop', { onclick: (e) => e.target === backdrop && closeMossbrook() },
     el('div.sheet.home-sheet.mb-sheet', { role: 'dialog', 'aria-modal': 'true' },
-      el('h2', {}, 'Mossbrook'), seg, body, foot));
+      el('div.mb-head', {}, el('h2', {}, 'Mossbrook'), el('span.mb-purse', { 'aria-label': 'Your coins' }, coinImg(), purse)),
+      seg, body, foot));
   document.body.append(backdrop);
 
   let lastKey = null;
@@ -84,6 +86,7 @@ export function openMossbrook(app, startTab = 'board') {
   }
 
   function render() {
+    purse.textContent = state().coins.toLocaleString();
     for (const b of segButtons) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
     if (picker) return; // don't rebuild under an open quantity picker
     const key = keyFor();
@@ -281,7 +284,7 @@ export function openMossbrook(app, startTab = 'board') {
 
   function merchantView() {
     const list = merchantList(state(), data);
-    const out = [el('h3.mb-h', {}, "This week's traveling merchant")];
+    const out = [el('h3.mb-h', {}, "Today's traveling merchant")];
     if (!list.length) out.push(el('p.small.muted', {}, 'The merchant has nothing for sale right now.'));
     for (const m of list) {
       const sold = m.left < 1;
@@ -296,7 +299,7 @@ export function openMossbrook(app, startTab = 'board') {
           coins(m.price),
           el('button.btn.mb-learn', { type: 'button', disabled: sold, onclick: () => buyMerchant(m) }, 'Buy'))));
     }
-    out.push(el('p.small.muted', {}, 'The merchant changes every Monday.'));
+    out.push(el('p.small.muted', {}, 'The merchant brings new goods every day at midnight.'));
     return out;
   }
 

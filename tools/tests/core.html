@@ -449,9 +449,11 @@ try {
   gv.dispatch('village/newDay');
   check('same day: the board stays', JSON.stringify(sv.village.board) === board0);
   const great0 = JSON.stringify(sv.village.great);
+  const merchant0 = JSON.stringify(sv.village.merchant);
   clockNow += 20 * 60000; // 00:10 the next day
   gv.dispatch('village/newDay');
   check('commissions reset at local midnight', sv.village.day === day0 + 1 && JSON.stringify(sv.village.board) !== board0);
+  check('the merchant restocks at local midnight', sv.village.merchant.length === data.balance.village.merchant.slots && JSON.stringify(sv.village.merchant) !== merchant0, JSON.stringify(sv.village.merchant));
   check('the Great Commission stays for the week', JSON.stringify(sv.village.great) === great0);
   clockNow = new Date(2026, 9, 26, 0, 5).getTime(); // the next Monday
   const week0 = sv.village.week;

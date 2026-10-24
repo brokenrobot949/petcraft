@@ -71,7 +71,8 @@ Phase 6: save schema v5 (migration 4->5: crafting.working/known, village, garden
   Mossbrook (js/systems/village.js, js/ui/mossbrook.js; Home signpost or Mossbrook button): market (sell
   anything with a sell price, x quality; buy seeds and blueprints; recipe scrolls teach 6 "scroll" recipes),
   Commission Board (3 a day, reset at local midnight via 'village/newDay' from main.js every minute, 1 free
-  reroll then 25 coins), weekly Great Commission (Monday weeks), traveling merchant (3 weekly offers).
+  reroll then 25 coins), weekly Great Commission (Monday weeks), traveling merchant (3 offers, restocked
+  daily at midnight: Rob, 2026-10-23). The Mossbrook sheet shows the player's coins in its header.
   Coins through js/systems/coins.js (stats.coinsEarned/Spent). Garden (js/systems/garden.js): plots by tier,
   seeds from items.json "seed", auto-replant. 56 achievements (afterCommand hook in game.dispatch), wearable
   titles. Zones 2-5 with nodes, rares and scenes (per-zone ground colors); iron/steel/mythril/emberite tools
