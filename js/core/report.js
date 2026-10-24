@@ -4,14 +4,14 @@
 //   stations: { stationId: { items: { key: n }, xp, skill } }, equipped: [bag key], buffsEnded: [itemId],
 //   renown: { xp, rank (the new rank, or null) }, achievements: [id], garden: { itemId: n },
 //   taming: { found: [{ zone, archetype }], results: [TrapResult], lureEnded }, treasure: { digs, coins, items: { key: n } },
-//   nest: { ready: n }, bestiary: [{ entry, quality }] }
+//   nest: { ready: n }, bestiary: [{ entry, quality }], mastery: { skill: stars (the new total) }, story: [entryId] }
 // pets[id] also has gifts: { itemId: n } (Heart 4 gifts), digs (Scout digs, also counted in treasure),
 // talentReady (a talent pick came up) and favorite (its favorite dish, if found while away).
 // Tracking actions count in workers.player (actions, xp.taming).
 // pets[id].level / .hearts are set only when the pet reached a new level / heart while away.
 export function createReport(ms) {
   const summary = { ms, workers: {}, levelUps: {}, pets: {}, stations: {}, equipped: [], buffsEnded: [], renown: { xp: 0, rank: null }, achievements: [], garden: {},
-    taming: { found: [], results: [], lureEnded: false }, treasure: { digs: 0, coins: 0, items: {} }, nest: { ready: 0 }, bestiary: [] };
+    taming: { found: [], results: [], lureEnded: false }, treasure: { digs: 0, coins: 0, items: {} }, nest: { ready: 0 }, bestiary: [], mastery: {}, story: [] };
   const worker = (id) => summary.workers[id] || (summary.workers[id] = { actions: 0, items: {}, xp: {}, petXp: 0 });
   const pet = (id) => summary.pets[id] || (summary.pets[id] = { workMs: 0, restMs: 0, ate: {}, level: null, hearts: null, gifts: {}, digs: 0, talentReady: false, favorite: null });
   function add(e) {
@@ -57,7 +57,7 @@ export function createReport(ms) {
       w.actions += 1;
       w.xp.taming = (w.xp.taming || 0) + e.xp;
     } else if (e.type === 'encounter') {
-      summary.taming.found.push({ zone: e.zone, archetype: e.archetype });
+      summary.taming.found.push({ zone: e.zone, archetype: e.archetype, mythic: !!e.mythic });
     } else if (e.type === 'trapDone') {
       const { type, ...result } = e;
       summary.taming.results.push(result);
@@ -79,6 +79,10 @@ export function createReport(ms) {
       summary.bestiary.push({ entry: e.entry, quality: e.quality });
     } else if (e.type === 'eggReady') {
       summary.nest.ready += 1;
+    } else if (e.type === 'masteryStar') {
+      summary.mastery[e.skill] = Math.max(summary.mastery[e.skill] || 0, e.stars);
+    } else if (e.type === 'story') {
+      summary.story.push(e.entry);
     }
   }
   return { summary, add };

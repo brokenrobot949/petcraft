@@ -1,4 +1,5 @@
-// Balance simulator policy v2: what a sensible player does during one check-in (about 3 minutes).
+// Balance simulator policy v5 (adds Phase 9: Grand Projects, scenes, Elder Grove, Heartgrove/Starmetal, mythics).
+// What a sensible player does during one check-in (about 3 minutes).
 // It only sends commands through game.dispatch and only reads state through the game's own
 // selectors. No DOM, no window: a Node runner can import this file as it is.
 //
@@ -25,6 +26,9 @@ import { plotList, seedList, seedDef } from '../../js/systems/garden.js';
 import { freePetSpaces, trapOptions, baitOptions, lureList, lureInfo, encounterInfo } from '../../js/systems/taming.js';
 import { mapList, digMs } from '../../js/systems/treasure.js';
 import { eggList, nestList } from '../../js/systems/nest.js';
+import { currentStage, pendingScene, ended } from '../../js/systems/sanctuary.js';
+import { storyNotice } from '../../js/systems/story.js';
+import { retireInfo, heirEggList } from '../../js/systems/elders.js';
 
 // Policy knobs (how the simulated player behaves; these are not game numbers).
 const FOOD_TARGET = 40;     // keep about this many cooked meals (what auto-feed eats) in the bag: a night for 2 pets
@@ -58,7 +62,10 @@ export function createPolicy(data) {
   const craftSkills = new Set(Object.values(stationSkill));
   const toolItem = {}; // kind -> tier -> item id
   for (const [id, d] of Object.entries(items)) if (d.tool) (toolItem[d.tool] ||= {})[d.tier] = id;
-  const maxToolTier = Math.max(...data.tools.tiers.filter((t) => !t.prestige).map((t) => t.tier));
+  const maxPlainTier = Math.max(...data.tools.tiers.filter((t) => !t.prestige).map((t) => t.tier));
+  const maxAnyTier = Math.max(...data.tools.tiers.map((t) => t.tier));
+  // Prestige (Starmetal) tools are a goal only once the ending has opened the Heartgrove.
+  const toolCap = (state) => (ended(state, data) ? maxAnyTier : maxPlainTier);
   const zoneTier = Object.fromEntries(data.zones.zones.map((z) => [z.id, z.tier]));
 
   // Everything with some use for the policy: recipe inputs, building costs, commission requests.
@@ -66,6 +73,7 @@ export function createPolicy(data) {
   for (const r of data.recipes.recipes) for (const i of Object.keys(r.inputs)) used.add(i);
   for (const b of data.buildings.buildings) for (const c of Object.values(b.costs || {})) for (const i of Object.keys(c.items || {})) used.add(i);
   for (const t of [...data.commissions.daily, ...data.commissions.great]) for (const e of t.items) used.add(e.item);
+  for (const p of data.projects?.projects || []) for (const s of p.stages) for (const i of Object.keys(s.items || {})) used.add(i);
 
   // Craft-skill levels an item's whole recipe chain asks for.
   const reqCache = {};
@@ -83,6 +91,10 @@ export function createPolicy(data) {
 
   // Which nodes give which item, best first. And every node by skill.
   const nodeIndex = {};
+  // Garden-only crops (crop item -> seed item); crops that also drop from harvest nodes (pine logs)
+  // are left out after the node index is built.
+  const cropSeed = {};
+  for (const [id, d] of Object.entries(items)) if (d.seed?.crop) cropSeed[d.seed.crop] ||= id;
   const skillNodes = {};
   const foodNodes = [];
   for (const zone of data.zones.zones) {
@@ -107,6 +119,7 @@ export function createPolicy(data) {
     }
   }
   for (const list of Object.values(nodeIndex)) list.sort((a, b) => b.rate - a.rate);
+  for (const crop of Object.keys(cropSeed)) if (nodeIndex[crop] || producer[crop]) delete cropSeed[crop];
 
   // ---- command wrapper: refusals are normal, count them by message ----
   function act(game, type, payload = {}) {
@@ -183,6 +196,8 @@ export function createPolicy(data) {
   // Could the player meet this item soon (open zone, tool and skill within SOON_LEVELS, recipes known)?
   function reachable(state, id, depth = 0) {
     if (depth > 8) return false;
+    // Garden crops: a Garden and a seed for sale.
+    if (cropSeed[id]) return plotList(state, data).length > 0 && shopList(state, data).some((s) => !s.locked && seedDef(data, s.item)?.crop === id);
     const r = producer[id];
     if (r) {
       if (stationTier(state, r.station) < 1) {
@@ -224,6 +239,8 @@ export function createPolicy(data) {
     for (let pass = 0; pass < 10; pass++) {
       let did = false;
       for (const o of buildingOptions(game.getState())) {
+        const keep = coinReserve(game.getState());
+        if (keep && game.getState().coins - (o.cost.coins || 0) < keep) continue; // the stage's coins come first
         let chk = upgradeCheck(game.getState(), data, o.id);
         if (!chk.ok && chk.needsBlueprint && !chk.missing.length && buyBlueprint(game, chk.cost.blueprint, chk.cost.coins)) {
           chk = upgradeCheck(game.getState(), data, o.id);
@@ -278,25 +295,42 @@ export function createPolicy(data) {
   }
 
   // ---- Garden ----
+  // Crops the current Grand Project stage still needs, directly or as a recipe input one step down.
+  function wantedCrops(state) {
+    const st = currentStage(state, data);
+    const out = new Set();
+    for (const n of st ? itemNeeds(st) : []) {
+      if (n.have >= n.need) continue;
+      if (cropSeed[n.item]) out.add(n.item);
+      for (const i of Object.keys(producer[n.item]?.inputs || {})) if (cropSeed[i]) out.add(i);
+    }
+    return out;
+  }
   function tendGarden(game) {
     let state = game.getState();
     const plots = plotList(state, data);
     if (!plots.length) return;
-    const seedsLeft = () => seedList(game.getState(), data).reduce((n, s) => n + s.count, 0);
-    if (seedsLeft() < plots.length * 2) {
-      const cheapest = shopList(state, data).filter((s) => !s.locked && seedDef(data, s.item)).sort((a, b) => a.price - b.price)[0];
-      if (cheapest) {
-        const qty = Math.min(plots.length * SEEDS_PER_PLOT, Math.floor(state.coins / cheapest.price));
-        if (qty >= 1) act(game, 'market/buy', { item: cheapest.item, qty });
-      }
+    // Seeds for wanted crops first; otherwise the cheapest seed (Garden XP-free filler, as before).
+    const shop = shopList(state, data).filter((s) => !s.locked && seedDef(data, s.item));
+    const wanted = wantedCrops(state);
+    const wantSeeds = shop.filter((s) => wanted.has(seedDef(data, s.item).crop)).map((s) => s.item);
+    const buyList = wantSeeds.length ? wantSeeds : shop.sort((a, b) => a.price - b.price).slice(0, 1).map((s) => s.item);
+    for (const seedId of buyList) {
+      const have = game.getState().bag[seedId] || 0;
+      const price = shop.find((s) => s.item === seedId)?.price || 1;
+      const qty = Math.min(plots.length * SEEDS_PER_PLOT - have, Math.floor(game.getState().coins / price));
+      if (have < plots.length * 2 && qty >= 1) act(game, 'market/buy', { item: seedId, qty });
     }
     for (const p of plotList(game.getState(), data)) {
       state = game.getState();
       if (p.seed) {
-        if (!p.auto) act(game, 'garden/auto', { plot: p.index, on: true });
+        // A plot growing something no longer wanted finishes its crop, then gets a wanted seed.
+        const keep = !wantSeeds.length || wantSeeds.includes(p.seed);
+        if (p.auto !== keep) act(game, 'garden/auto', { plot: p.index, on: keep });
         continue;
       }
-      const seed = seedList(state, data).sort((a, b) => b.count - a.count)[0];
+      const seeds = seedList(state, data);
+      const seed = seeds.filter((s) => wantSeeds.includes(s.id)).sort((a, b) => a.count - b.count)[0] || seeds.sort((a, b) => b.count - a.count)[0];
       if (seed) act(game, 'garden/plant', { plot: p.index, seed: seed.id });
     }
   }
@@ -320,7 +354,7 @@ export function createPolicy(data) {
     }
     const groups = [...byId.values()].map((g) => {
       const def = items[g.id];
-      const reserve = def.buff ? POTION_RESERVE : Math.max(used.has(g.id) ? RAW_RESERVE : 0, plan.total[g.id] || 0);
+      const reserve = def.buff ? Math.max(POTION_RESERVE, plan.total[g.id] || 0) : Math.max(used.has(g.id) ? RAW_RESERVE : 0, plan.total[g.id] || 0);
       g.keys.sort((a, b) => b.price - a.price);
       return { ...g, surplus: g.total - reserve, top: g.keys[0].price };
     }).filter((g) => g.surplus > 0).sort((a, b) => b.top - a.top);
@@ -342,7 +376,7 @@ export function createPolicy(data) {
   function learnScrolls(game) {
     const state = game.getState();
     const goal = coinGoal(state);
-    const keep = goal > COIN_FLOOR ? goal : 0;
+    const keep = (goal > COIN_FLOOR ? goal : 0) + coinReserve(state);
     for (const s of scrollList(state, data).sort((a, b) => a.price - b.price)) {
       if (s.known || s.locked || game.getState().coins < s.price + keep) continue;
       act(game, 'market/learn', { recipe: s.recipe });
@@ -378,6 +412,10 @@ export function createPolicy(data) {
       const bait = baitByDish[archetypeDish[a]];
       if (bait && reachable(state, bait)) list.push([bait, BAIT_STOCK]);
     }
+    // After the ending: a Starmetal Trap and Mythic Bait for the Heartgrove's mythics (until all 4 were had).
+    if (ended(state, data) && mythicsHad(state) < (data.pets.mythics || []).length) {
+      for (const id of ['starmetal_trap', 'mythic_bait']) if (items[id] && reachable(state, id)) list.push([id, 1]);
+    }
     return list;
   }
   const usableTrap = (state, zone) => trapOptions(state, data, zone.id).find((o) => o.ok) || null;
@@ -409,6 +447,7 @@ export function createPolicy(data) {
       }
       if (freePetSpaces(game.getState(), data) > 0) act(game, 'nest/hatch', { slot: n.slot, name: data.pets.suggestedNames[petNames++ % data.pets.suggestedNames.length] });
     }
+    placeHeirs(game);
     for (const e of eggList(game.getState(), data)) {
       for (let i = 0; i < e.count && nestList(game.getState(), data).some((n) => !n.egg); i++) if (!act(game, 'nest/place', { item: e.key })) break;
     }
@@ -432,11 +471,16 @@ export function createPolicy(data) {
     for (const z of openWild(state)) {
       state = game.getState();
       if (!state.taming.encounters[z.id] || state.taming.traps[z.id]) continue;
+      // A mythic needs a Starmetal Trap and Mythic Bait; without both, let it go so tracking can go on.
+      if (state.taming.encounters[z.id].mythic && (!usableTrap(state, z) || !baitOptions(state, data, z.id).some((b) => b.match))) {
+        act(game, 'taming/letGo', { zone: z.id });
+        continue;
+      }
       if (!usableTrap(state, z) && !buyTrap(game, z)) continue;
       if (freePetSpaces(game.getState(), data) <= 0) {
         const enc = encounterInfo(game.getState(), data, z.id);
         const worst = worstStabled(game.getState());
-        const better = worst && enc && (enc.quality ? qualityIdx[enc.quality] > qualityIdx[worst.quality] : enc.special);
+        const better = worst && enc && (enc.mythic || (enc.quality ? qualityIdx[enc.quality] > qualityIdx[worst.quality] : enc.special));
         if (better && act(game, 'pets/release', { pet: worst.id })) petsReleased++;
         else { act(game, 'taming/letGo', { zone: z.id }); continue; }
       }
@@ -465,7 +509,7 @@ export function createPolicy(data) {
     const state = game.getState();
     const id = trapByTier[zone.tier];
     const s = id && shopList(state, data).find((x) => x.item === id && !x.locked);
-    if (!s || state.coins < s.price + BUY_TRAP_MARGIN) return false;
+    if (!s || state.coins < s.price + BUY_TRAP_MARGIN + coinReserve(state)) return false;
     return act(game, 'market/buy', { item: id, qty: 1 }) && !!usableTrap(game.getState(), zone);
   }
   function buyBait(game, zone) {
@@ -473,7 +517,7 @@ export function createPolicy(data) {
     const enc = state.taming.encounters[zone.id];
     const id = enc && baitByDish[archetypeDish[enc.archetype]];
     const s = id && shopList(state, data).find((x) => x.item === id && !x.locked);
-    if (s && state.coins >= s.price + BUY_TRAP_MARGIN) act(game, 'market/buy', { item: id, qty: 1 });
+    if (s && state.coins >= s.price + BUY_TRAP_MARGIN + coinReserve(state)) act(game, 'market/buy', { item: id, qty: 1 });
   }
   // Keep only the maps one check-in's dig budget covers (best zones first); sell the rest.
   function sellExtraMaps(game) {
@@ -597,13 +641,106 @@ export function createPolicy(data) {
     }
   }
 
+  // ---- Grand Projects, scenes, Elder Grove (Phase 9, v5) ----
+  let eldersRetired = 0;
+  let heirsPlaced = 0;
+  let deliveries = 0;
+  const itemNeeds = (st) => st.needs.filter((n) => n.item !== 'coins');
+  const itemsDone = (st) => itemNeeds(st).every((n) => n.have >= n.need);
+  const coinNeed = (st) => st.needs.find((n) => n.item === 'coins');
+  // Coins still owed to the current stage (0 before the Sanctuary opens or after the ending).
+  function stageCoinsLeft(state) {
+    const st = currentStage(state, data);
+    const c = st && coinNeed(st);
+    return c ? Math.max(0, c.need - c.have) : 0;
+  }
+  // Coins held back from lower-priority spending: the stage's coins once all its items are delivered.
+  function coinReserve(state) {
+    const st = currentStage(state, data);
+    return st && itemsDone(st) ? stageCoinsLeft(state) : 0;
+  }
+  // The stage's missing items that the player could reach soon (relics are not reachable: they only come from digs).
+  function sanctuaryWants(state) {
+    const st = currentStage(state, data);
+    if (!st) return [];
+    return itemNeeds(st).filter((n) => n.have < n.need && reachable(state, n.item)).map((n) => [n.item, n.need - n.have]);
+  }
+  // Deliver everything the stage can take: items first, then coins (all of them once the items are in,
+  // otherwise only what the building steps do not need). A finished stage lets the next one take the rest.
+  // Meals and tonics a stage needs are kept out of the pantry (as a player would toggle them off),
+  // so the pets don't eat them before they are delivered; they go back on once no longer needed.
+  const savedFromPantry = new Set();
+  function guardPantry(game) {
+    const st = currentStage(game.getState(), data);
+    const want = new Set();
+    const autoCats = data.balance.pets.energy.autoFeedCategories;
+    for (const n of st ? itemNeeds(st) : []) {
+      const def = data.items.items[n.item];
+      if (n.have >= n.need || !def?.food || !autoCats.includes(def.category)) continue;
+      for (const q of def.quality ? ['', ':fine', ':masterwork'] : ['']) want.add(n.item + q);
+    }
+    for (const key of want) if (!savedFromPantry.has(key) && act(game, 'pets/setPantry', { item: key, on: false })) savedFromPantry.add(key);
+    for (const key of [...savedFromPantry]) if (!want.has(key) && act(game, 'pets/setPantry', { item: key, on: true })) savedFromPantry.delete(key);
+  }
+  function deliverSanctuary(game) {
+    guardPantry(game);
+    for (let pass = 0; pass < 4; pass++) {
+      let st = currentStage(game.getState(), data);
+      if (!st) return;
+      const key = `${st.index}/${st.stage}`;
+      for (const n of itemNeeds(st)) if (n.have < n.need && n.bag > 0 && act(game, 'sanctuary/deliver', { item: n.item })) deliveries++;
+      st = currentStage(game.getState(), data);
+      if (!st) return;
+      if (`${st.index}/${st.stage}` !== key) continue;
+      const c = coinNeed(st);
+      if (c && c.have < c.need) {
+        const state = game.getState();
+        const spare = itemsDone(st) ? state.coins : state.coins - coinGoal(state);
+        const qty = Math.min(c.need - c.have, Math.floor(spare));
+        if (qty >= 1 && act(game, 'sanctuary/deliver', { item: 'coins', qty })) deliveries++;
+      }
+      const after = currentStage(game.getState(), data);
+      if (!after || `${after.index}/${after.stage}` === key) return;
+    }
+  }
+  // Watch finished projects' scenes and read the journal.
+  function watchScenes(game) {
+    for (let i = 0; i < 10; i++) {
+      const p = pendingScene(game.getState());
+      if (!p) break;
+      act(game, 'sanctuary/sceneSeen', { project: p });
+    }
+    if (storyNotice(game.getState())) act(game, 'story/seen', {});
+  }
+  // Retire the oldest pet that can, while 3 or more pets remain (its first talent is the heirloom).
+  function tendElders(game) {
+    for (let i = 0; i < 3; i++) {
+      const state = game.getState();
+      const pets = petList(state);
+      if (pets.length < 3) return;
+      const p = pets.find((x) => retireInfo(state, data, x.id).can);
+      if (!p) return;
+      const info = retireInfo(state, data, p.id);
+      if (!act(game, 'elders/retire', { pet: p.id, heirloom: info.heirlooms.length ? info.heirlooms[0] : null })) return;
+      eldersRetired++;
+    }
+  }
+  // Heir eggs go into free Nest slots (placing one removes it from the waiting list, so index 0 is always next).
+  function placeHeirs(game) {
+    while (heirEggList(game.getState()).length && nestList(game.getState(), data).some((n) => !n.egg)) {
+      if (!act(game, 'nest/placeHeir', { egg: 0 })) break;
+      heirsPlaced++;
+    }
+  }
+  const mythicsHad = (state) => Object.keys(state.bestiary || {}).filter((k) => k.startsWith('mythic.')).length;
+
   // ---- wants ----
   function analyse(state) {
     const goals = [];
     for (const k of data.tools.kinds) {
       const cur = items[state.tools[k.id]?.item]?.tier || 0;
       const next = toolItem[k.id]?.[cur + 1];
-      if (next && cur + 1 <= maxToolTier && reachable(state, next)) goals.push(next);
+      if (next && cur + 1 <= toolCap(state) && reachable(state, next)) goals.push(next);
     }
     const cost = (id) => rawSize({ [id]: 1 });
     goals.sort((a, b) => cost(a) - cost(b));
@@ -623,6 +760,7 @@ export function createPolicy(data) {
       { c: 2, set: otherSet, list: commission ? Object.entries(commission.items) : [] },
       { c: 2, set: otherSet, list: tameWants(state) },
       { c: 2, set: otherSet, list: catalystWants(state) },
+      { c: 2, set: otherSet, list: sanctuaryWants(state) },
     ];
     for (const g of groups) {
       for (const [id, n] of g.list) {
@@ -899,16 +1037,19 @@ export function createPolicy(data) {
     state = game.getState();
     const day = localDay(info.now);
     for (const p of petList(state)) if (canPatToday(state, p.id, day)) act(game, 'pets/pat', { pet: p.id });
+    watchScenes(game);
 
-    sellSurplus(game, analyse(game.getState()), coinGoal(game.getState()));
+    sellSurplus(game, analyse(game.getState()), coinGoal(game.getState()) + stageCoinsLeft(game.getState()));
     upgradeBuildings(game);
     deliverCommissions(game);
     rerollUnreachable(game);
+    deliverSanctuary(game);
     tendGarden(game);
     learnScrolls(game);
 
     evolvePets(game);
     pickTalents(game);
+    tendElders(game);
     const plan = analyse(game.getState());
     planCrafts(game, plan, info.horizonMs);
     queueCatalysts(game);
@@ -935,5 +1076,8 @@ export function createPolicy(data) {
     get talentPicked() { return talentPicked; },
     get assistsPosted() { return assistsPosted; },
     get petDigsSent() { return petDigsSent; },
+    get eldersRetired() { return eldersRetired; },
+    get heirsPlaced() { return heirsPlaced; },
+    get deliveries() { return deliveries; },
   };
 }

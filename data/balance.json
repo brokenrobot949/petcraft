@@ -14,7 +14,8 @@
   },
   "skills": {
     "maxLevel": 60,
-    "xpCurve": { "a": 40, "exp": 1.5, "b": 60 }
+    "xpCurve": { "a": 40, "exp": 1.5, "b": 60 },
+    "mastery": { "speedPerStar": 0.005, "maxStars": 50 }
   },
   "harvest": {
     "actionSeconds": { "chopping": 4, "mining": 5, "foraging": 3, "fishing": 6, "hunting": 5 },
@@ -24,7 +25,8 @@
     "rareFindBase": 0.01,
     "playerRareMult": 2,
     "toolQualitySpeed": { "normal": 0, "fine": 0.1, "masterwork": 0.2 },
-    "toolQualityRare": { "normal": 0, "fine": 0.01, "masterwork": 0.02 }
+    "toolQualityRare": { "normal": 0, "fine": 0.01, "masterwork": 0.02 },
+    "prestigeSpeed": 0.15
   },
   "pets": {
     "activeSlots": 2,
@@ -120,7 +122,8 @@
     "trapKeptOnEscape": 0.5,
     "escapeStayHours": 6,
     "catchXp": 40,
-    "maxResults": 6
+    "maxResults": 6,
+    "mythic": { "revealShare": 0.25, "cooldownHours": 24, "catchBase": 0.2, "catchPerLevel": 0.005, "cap": 0.75 }
   },
   "treasure": {
     "mapChance": { "fishing": 0.001, "other": 0.00025 },
@@ -130,16 +133,31 @@
     "eggChance": 0.05,
     "petDigXp": 700,
     "byTier": {
-      "coins": [[10, 30], [25, 70], [60, 150], [125, 300], [250, 600]],
-      "rolls": [2, 2, 3, 3, 4],
-      "relic": [0.04, 0.06, 0.08, 0.1, 0.12]
+      "coins": [[10, 30], [25, 70], [60, 150], [125, 300], [250, 600], [400, 900]],
+      "rolls": [2, 2, 3, 3, 4, 4],
+      "relic": [0.04, 0.06, 0.08, 0.1, 0.12, 0.15]
     }
   },
   "nest": {
     "hatchHours": 4
   },
+  "sanctuary": {
+    "openRenown": 12,
+    "renownPerStage": 300
+  },
+  "elders": {
+    "openLevel": 30,
+    "retireLevel": 30,
+    "retireHearts": 5,
+    "branchBonus": 0.02,
+    "stack": [1, 0.75, 0.5, 0.25],
+    "mythicBonus": 0.01,
+    "heir": { "matchChance": 0.25, "bandsBelow": 1 }
+  },
   "render": {
     "pixelScale": 3,
+    "mythicScale": 0.5,
+    "mythicShadowFrac": 0.7,
     "pixelScaleWide": 4,
     "wideMinWidthPx": 500,
     "maxResolution": 3,
@@ -208,7 +226,20 @@
         "trapDy": 3,
         "trapPulseMs": 1400,
         "trapPulseAmp": 0.04,
-        "defaultEncounter": { "x": 0.92, "y": 0.55, "face": "left" }
+        "defaultEncounter": { "x": 0.92, "y": 0.55, "face": "left" },
+        "mythic": {
+          "glowColor": "0xfff0a8",
+          "glowAlpha": 0.55,
+          "glowPulseMs": 2200,
+          "glowPulseAmp": 0.25,
+          "glowRadiusPx": 30,
+          "glowDropPx": 12,
+          "sparkles": 6,
+          "sparkleMs": 1800,
+          "sparkleRisePx": 26,
+          "sparkleSpreadPx": 22,
+          "sparkleColor": "0xfff3a0"
+        }
       },
       "pets": {
         "standOffsets": [[0, 0], [-14, 4], [14, 4], [0, 9], [-26, -2], [26, -2]],
@@ -290,6 +321,39 @@
       "sparkSpreadPx": 26,
       "sparkRisePx": 10,
       "sparkColor": "0xfff3a0",
+      "eldersShown": 4,
+      "elderGapPx": 8,
+      "elderSpacingPx": 22,
+      "elderHopChancePerSec": 0.05,
+      "elderNapChancePerSec": 0.04,
+      "elderNapMs": 5000,
+      "projectScene": {
+        "sceneMs": 5000,
+        "endingMs": 9000,
+        "holdMs": 1500,
+        "gatherSpeedPxPerSec": 60,
+        "gatherDropPx": 12,
+        "gatherSpacingPx": 18,
+        "gatherPerRow": 4,
+        "gatherRowPx": 10,
+        "showerStartFrac": 0.2,
+        "showerEndFrac": 0.85,
+        "climaxFrac": 0.6,
+        "showerPerSec": 16,
+        "showerSparkMs": 1200,
+        "showerRisePx": 70,
+        "showerSpreadPx": 22,
+        "showerMaxSparks": 40,
+        "wildMin": 4,
+        "wildMax": 6,
+        "wildStaggerMs": 800,
+        "wildSpeedPxPerSec": 40,
+        "wildSpotRadiusPx": 36,
+        "wildHops": 2,
+        "wildHopGapMs": 450,
+        "wildMaxTotal": 8,
+        "wildEntries": [[1.06, 0.3], [1.06, 0.42], [0.9, -0.06], [0.75, -0.06], [1.06, 0.22], [0.97, -0.06]]
+      },
       "placeholderBasePx": 24,
       "placeholderPerTierPx": 4,
       "placeholderColors": ["0xb5835a", "0x8f6bb0", "0x6b9fb0", "0xc9a24a", "0xb05a5a", "0x5ab08a", "0x7fb05a", "0xb0a05a"]

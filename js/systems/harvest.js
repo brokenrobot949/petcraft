@@ -5,9 +5,11 @@
 // random stream, so live play and offline catch-up (any chunk size) give the same results.
 import { chance, random, randomInt, deriveSeed } from '../core/rng.js';
 import { addItem } from './bag.js';
-import { addXp, skillLevel } from './skills.js';
+import { addXp, skillLevel, masterySpeed } from './skills.js';
 import { isPet, petSpeed, petRareBonus, effectValue } from './petstats.js';
 import { buffSpeed } from './buffs.js';
+import { sanctuaryBonus } from './sanctuary.js';
+import { legacyValue } from './elders.js';
 
 export const id = 'harvest';
 
@@ -67,7 +69,8 @@ export function zoneUnlocked(state, data, zoneId) {
   const unlock = zoneById(data, zoneId)?.unlock;
   if (!unlock) return false;
   if (unlock.renown != null) return state.renown.rank >= unlock.renown;
-  return false; // other unlock kinds (Grand Projects) arrive in later phases
+  if (unlock.grandProject != null) return (state.sanctuary?.done.length || 0) >= unlock.grandProject;
+  return false;
 }
 
 // The equipped tool for a harvest skill: { kind, item, tier, quality }, or null.
@@ -105,13 +108,20 @@ function baseActionMs(data, task) {
   return b.actionSeconds[task.skill] * 1000 * b.tierDurationMult[tier - 1];
 }
 
-// Length of one action for this worker, after speed bonuses.
+// Prestige tools (Starmetal, tools.json tier `prestige`) work faster.
+function prestigeSpeed(data, tool) {
+  return tool && data.tools.tiers.find((t) => t.tier === tool.tier)?.prestige ? data.balance.harvest.prestigeSpeed : 0;
+}
+
+// Length of one action for this worker, after speed bonuses: the tool (quality, prestige) and the
+// Grand Projects for everyone; meals, potions and Mastery stars for the player; pet speed and
+// the Elder Grove's legacy bonus for pets.
 export function actionMs(state, data, workerId, task) {
   const b = data.balance.harvest;
   const tool = toolFor(state, data, task.skill);
-  let speed = 1 + (tool ? b.toolQualitySpeed[tool.quality] || 0 : 0);
-  if (workerId === 'player') speed += buffSpeed(state, task.skill); // meals and potions
-  if (isPet(state, workerId)) speed *= petSpeed(data, state.pets.list[workerId], task.skill);
+  let speed = 1 + (tool ? b.toolQualitySpeed[tool.quality] || 0 : 0) + prestigeSpeed(data, tool) + sanctuaryBonus(state, data, 'speed', task.skill);
+  if (workerId === 'player') speed += buffSpeed(state, task.skill) + masterySpeed(state, data, task.skill);
+  if (isPet(state, workerId)) speed *= petSpeed(data, state.pets.list[workerId], task.skill) * (1 + legacyValue(state, data, 'speed', task.skill));
   return baseActionMs(data, task) / speed;
 }
 

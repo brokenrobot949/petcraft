@@ -11,6 +11,7 @@ import {
   trackMs, revealChance, catchChance, encounterInfo, trapOptions, baitOptions, trapCheck, lureInfo, lureList, tamingNotice,
 } from '../systems/taming.js';
 import { mapItemFor, mapCount, digInfo } from '../systems/treasure.js';
+import { masteryInfo } from './mastery.js';
 
 export const id = 'world';
 export const label = 'World';
@@ -128,8 +129,9 @@ function updateXpBars() {
   const s = state();
   for (const [sid, b] of xpBars) {
     const p = skillProgress(s, data(), sid);
-    b.fill.style.width = `${p.max ? 100 : Math.min(100, (p.xp / p.next) * 100)}%`;
-    b.text.textContent = `${p.max ? 'Max level' : `${Math.floor(p.xp)} / ${p.next} XP`}${b.toolName ? ` - ${b.toolName}` : ''}`;
+    const m = p.max ? masteryInfo(s, data(), sid) : null;
+    b.fill.style.width = `${m ? Math.round(m.frac * 100) : p.max ? 100 : Math.min(100, (p.xp / p.next) * 100)}%`;
+    b.text.textContent = `${p.max ? (m ? m.text : 'Max level') : `${Math.floor(p.xp)} / ${p.next} XP`}${b.toolName ? ` - ${b.toolName}` : ''}`;
   }
 }
 
@@ -187,16 +189,22 @@ function fmtTime(ms) {
   return `${m}:${String(sec % 60).padStart(2, '0')}`;
 }
 const itemName = (key) => data().items.items[key.split(':')[0]]?.name || key;
+const mythicSpecies = (d, arch) => d.pets.mythics?.find((m) => m.archetype === arch)?.species || archetypeOf(d, arch)?.species || 'monster';
+const encFace = (mythic, arch, px, label) => faceIcon(mythic ? `mythic.${arch}` : `pet.${arch}.hatchling`, px, label);
 
 // Toasts for live taming and treasure events (only while the World tab is open).
 function eventToasts(events) {
   const d = data();
   for (const e of events) {
     if (e.type === 'encounter') {
-      toast(`You found a wild ${archetypeOf(d, e.archetype)?.species || 'monster'}!`, 3000);
+      toast(e.mythic
+        ? `A mythic ${mythicSpecies(d, e.archetype)} has appeared! You will need a Starmetal Trap and Mythic Bait.`
+        : `You found a wild ${archetypeOf(d, e.archetype)?.species || 'monster'}!`, e.mythic ? 4500 : 3000);
     } else if (e.type === 'trapDone') {
-      const sp = archetypeOf(d, e.archetype)?.species || 'monster';
-      toast(e.caught ? `${sp} was caught! Say hi in the Pets tab.` : `The ${sp} slipped away.`, 3000);
+      const sp = e.mythic ? mythicSpecies(d, e.archetype) : archetypeOf(d, e.archetype)?.species || 'monster';
+      toast(e.caught
+        ? (e.mythic ? `The mythic ${sp} chose to stay with you! Say hi in the Pets tab.` : `${sp} was caught! Say hi in the Pets tab.`)
+        : `The ${sp} slipped away.`, 3500);
     } else if (e.type === 'dig') {
       const best = e.items?.[d.treasure.relicItem] ? d.treasure.relicItem
         : e.items?.[d.treasure.eggItem] ? d.treasure.eggItem
@@ -238,7 +246,7 @@ function renderMap() {
     const marks = [];
     if (open) {
       const enc = s.taming.encounters[z.id];
-      if (enc && !s.taming.traps[z.id]) marks.push(el('span.zone-mark.alert', {}, '! Monster waiting'));
+      if (enc && !s.taming.traps[z.id]) marks.push(el('span.zone-mark.alert', {}, enc.mythic ? '! A mythic is waiting' : '! Monster waiting'));
       if (s.taming.traps[z.id]) {
         const t = el('span');
         mapTraps.set(z.id, t);
@@ -472,13 +480,14 @@ function wildCard(s, d, z) {
   if (results.length) {
     parts.push(el('h3.wild-sub', {}, 'Recent results'),
       ...results.map((r) => {
-        const sp = archetypeOf(d, r.archetype)?.species || 'monster';
+        const sp = r.mythic ? mythicSpecies(d, r.archetype) : archetypeOf(d, r.archetype)?.species || 'monster';
         const pet = r.pet ? s.pets.list[r.pet] : null;
+        const hi = `Say hi${pet && pet.name !== sp ? ` to ${pet.name}` : ''} in the Pets tab.`;
         const text = r.caught
-          ? `${sp} was caught! Say hi${pet && pet.name !== sp ? ` to ${pet.name}` : ''} in the Pets tab.`
+          ? (r.mythic ? `The mythic ${sp} chose to stay with you! What a wonderful day. ${hi}` : `${sp} was caught! ${hi}`)
           : `The ${sp} slipped away. ${r.trapKept ? 'Your trap came back safe.' : 'The trap broke.'}`;
-        return el(`p.small.wild-result${r.caught ? '.good' : ''}`, {},
-          faceIcon(`pet.${r.archetype}.hatchling`, 24, sp), el('span', {}, text));
+        return el(`p.small.wild-result${r.caught ? '.good' : ''}${r.mythic ? '.mythic' : ''}`, {},
+          encFace(r.mythic, r.archetype, 24, sp), el('span', {}, text));
       }));
   }
   // Lure
@@ -508,11 +517,16 @@ function wildCard(s, d, z) {
 
 function encounterBlock(s, d, z, info, b) {
   const box = el('div.encounter');
+  if (info.mythic) box.classList.add('mythic');
   box.append(el('div.enc-head', {},
-    faceIcon(`pet.${info.archetype}.hatchling`, 56, info.species),
+    encFace(info.mythic, info.archetype, 56, info.species),
     el('div.enc-text', {},
-      el('b', {}, `A wild ${info.species}`),
-      el(`span.enc-hint${info.special ? '.special' : ''}`, {}, info.hint))));
+      info.mythic ? el('span.enc-mythic', {}, 'Mythic!') : null,
+      el('b', {}, info.mythic ? `A mythic ${info.species}` : `A wild ${info.species}`),
+      el(`span.enc-hint${info.special || info.mythic ? '.special' : ''}`, {}, info.hint))));
+  if (info.mythic && !info.trap) {
+    box.append(el('p.small.mythic-note', {}, 'A mythic only comes close to a Starmetal Trap baited with Mythic Bait. You need both.'));
+  }
   const trap = info.trap;
   if (trap) {
     const fill = el('div.fill');
@@ -560,7 +574,7 @@ function openTrapSheet(zid) {
   const traps = trapOptions(s0, d, zid);
   const baits = baitOptions(s0, d, zid);
   let trap = traps.find((t) => t.ok)?.key || null;
-  let bait = null;
+  let bait = info.mythic ? baits.find((bt) => bt.match)?.key || null : null;
   const trapBox = el('div');
   const baitBox = el('div');
   const chanceBox = el('div.catch-box');
@@ -582,8 +596,9 @@ function openTrapSheet(zid) {
       el('span.node-name', {}, t.item.name, t.ok ? null : el('span.small.muted.block', {}, t.reason)),
       el('span.node-lv', {}, `x${t.count}`)))
         : [el('p.small.muted', {}, 'You have no traps. Traps are made at the Workbench (a frame and a spring). The first one can be bought in Mossbrook.')]));
-    baitBox.replaceChildren(el('h3.wild-sub', {}, 'Bait (optional)'),
-      el(`button.node-btn${bait === null ? '.active' : ''}`, {
+    baitBox.replaceChildren(...[el('h3.wild-sub', {}, info.mythic ? 'Bait (required)' : 'Bait (optional)'),
+      info.mythic ? el('p.small.muted', {}, 'A mythic needs a Starmetal Trap and Mythic Bait. Nothing else will do.') : null,
+      info.mythic ? null : el(`button.node-btn${bait === null ? '.active' : ''}`, {
         type: 'button',
         'aria-pressed': bait === null ? 'true' : 'false',
         onclick: () => {
@@ -591,7 +606,8 @@ function openTrapSheet(zid) {
           draw();
         },
       }, el('span.node-name', {}, 'No bait')),
-      ...baits.map((bt) => el(`button.node-btn${bt.key === bait ? '.active' : ''}`, {
+      info.mythic && !baits.some((bt) => bt.match) ? el('p.small.warn', {}, 'You have no Mythic Bait. Brew some first.') : null,
+      ...baits.filter((bt) => !info.mythic || bt.match).map((bt) => el(`button.node-btn${bt.key === bait ? '.active' : ''}`, {
         type: 'button',
         'aria-pressed': bt.key === bait ? 'true' : 'false',
         onclick: () => {
@@ -600,7 +616,7 @@ function openTrapSheet(zid) {
         },
       }, itemIcon(bt.key, 28, bt.item.name),
       el('span.node-name', {}, bt.item.name, bt.match ? el('span.small.loves.block', {}, `${info.species} loves this!`) : null),
-      el('span.node-lv', {}, `x${bt.count}`))));
+      el('span.node-lv', {}, `x${bt.count}`)))].filter(Boolean));
     if (trap) {
       const c = catchChance(s, d, zid, trap, bait);
       const rows = [['Base', c.base]];
@@ -614,14 +630,14 @@ function openTrapSheet(zid) {
     } else {
       chanceBox.replaceChildren(el('p.small.muted', {}, 'Pick a trap to see the chance.'));
     }
-    go.disabled = !trap || !check.ok;
+    go.disabled = !trap || !check.ok || (info.mythic && !bait);
     if (!check.ok) chanceBox.append(el('p.small.warn', {}, check.reason));
   };
   go.addEventListener('click', () => {
     send('taming/setTrap', { zone: zid, trap, bait });
     close();
   });
-  close = sheetWithClose('Cancel', `Trap the ${info.species}`, trapBox, baitBox, chanceBox, go);
+  close = sheetWithClose('Cancel', info.mythic ? `Trap the mythic ${info.species}` : `Trap the ${info.species}`, trapBox, baitBox, chanceBox, go);
   draw();
 }
 

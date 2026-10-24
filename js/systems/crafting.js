@@ -13,7 +13,8 @@
 // gives the same results.
 import { deriveSeed, random } from '../core/rng.js';
 import { addItem, removeItem, itemKey, itemCount } from './bag.js';
-import { addXp, skillLevel } from './skills.js';
+import { addXp, skillLevel, masterySpeed } from './skills.js';
+import { sanctuaryBonus } from './sanctuary.js';
 import { buffSpeed } from './buffs.js';
 import { isUpgrade, equip } from './tools.js';
 import { addRenownXp } from './renown.js';
@@ -119,7 +120,8 @@ function normalizeWorking(state, data) {
 export function itemMs(state, data, recipe) {
   const c = data.balance.crafting;
   const skill = stationDef(data, recipe.station).skill;
-  const speed = 1 + c.stationSpeedPerTier * (stationTier(state, recipe.station) - 1) + buffSpeed(state, skill) + assistBonus(state, data, recipe.station).speed;
+  const speed = 1 + c.stationSpeedPerTier * (stationTier(state, recipe.station) - 1) + buffSpeed(state, skill) + assistBonus(state, data, recipe.station).speed
+    + sanctuaryBonus(state, data, 'craftSpeed') + masterySpeed(state, data, skill);
   return (recipe.seconds * 1000) / speed;
 }
 

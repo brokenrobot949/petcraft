@@ -735,3 +735,129 @@ Test mode: `dev/petCalling { pet }`, `dev/petReadyToEvolve { pet }` (level cap, 
 
 `pets.bond.personalDish`, `pets.bond.personalDishMaxTier`, `pets.evolve { adultHearts, adultStrengthMult }`,
 `pets.talents { pickLevels, choices }`, `pets.heartGifts { minHearts, chancePerBondPoint }`, `treasure.petDigXp`.
+
+## Phase 9: endgame
+
+### Save schema v8 (migration 7 -> 8)
+
+```js
+sanctuary: {
+  project: 0,                  // index into data/projects.json of the project being built (= projects.length when all are done)
+  stage: 0,                    // stage of that project (0..stages-1)
+  delivered: { itemId: n },    // delivered toward the current stage (any quality counts; stored by base item id)
+  coins: 0,                    // coins delivered toward the current stage
+  done: [projectId],           // finished projects, in order
+  scenes: [projectId],         // finished projects whose scene the player hasn't watched yet (Home plays them)
+},
+story: { got: { entryId: true }, seen: { entryId: true } },   // data/story.json entries unlocked / read
+elders: {
+  open: false,                 // the Elder Grove appears once any pet reaches balance.elders.openLevel
+  list: [Elder],               // retired pets, oldest first
+  eggs: [HeirEgg],             // heir eggs waiting to go in the Nest
+  rng,
+},
+taming: + mythicMs: 0          // game time until another mythic encounter may appear (cooldown)
+pet: + heirloom: null | talentId,   // an extra talent inherited from its elder parent (counts as a talent effect)
+       parent: null | elderId       // the elder it hatched from
+     form may be 'mythic' (single-form mythic pets; branch null)
+nest slot: + heir: null | { elder, heirloom }   // an heir egg (item 'heir_egg'); archetype and quality fixed at retirement
+stats: + retired          (mythics ever had are counted from the Bestiary)
+// Elder: { id (the pet's id), name, archetype, form, branch, quality, species, level, bornAt, retiredAt,
+//          days, actions (lifetime harvest actions), talents, gifts, heirloom }
+// HeirEgg: { elder, archetype, quality, heirloom }
+```
+Migration: empty sanctuary at project 0, empty story/elders, `mythicMs: 0`, `heirloom: null` and `parent: null` on every pet.
+`elders.init` opens the Grove for a save that already has a level-30 pet; `story.init` unlocks what a save already earned (unread).
+
+### Rules
+
+- **Grand Projects** (js/systems/sanctuary.js): open at Renown `balance.sanctuary.openRenown`, done in data order, 3 stages
+  each. `sanctuary/deliver { item?, qty? }` moves items (Normal first, then better qualities) or coins (`item: 'coins'`)
+  from the bag toward the current stage, never more than still needed; no `item` = everything the player can give. When
+  every need of the stage is met the stage completes at once: `balance.sanctuary.renownPerStage` Renown XP, next stage;
+  after the last stage the project is done (pushed to `done` and `scenes`) and its `reward` applies forever.
+- **Rewards** (`sanctuaryBonus(state, data, kind, skill?)`, sum over finished projects): `craftSpeed` (added to every
+  station's speed), `petRest` (added to the rest-rate multiplier), `mealStrength` (meals: x(1+v) energy for pets and
+  speed for the player's meal buffs), `garden` (added to gardenBonus), `speed { skills }` (added to harvest speed for
+  every worker), `reveal` (+ tracking reveal chance), `heartgrove` (no value; zones with `unlock.grandProject: n` open
+  when `done.length >= n`).
+- **Story** (js/systems/story.js): data/story.json entries unlock when their `when` condition holds (any achievement
+  condition kind, see below). Checked after every command and every advance. `story/seen { entry? }`.
+- **Mastery** (js/systems/skills.js): XP past `skills.maxLevel` keeps adding to the skill's `xp`. Star k (1..maxStars)
+  costs `xpToNext(maxLevel + k - 1)`; `masteryStars(state, data, skill)`. Each star: `skills.mastery.speedPerStar` player
+  speed in that skill (harvest actions, crafting at its station, tracking for Taming), up to `maxStars`.
+- **Starmetal**: tools.json tier 7 has `prestige: true`; a tool of a prestige tier adds `harvest.prestigeSpeed` to harvest
+  speed (like tool quality, for every worker). Shovels go faster through `shovelSpeedPerTier` as before.
+- **Mythics** (taming.js): a zone with `mythics: true` (Heartgrove) reveals a mythic encounter instead of a normal one
+  with chance `taming.mythic.revealShare` while `taming.mythicMs` is 0; it then waits `mythic.cooldownHours` of game time.
+  The archetype is one whose mythic the player has never had (Bestiary), else any. The encounter has `mythic: true`. It
+  needs a trap with `trap.mythic` and bait with `bait.mythic` (both required); chance = `min(mythic.cap, mythic.catchBase +
+  mythic.catchPerLevel x Taming level)`. Caught: a pet with `form: 'mythic'` (stage 3, level cap 30, no evolution); its
+  effects add pets.json `mythics[].strength`; talent picks after level 10 come from talents.json pool `mythic`.
+- **Elder Grove** (js/systems/elders.js): opens when any pet reaches `elders.openLevel`. `elders/retire { pet, heirloom }`:
+  an adult or mythic pet at `retireLevel` with Bond heart `retireHearts`, not the last pet. It leaves the roster (posts and
+  worker removed) and becomes an Elder. Heir egg: same archetype; quality = the parent's with chance `heir.matchChance`, else
+  rolled with a floor `heir.bandsBelow` bands below the parent, capped at the parent's (elders stream). `heirloom` must be one
+  of the parent's talents, gifts or heirloom (null only when it has none). `nest/placeHeir { egg, slot? }` puts it in the
+  Nest as `{ item: 'heir_egg', archetype, quality, msLeft, heir: { elder, heirloom } }`; hatching sets `pet.heirloom`, `pet.parent`.
+- **Legacy bonus** (`legacyEffects(state, data) -> [Effect]`, `legacyValue(state, data, kind, skill)`): each branch's
+  `legacy.skills` (pets.json) get `elders.branchBonus x elders.stack[i]` for its i-th elder (the last value repeats); each
+  mythic elder gives `elders.mythicBonus` to every harvest skill. Effects are kind `speed`; they multiply every pet's
+  harvest speed.
+
+### Events (Phase 9)
+
+```js
+{ type: 'delivered', items: { id: n }, coins }     { type: 'projectStage', project, stage }   // stage just finished (0-based)
+{ type: 'projectDone', project }                     { type: 'story', entry }
+{ type: 'masteryStar', skill, stars }                { type: 'retired', pet, name, egg: HeirEgg }
+{ type: 'groveOpened' }                              { type: 'encounter', ..., mythic: true }
+```
+Summary additions: `mastery: { skill: stars }`, `story: [entryId]`.
+
+### Commands (Phase 9)
+
+`sanctuary/deliver { item?, qty? }`, `sanctuary/sceneSeen { project }`, `story/seen { entry? }`,
+`elders/retire { pet, heirloom }`, `nest/placeHeir { egg, slot? }`.
+Test mode: `dev/stageNeeds` (grant what the current stage still needs), `dev/finishStage` (complete it for free; Renown is
+raised to the opening rank if needed), `dev/readyToRetire { pet }` (level 30 and Bond heart 5; a younger pet first becomes an
+adult of its first branch), `dev/masteryStars { skill, stars }`, `dev/encounter { ..., mythic: true }`, `dev/endgameKit`
+(a Starmetal trap and mythic bait).
+
+### Selectors (Phase 9)
+
+- sanctuary.js: `projectList(state, data) -> [{ ...def, index, status: 'done'|'current'|'locked' }]`,
+  `currentStage(state, data) -> null | { project, index, stage, stages, needs: [{ item, need, have, bag }], ready }` (item
+  'coins' for the coin need; have = delivered, bag = what the player could still give), `sanctuaryOpen(state, data)`,
+  `sanctuaryBonus`, `projectsDone(state)`, `ended(state, data)`, `rewardText(data, reward) -> string`,
+  `sanctuaryNotice(state, data)` (Home badge: something can be delivered, or a scene waits), `pendingScene(state)`.
+- story.js: `storyList(state, data) -> [{ ...entry, seen }]` (unlocked entries, data order), `storyNotice(state)` (unread).
+- elders.js: `groveOpen(state)`, `elderList(state, data) -> [{ ...elder, role, bonus: [string] }]`,
+  `retireInfo(state, data, petId) -> { can, reason, heirlooms: [talentId], match, floor }`, `legacyEffects`, `legacyValue`,
+  `legacyLines(state, data) -> [string]`, `heirEggList(state, data) -> [{ index, archetype, quality, heirloom, elder }]`.
+- skills.js: `masteryStars(state, data, skill)`, `masteryProgress(state, data, skill) -> { stars, max, xp, next, speed }`,
+  `masterySpeed(state, data, skill)`.
+- taming.js: `encounterInfo` gains `mythic`; `trapOptions`/`baitOptions`/`catchChance` follow the mythic rules.
+- petstats.js: `petRole` and `petSpecies` know mythics; `mythicDef(data, archetype)`.
+- nest.js: `nestList` entries gain `heir: null | { elder, heirloom, name }` (name = the elder parent's name).
+- pets.js: `createPet(state, ctx, { archetype, quality, name, mythic?, heirloom?, parent? })`.
+
+### Data (Phase 9)
+
+- data/projects.json: `{ projects: [{ id, name, blurb, leans: [skillId], reward: [{ kind, value, skills? }], rewardText,
+  stages: [{ name, items: { itemId: n }, coins }] }] }` (relics are items: `sanctuary_relic`).
+- data/story.json: `{ entries: [{ id, title, text: [paragraph], when: Condition }], scenes: { projectId: { title, lines: [string] } } }`.
+- achievements.json (and story) condition kinds gain `start`, `projects { n }`, `project { project }`, `retired { n }`,
+  `mastery { n }` (stars in all skills), `mythics { n }`, `perfectPet` (Legendary, 2 gifts, 6 talents), `story { n }`.
+- pets.json: forms + `{ id: 'mythic', stage: 3, name: 'Mythic' }`; `mythics[]` gain `strength: [Effect]`; branches gain
+  `legacy: { skills: [skillId] }`. talents.json pool `mythic`.
+- zones.json heartgrove: tier 6 harvest, rares, `mythics: true`, scene. tools.json tier 7 `prestige: true`.
+  items.json: Heartgrove materials, the elderwood and starmetal chains, `elderwood_trap` (tier 6), `starmetal_trap`
+  (`trap { tier: 7, mythic: true }`), `mythic_bait` (`bait { dish: null, mythic: true }`), `heir_egg`, `heartgrove_map`.
+
+### balance.json additions (Phase 9)
+
+`skills.mastery { speedPerStar, maxStars }`, `harvest.prestigeSpeed`, `sanctuary { openRenown, renownPerStage }`,
+`elders { openLevel, retireLevel, retireHearts, branchBonus, stack, mythicBonus, heir { matchChance, bandsBelow } }`,
+`taming.mythic { revealShare, cooldownHours, catchBase, catchPerLevel, cap }`, `treasure.byTier.*` gain a tier 6 entry,
+`render.mythicScale`.

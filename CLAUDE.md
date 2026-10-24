@@ -60,10 +60,29 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 8 done (2026-10-23)
-Next: Phase 9 (Grand Projects, story journal and scenes, ending, Heartgrove, mythics, Starmetal, Elder Grove,
-  heir eggs, Mastery stars). Bestiary already lists the 4 mythics (pets.json `mythics`; no sprites or way to get
-  them yet). Elder legacy bonus should reuse the effect system (petstats.js effectValue / EFFECT_KINDS).
+Phase: 9 done (2026-10-24)
+Next: Phase 10 (tune and ship: simulator tuning to pacing targets, audio, save stress tests, performance,
+  credits, iPhone install guide, remove test mode from the shipped build).
+Phase 9: save schema v8 (migration 7->8: sanctuary, story, elders, taming.mythicMs, pet heirloom/parent).
+  Contract in docs/architecture.md "Phase 9: endgame". Grand Projects (js/systems/sanctuary.js, data/projects.json):
+  5 projects x 3 stages from Renown 12, delivered bit by bit (sanctuary/deliver), 300 Renown XP per stage,
+  permanent rewards via sanctuaryBonus (craft speed, pet rest, meal strength, Garden, Foraging speed, tracking).
+  The Heart Shrine is the ending: opens the Heartgrove (tier 6, 5 skills, mythics: true). Story journal
+  (js/systems/story.js, data/story.json: 18 entries on achievement-style conditions, 5 project scenes played on
+  Home with the Sanctuary restoring: prop.sanctuary.1-5). Mastery stars past level 60 (skills.js; +0.5% speed
+  each, max 50; harvesting, crafting, tracking). Starmetal tier-7 prestige tools (+15% speed, tools.json
+  prestige). Mythics: Heartgrove reveals, one per 24 h of game time, need a Starmetal Trap + Mythic Bait;
+  single-form, stage 3, own talent pool. Elder Grove (js/systems/elders.js): opens when a pet reaches 30;
+  retire an adult/mythic at 30 with heart 5; legacy bonus as speed effects per branch (pets.json `legacy`,
+  stack 2/1.5/1/0.5%; mythic elders +1% all); heir egg (same archetype, parent's quality 1 in 4, else at least
+  one band lower) placed with nest/placeHeir, hatches with an Heirloom talent. Home: Sanctuary button, Elder
+  Grove decor at the top (elders stand beside it), one-row Home buttons. Test mode: Grand Projects (needs,
+  finish stage, finish all), Ready to retire, Mastery stars, Mythic encounter, Endgame kit. Core checks: 242.
+  Simulator v5 (90 days ~1.5 min): regular player opens projects day 9, ending day 42.5 (target 56-70, early
+  like all pacing), first Starmetal tool day 43, first mythic day 50; light player ending day 58.5.
+  Lead calls Rob may want to know: legacy skills per branch (Boulder -> Mining, Current -> Fishing,
+  Scout -> Hunting, not their odd callings); Terraced Gardens crop counts halved (the Garden is slow); heir
+  quality is capped at the parent's; the starlit_fortune mythic talent cut to +2 rare points.
 Phase 8: save schema v7 (migration 6->7: per-pet stream, talent offer, favorite dish; crafting.assists;
   bestiary). Contract in docs/architecture.md "Phase 8: evolution". Evolution (pets/evolve): level 10 + 150
   actions of a path's calling skill -> juvenile (player picks the path, permanent); level 20 + Bond heart 3 +
@@ -167,7 +186,16 @@ Known issues:
 - A brand-new player gets a Great Commission only once their skills meet one template's needs (the board
   keeps trying every minute).
 - Player outfits at Renown 5/10/15/20/25 are not built (needs Rob's casting of outfit looks).
-- Decor (market sink) and fertilizer arrive in later phases. Sanctuary Relics pile up until Grand Projects (Phase 9).
+- Decor (market sink) and fertilizer are not built. Relics still pile up (simulator: ~460 held at day 90; the
+  projects need 25).
+- Pets retire far too early (simulator: first elder day 17 vs week 6-8; 20+ elders by day 90) because pet XP
+  is a placeholder; tune balance.pets.xpCurve in Phase 10. Many elders stack a large legacy bonus.
+- The simulated player can't keep project meals from auto-feed except by toggling the pantry (it does now);
+  real players must switch those meals off in the Pantry themselves. Rob may want projects to reserve them.
+- Phase 9 weak art: starmetal tools and heads reuse the generic tool pictures; elderwood log/plank match oak;
+  heir egg is an orb on a pedestal; mythic bait is a nut; tier-6 meals reuse sushi/onigiri/yakitori; the
+  restored Sanctuary hall (stages 3-5) is a flat cream block with sunflower terraces; the pheasant glade has no bird.
+- Wild visitors in the ending scene and pets gathering for a project scene walk straight lines through buildings.
 - Treasure (simulator v3, after the cuts): about 17 maps a day; dig coins are still over half of all coins
   earned and coins pile up (Phase 10: balance.treasure.byTier.coins, mapChance). Regular player tames ~23-30
   pets in 30 days; second pet tamed day 0.4 (target day 1-2). New players see many escapes at 35% without bait.

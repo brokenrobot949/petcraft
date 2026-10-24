@@ -9,6 +9,7 @@ import { removeItem, itemDef, itemLabel } from './bag.js';
 import { buildingTier } from './buildings.js';
 import { createPet, cleanName } from './pets.js';
 import { rollQuality, freePetSpaces } from './taming.js';
+import { takeHeirEgg } from './elders.js';
 
 export const id = 'nest';
 
@@ -48,6 +49,8 @@ export function nestList(state, data) {
       slot,
       egg: e ? itemDef(data, e.item) : null,
       archetype: e ? e.archetype : null,
+      heir: e?.heir ? { ...e.heir, name: state.elders.list.find((x) => x.id === e.heir.elder)?.name || '' } : null, // an heir egg: its elder parent
+
       msLeft: e ? e.msLeft : 0,
       total,
       ready: !!e && e.msLeft <= EPS,
@@ -101,12 +104,28 @@ export const commands = {
     slots[at] = { item, archetype, quality, msLeft: hatchMs(state, data) };
     ctx.emit?.({ type: 'eggPlaced', slot: at, archetype });
   },
+  // An heir egg from the Elder Grove (egg: its index in the waiting list). Its archetype and quality
+  // were fixed when its parent retired.
+  'nest/placeHeir': (state, { egg, slot = null }, ctx) => {
+    const { data } = ctx;
+    if (!state.elders.eggs[egg]) throw new Error("That heir egg isn't here.");
+    const n = eggSlots(state, data);
+    if (n <= 0) throw new Error('Build the Nest first (it opens at Renown 8).');
+    const slots = state.nest.slots;
+    while (slots.length < n) slots.push(null);
+    const at = slot === null ? slots.findIndex((e, i) => !e && i < n) : slot;
+    if (!Number.isInteger(at) || at < 0 || at >= n) throw new Error('Every Nest slot is taken. Upgrade the Nest for more.');
+    if (slots[at]) throw new Error('That Nest slot already holds an egg.');
+    const h = takeHeirEgg(state, egg);
+    slots[at] = { item: 'heir_egg', archetype: h.archetype, quality: h.quality, msLeft: hatchMs(state, data), heir: { elder: h.elder, heirloom: h.heirloom } };
+    ctx.emit?.({ type: 'eggPlaced', slot: at, archetype: h.archetype });
+  },
   'nest/hatch': (state, { slot, name }, ctx) => {
     const e = state.nest.slots[slot];
     if (!e) throw new Error("There's no egg there.");
     if (e.msLeft > EPS) throw new Error("This egg isn't ready to hatch yet.");
     if (freePetSpaces(state, ctx.data) <= 0) throw new Error('No room for another pet. Upgrade the Stable or release a pet.');
-    createPet(state, ctx, { archetype: e.archetype, quality: e.quality, name: cleanName(name, ctx.data) });
+    createPet(state, ctx, { archetype: e.archetype, quality: e.quality, name: cleanName(name, ctx.data), heirloom: e.heir?.heirloom || null, parent: e.heir?.elder || null });
     state.nest.slots[slot] = null;
     state.stats.hatched += 1;
   },

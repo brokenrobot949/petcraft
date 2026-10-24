@@ -14,8 +14,9 @@ import { addItem, removeItem, itemDef, itemLabel, parseKey } from './bag.js';
 import { actionMs, completeAction, dropStaleTask } from './harvest.js';
 import {
   HOUR_MS, archetypeOf, petLevelCap, petXpToNext, petHearts, petMaxEnergy, petDrainPerHour,
-  petRestPerHour, petFeedThreshold, petStage, branchDef, talentDef, effectValue, canDig, petSpecies,
+  petRestPerHour, petFeedThreshold, petStage, branchDef, talentDef, effectValue, canDig, petSpecies, mythicDef,
 } from './petstats.js';
+import { sanctuaryBonus } from './sanctuary.js';
 import { petCapacity, buildingTier } from './buildings.js';
 import { mapCount, digMs, finishDig, pickLoot } from './treasure.js';
 import { recordPet } from './bestiary.js';
@@ -47,13 +48,17 @@ export function init(state, ctx) {
     if (!Array.isArray(pet.gifts)) pet.gifts = [];
     if (pet.offer === undefined) pet.offer = null;
     if (pet.favoriteKnown == null) pet.favoriteKnown = false;
+    if (pet.heirloom === undefined) pet.heirloom = null;
+    if (pet.parent === undefined) pet.parent = null;
     // A form or branch the data no longer has falls back to the hatchling.
-    if (pet.form !== 'hatchling' && !branchDef(data, pet.archetype, pet.branch)) {
+    const known = pet.form === 'mythic' ? !!mythicDef(data, pet.archetype) : branchDef(data, pet.archetype, pet.branch);
+    if (pet.form !== 'hatchling' && !known) {
       pet.form = 'hatchling';
       pet.branch = null;
     }
     pet.talents = pet.talents.filter((t) => talentDef(data, t));
     pet.gifts = pet.gifts.filter((t) => talentDef(data, t));
+    if (pet.heirloom && !talentDef(data, pet.heirloom)) pet.heirloom = null;
     if (pet.offer) pet.offer = pet.offer.filter((t) => talentDef(data, t) && !holds(pet, t));
     if (pet.offer && !pet.offer.length) pet.offer = null;
     rollBirthTraits(data, pet);
@@ -80,7 +85,7 @@ function newWorker(state, petId) {
 
 // ---- birth traits and talent offers (from the pet's own stream) ----
 
-const holds = (pet, t) => pet.talents.includes(t) || pet.gifts.includes(t);
+const holds = (pet, t) => pet.talents.includes(t) || pet.gifts.includes(t) || pet.heirloom === t;
 
 function pickDistinct(pet, list, n) {
   const pool = [...list];
@@ -115,13 +120,14 @@ export function talentPicksDue(data, pet) {
 }
 
 // The pool for the pet's next pick: the hatchling pool up to the first evolution level, then its
-// branch's pool. A pool that runs short is topped up from the hatchling pool.
+// branch's pool (mythics: the 'mythic' pool). A pool that runs short is topped up from the hatchling pool.
 function nextPickCandidates(data, pet) {
   const levels = data.balance.pets.talents.pickLevels;
   const level = levels[pet.talents.length];
   const pools = data.talents?.pools || {};
   const usable = (list) => (list || []).filter((t) => talentDef(data, t) && !holds(pet, t));
-  const branchPool = level > data.balance.pets.stageLevelCaps[0] && pet.branch ? usable(pools[pet.branch]) : [];
+  const poolId = pet.form === 'mythic' ? 'mythic' : pet.branch;
+  const branchPool = level > data.balance.pets.stageLevelCaps[0] && poolId ? usable(pools[poolId]) : [];
   const own = branchPool.length ? branchPool : usable(pools.hatchling);
   const n = data.balance.pets.talents.choices;
   if (own.length >= n) return { list: own, n };
@@ -276,7 +282,8 @@ export function assistInfo(state, data, petId) {
   const station = br?.assist?.station || null;
   const posted = Object.keys(state.crafting.assists).find((s) => state.crafting.assists[s] === petId) || null;
   let reason = '';
-  if (!station) reason = pet.form === 'adult' ? `${petSpecies(data, pet)} digs for treasure instead of helping at a station.` : 'Adults can help at a crafting station.';
+  if (pet.form === 'mythic') reason = `${petSpecies(data, pet)} roams the fields instead of helping at a station.`;
+  else if (!station) reason = pet.form === 'adult' ? `${petSpecies(data, pet)} digs for treasure instead of helping at a station.` : 'Adults can help at a crafting station.';
   else if (pet.form !== 'adult') reason = 'Adults can help at a crafting station.';
   else if (isActive(state, petId)) reason = 'Send it to the Stable first: only resting pets can help.';
   else if (buildingTier(state, station) < 1) reason = 'Build that station first.';
@@ -310,19 +317,21 @@ export function cleanName(name, data) {
 // Refused when every active slot and Stable space is taken (saves already over the limit keep their pets),
 // unless force is set: a trap that was set with a space held for its catch always delivers it.
 // Its gift talents (from its quality) and favorite dish are rolled from its own stream.
-export function createPet(state, ctx, { archetype, quality, name }, { force = false } = {}) {
+// mythic: a single-form mythic pet (Heartgrove). heirloom / parent: an heir egg's inherited talent and elder.
+export function createPet(state, ctx, { archetype, quality, name, mythic = false, heirloom = null, parent = null }, { force = false } = {}) {
   const { data } = ctx;
   const p = state.pets;
   if (!force && Object.keys(p.list).length >= petCapacity(state, data)) {
     throw new Error('The Stable is full. Upgrade it to make room for more pets.');
   }
   const petId = `pet${p.nextId++}`;
+  const species = mythic ? mythicDef(data, archetype)?.species : archetypeOf(data, archetype).species;
   const pet = {
     id: petId,
-    name: cleanName(name, data) || archetypeOf(data, archetype).species,
+    name: cleanName(name, data) || species,
     archetype,
     quality,
-    form: 'hatchling',
+    form: mythic ? 'mythic' : 'hatchling',
     branch: null,
     level: 1,
     xp: 0,
@@ -339,6 +348,8 @@ export function createPet(state, ctx, { archetype, quality, name }, { force = fa
     offer: null,
     favorite: null,
     favoriteKnown: false,
+    heirloom: heirloom && talentDef(data, heirloom) ? heirloom : null,
+    parent,
     rng: petSeed(state.rng, petId),
   };
   rollBirthTraits(data, pet);
@@ -384,7 +395,8 @@ export function addBond(state, ctx, pet, amount) {
 
 function eat(state, ctx, pet, itemId, auto) {
   const { data } = ctx;
-  const food = foodValue(data, itemId) * (1 + effectValue(data, pet, 'meal'));
+  const hall = itemDef(data, itemId)?.category === 'meal' ? sanctuaryBonus(state, data, 'mealStrength') : 0; // the Feast Hall
+  const food = foodValue(data, itemId) * (1 + effectValue(data, pet, 'meal')) * (1 + hall);
   if (!removeItem(state, itemId, 1)) return false;
   pet.energy = Math.min(petMaxEnergy(data, pet), pet.energy + food);
   const favorite = isFavoriteDish(data, pet, itemId);

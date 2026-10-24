@@ -4,6 +4,7 @@ import { itemIcon, faceIcon } from './icons.js';
 import { getPref, setPref } from './device.js';
 import { bagList, itemLabel, itemKey } from '../systems/bag.js';
 import { skillProgress } from '../systems/skills.js';
+import { masteryInfo } from './mastery.js';
 import {
   stationList, recipesFor, recipeDef, recipeCheck, itemMs, itemXp, makesQuality, qualityOdds, stationTimeLeft, workSlots, assistBonus,
 } from '../systems/crafting.js';
@@ -224,8 +225,9 @@ function updateStations(list) {
     const refs = cards[s.id];
     if (!refs) continue;
     const p = skillProgress(st, d, s.skill);
-    refs.level.textContent = `${skillName(s.skill)} level ${p.level}`;
-    refs.xp.style.width = p.max ? '100%' : `${Math.min(100, (p.xp / p.next) * 100)}%`;
+    const m = p.max ? masteryInfo(st, d, s.skill) : null;
+    refs.level.textContent = m ? `${skillName(s.skill)} level ${p.level}. ${m.text}` : `${skillName(s.skill)} level ${p.level}`;
+    refs.xp.style.width = m ? `${Math.round(m.frac * 100)}%` : p.max ? '100%' : `${Math.min(100, (p.xp / p.next) * 100)}%`;
     refs.batches.forEach((r, i) => {
       const b = s.queue[i];
       if (!b) return;

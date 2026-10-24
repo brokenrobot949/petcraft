@@ -1,0 +1,64 @@
+{
+  "projects": [
+    {
+      "id": "great_gate", "name": "The Great Gate",
+      "blurb": "A sturdy gate to welcome travelers back to the Old Sanctuary, built plank by plank and hinge by hinge.",
+      "leans": ["carpentry", "smithing"],
+      "reward": [ { "kind": "craftSpeed", "value": 0.05 } ],
+      "rewardText": "+5% craft speed at every station",
+      "stages": [
+        { "name": "Clear the old gateway", "items": { "cedar_plank": 400, "steel_bar": 250, "steel_fittings": 300, "cedar_log": 2000, "sanctuary_relic": 1 }, "coins": 3000 },
+        { "name": "Raise the gate posts", "items": { "willow_plank": 500, "mythril_bar": 300, "mythril_fittings": 400, "willow_log": 3000, "sanctuary_relic": 1 }, "coins": 6000 },
+        { "name": "Hang the great doors", "items": { "ashwood_plank": 700, "emberite_bar": 400, "emberite_fittings": 500, "mythril_rivets": 800, "sanctuary_relic": 2 }, "coins": 10000 }
+      ]
+    },
+    {
+      "id": "moonwell", "name": "The Moonwell",
+      "blurb": "A quiet well that fills with moonlight, where tired pets can curl up and rest.",
+      "leans": ["alchemy", "mining"],
+      "reward": [ { "kind": "petRest", "value": 0.25 } ],
+      "rewardText": "Pets rest 25% faster",
+      "stages": [
+        { "name": "Dig the well shaft", "items": { "stonehearth_elixir": 250, "bone_broth_tonic": 300, "steel_bar": 300, "coal": 3000, "sanctuary_relic": 1 }, "coins": 5000 },
+        { "name": "Line the basin", "items": { "marsh_tonic": 300, "mist_draught": 250, "mythril_bar": 300, "mythril_ore": 3500, "sanctuary_relic": 1 }, "coins": 9000 },
+        { "name": "Wake the moonwater", "items": { "ember_tonic": 500, "emberlight_elixir": 300, "emberite_bar": 350, "emberite_ore": 4000, "sanctuary_relic": 2 }, "coins": 14000 }
+      ]
+    },
+    {
+      "id": "feast_hall", "name": "The Feast Hall",
+      "blurb": "A big, warm hall with long tables, where everyone in the sanctuary can gather for supper.",
+      "leans": ["cooking", "fishing", "hunting"],
+      "reward": [ { "kind": "mealStrength", "value": 0.25 } ],
+      "rewardText": "Meals are 25% stronger",
+      "stages": [
+        { "name": "Lay the hearth stones", "items": { "hillside_feast": 200, "rock_bass_chowder": 300, "sage_roasted_boar": 300, "boar_meat": 2500, "sanctuary_relic": 1 }, "coins": 8000 },
+        { "name": "Set the long tables", "items": { "mistfen_banquet": 200, "eel_skewers": 300, "fowl_pot_pie": 300, "marsh_eel": 3000, "sanctuary_relic": 1 }, "coins": 14000 },
+        { "name": "Light the great fire", "items": { "caldera_feast": 150, "lava_crab_boil": 300, "ram_roast": 300, "ram_meat": 4000, "sanctuary_relic": 2 }, "coins": 22000 }
+      ]
+    },
+    {
+      "id": "terraced_gardens", "name": "The Terraced Gardens",
+      "blurb": "Green steps of soil and blossoms that climb the hillside, tended by hands and paws alike.",
+      "leans": ["foraging"],
+      "reward": [ { "kind": "garden", "value": 0.5 }, { "kind": "speed", "skills": ["foraging"], "value": 0.05 } ],
+      "rewardText": "+50% Garden harvests and +5% Foraging speed",
+      "stages": [
+        { "name": "Shape the first terrace", "items": { "pumpkin": 300, "sweet_melon": 300, "mountain_sage": 3000, "melon_sage_salad": 250, "sanctuary_relic": 1 }, "coins": 12000 },
+        { "name": "Plant the middle rows", "items": { "strawberry": 400, "potato": 400, "bog_lily": 3500, "marsh_reed": 3000, "sanctuary_relic": 1 }, "coins": 20000 },
+        { "name": "Crown the top terrace", "items": { "sweet_melon": 500, "pumpkin": 500, "fire_bloom": 4500, "ember_pudding": 300, "sanctuary_relic": 2 }, "coins": 30000 }
+      ]
+    },
+    {
+      "id": "heart_shrine", "name": "The Heart Shrine",
+      "blurb": "A small shrine at the very heart of the sanctuary, glowing softly with everything you have gathered and made.",
+      "leans": ["chopping", "mining", "foraging", "fishing", "hunting", "carpentry", "smithing", "cooking", "alchemy"],
+      "reward": [ { "kind": "heartgrove" }, { "kind": "reveal", "value": 0.02 } ],
+      "rewardText": "Opens the Heartgrove, Starmetal and mythic pets. Wild monsters return: +2 points to find them while tracking",
+      "stages": [
+        { "name": "Gather the grove's offerings", "items": { "ashwood_log": 4000, "emberite_ore": 4000, "fire_bloom": 4000, "sanctuary_relic": 5 }, "coins": 40000 },
+        { "name": "Bring food and craft", "items": { "lava_crab": 5000, "ram_meat": 5000, "ashwood_plank": 1400, "emberite_bar": 700, "sanctuary_relic": 5 }, "coins": 60000 },
+        { "name": "Light the heart flame", "items": { "caldera_feast": 800, "emberlight_elixir": 800, "emberite_fittings": 1500, "ashwood_handle": 1500, "sanctuary_relic": 5 }, "coins": 80000 }
+      ]
+    }
+  ]
+}

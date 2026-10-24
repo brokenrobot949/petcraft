@@ -3,6 +3,11 @@ import { el, toast } from './dom.js';
 import { itemIcon } from './icons.js';
 import { itemCount } from '../systems/bag.js';
 import { openMossbrook } from './mossbrook.js';
+import { openSanctuary } from './sanctuary.js';
+import { openElderGrove } from './elders.js';
+import { playScene, scenePlaying } from './story.js';
+import { closeSheet } from './layer.js';
+import { pendingScene } from '../systems/sanctuary.js';
 import { plotList, seedList, plotCount } from '../systems/garden.js';
 import { buildingList, buildingDef, buildingTier, tierCost, lookName, effectLines, upgradeCheck } from '../systems/buildings.js';
 
@@ -15,11 +20,13 @@ let scene = null;
 let visible = false;
 let app = null;
 let layer = null; // the open sheet: { backdrop, unsub }
+let sceneReady = false; // the Pixi scene has loaded (or failed), so a project scene can use it
 
 export function mount(container, a) {
   app = a;
   container.append(el('div.home-btns', {},
     el('button.btn.home-buildings-btn', { type: 'button', onclick: () => openMossbrook(app) }, 'Mossbrook'),
+    el('button.btn.home-buildings-btn', { type: 'button', onclick: () => openSanctuary(app) }, 'Sanctuary'),
     el('button.btn.home-buildings-btn', { type: 'button', onclick: openList }, 'Buildings')));
   // PixiJS is large, so it loads only when Home is first shown.
   import('../render/homeScene.js')
@@ -32,18 +39,36 @@ export function mount(container, a) {
     .catch((err) => {
       console.error(err);
       container.append(el('div.home-error.panel.small', {}, 'The scene could not start on this device. The Buildings button still works.'));
+    })
+    .finally(() => {
+      sceneReady = true;
+      maybePlayScene();
     });
+  // A delivery that finishes a project plays its scene right away while Home is showing.
+  app.game.subscribe(maybePlayScene);
+}
+
+// Plays the next finished project's scene (one at a time; playScene ignores a second call).
+function maybePlayScene() {
+  if (!visible || !sceneReady || !app || scenePlaying()) return;
+  const project = pendingScene(state());
+  if (!project) return;
+  closeLayer();
+  closeSheet();
+  playScene(app, project, scene);
 }
 
 export function show() {
   visible = true;
   scene?.start();
+  maybePlayScene();
 }
 
 export function hide() {
   visible = false;
   scene?.stop();
   closeLayer();
+  closeSheet();
 }
 
 const data = () => app.game.data;
@@ -57,7 +82,8 @@ function handleTap(target) {
   } else if (target.kind === 'decor') {
     const label = data().buildings.decor?.find((d) => d.prop === target.prop)?.label;
     if (target.prop === 'signpost') openMossbrook(app);
-    else if (target.prop === 'sanctuary_ruins') toast(`The ${label || 'Old Sanctuary'}. Its restoration opens at Renown 12.`);
+    else if (target.prop === 'sanctuary_ruins') openSanctuary(app);
+    else if (target.prop === 'elder_grove') openElderGrove(app);
   }
 }
 

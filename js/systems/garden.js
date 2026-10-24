@@ -5,11 +5,12 @@
 // kind from the bag and carries the leftover time, so a stocked garden keeps going offline.
 // Each plot rolls from its own random stream, so any chunk size gives the same harvests (the one
 // exception: two plots replanting from the last seeds in the bag in the same chunk).
-// Not built yet: fertilizer (Alchemy) and the Terraced Gardens bonus.
+// The Terraced Gardens (a Grand Project) add to the yield bonus. Not built yet: fertilizer (Alchemy).
 import { deriveSeed, randomInt, chance } from '../core/rng.js';
 import { addItem, removeItem } from './bag.js';
 import { buildingTier } from './buildings.js';
 import { bestEffect } from './petstats.js';
+import { sanctuaryBonus } from './sanctuary.js';
 
 export const id = 'garden';
 
@@ -61,9 +62,10 @@ export function seedList(state, data) {
     .map(([id, count]) => ({ id, item: data.items.items[id], count, ...seedDef(data, id) }));
 }
 
-// Extra Garden yield from the best gardener among all pets (Bloom branch, talents), as a fraction.
+// Extra Garden yield from the best gardener among all pets (Bloom branch, talents) plus the
+// Terraced Gardens, as a fraction.
 export function gardenBonus(state, data) {
-  return bestEffect(data, Object.values(state.pets.list), 'garden');
+  return bestEffect(data, Object.values(state.pets.list), 'garden') + sanctuaryBonus(state, data, 'garden');
 }
 
 // qty x (1 + bonus): the whole part always, the fraction as a chance of one more (plot stream).

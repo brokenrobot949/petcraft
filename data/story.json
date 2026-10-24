@@ -1,0 +1,242 @@
+{
+  "entries": [
+    {
+      "id": "inheritance",
+      "title": "The Overgrown Plot",
+      "text": [
+        "The plot came to me from a distant relative, with a gate that no longer closed and grass up to my knees. At the far edge, past the last fence, the Wildwood began.",
+        "Beyond the broken wall lie the ruins of the Old Sanctuary. Carved stones sit in the moss, and someone once lived and sang here with monsters at their side.",
+        "I do not know much yet. But the plot is mine, the soil is soft, and I have a feeling this place has been waiting for someone to come back."
+      ],
+      "when": { "kind": "start" }
+    },
+    {
+      "id": "four_eggs",
+      "title": "Four Eggs in the Ruins",
+      "text": [
+        "In the ruins, under a fallen arch, I found four eggs resting in a nest of dry leaves. One was speckled green like new leaves, one was grey and smooth as river stone, one was blue with a shine like water, and one was striped gold like a fox's coat.",
+        "I could only take one home, so I took my time to choose. Each one felt a little like a promise.",
+        "When it hatched, it looked up at me and blinked. I gave it a name, and that was the first friend I had made in this place."
+      ],
+      "when": { "kind": "pets", "n": 1 }
+    },
+    {
+      "id": "mossbrook",
+      "title": "The Village Down the Road",
+      "text": [
+        "Down the road is Mossbrook, a village of crooked roofs and warm lamps. The people there were kind enough to look twice at a stranger with muddy boots.",
+        "The Commission Board in the square had its first job pinned to it, and the villagers gave me a chance to earn my keep. When I finished it, a baker gave me a warm loaf and asked where I had been living.",
+        "An old woman told me the village is named for the moss that once covered the Sanctuary walls. She said that in her grandmother's stories, people and monsters used to walk the roads together."
+      ],
+      "when": { "kind": "commissions", "n": 1 }
+    },
+    {
+      "id": "whisperwood",
+      "title": "The Road Into the Woods",
+      "text": [
+        "A path opened at the edge of the Wildwood, where the trees had always seemed to lean away from me. The villagers said I was ready for it.",
+        "The woods were quieter than I expected. Leaves whispered overhead, and somewhere a bird I could not see kept repeating the same soft song.",
+        "I walked a little way in and came back before dark. I will go deeper soon, with my pet at my side."
+      ],
+      "when": { "kind": "renown", "rank": 3 }
+    },
+    {
+      "id": "wild_friend",
+      "title": "A Wild Friend",
+      "text": [
+        "I set a small trap with a bit of berry bait and sat quietly nearby. For a long time nothing came, and then a wild monster crept out of the ferns to sniff at the snack.",
+        "It was shy and a little wary, so I kept my hands still and let it come closer. When the trap closed, it did not panic. It only looked at me with curious eyes.",
+        "I brought it home and gave it a proper meal. It fell asleep in the sun by the garden, and I think we will get along well."
+      ],
+      "when": { "kind": "tamed", "n": 1 }
+    },
+    {
+      "id": "growing_paths",
+      "title": "Growing Paths",
+      "text": [
+        "My pet had been working beside me every day, and one morning it seemed bigger and steadier than before. It was ready to grow into something more.",
+        "I had to choose which path it would follow, and the choice would stay with it forever. I thought about what it loved to do most, and where its strengths lay.",
+        "When I picked, it gave a small happy chirp and stood a little taller. Each path has its own kind of work, and I was glad to see it so proud."
+      ],
+      "when": { "kind": "evolved", "form": "juvenile", "n": 1 }
+    },
+    {
+      "id": "stonecrag",
+      "title": "Into the Stone Hills",
+      "text": [
+        "The road climbed past the last farm and into the Stonecrag Hills. Grey rock rose out of the grass like the bones of an old giant.",
+        "The miners in Mossbrook had told me to watch my footing up there, and they were right. The stones rang under my tools, and I learned to listen for the ones that sounded hollow.",
+        "Standing on the ridge, I could see the whole valley below. The Sanctuary walls were still far away, but I knew where they stood now."
+      ],
+      "when": { "kind": "renown", "rank": 6 }
+    },
+    {
+      "id": "fully_grown",
+      "title": "Fully Grown",
+      "text": [
+        "The last of the growing came slowly, over many days of work and rest. One morning my companion was standing tall and sure, with markings I had never seen before.",
+        "It had worked hard, and I had worked hard beside it. Every stone we carried and every meal we shared had gone into this.",
+        "I knelt down to look at it, and it leaned its head into my hand. I was proud of both of us."
+      ],
+      "when": { "kind": "evolved", "form": "adult", "n": 1 }
+    },
+    {
+      "id": "keeper",
+      "title": "The Keeper",
+      "text": [
+        "One afternoon a child ran up to me in the square and asked, very seriously, whether I was the Keeper. I did not know what to say, so I said yes.",
+        "After that, the name spread from door to door. Villagers waved to me from their gardens and called out the word Keeper as I passed.",
+        "I did not feel like a keeper of anything yet. But I liked the way the word sounded, as if someone believed I could look after this place."
+      ],
+      "when": { "kind": "renown", "rank": 10 }
+    },
+    {
+      "id": "sanctuary_stirs",
+      "title": "The Old Plans",
+      "text": [
+        "An old villager named Hob, who had kept the village records for longer than anyone could remember, came to the plot with a tin box. Inside were drawings of the Old Sanctuary, folded and faded.",
+        "The plans showed five great projects: a Gate, a Moonwell, a Feast Hall, Terraced Gardens and a Heart Shrine. Each one would bring back a little more of the place where people and monsters once lived side by side.",
+        "Hob said the Sanctuary had been waiting for someone to take up the work. I studied the drawings for a long time, then rolled them up carefully and promised to try."
+      ],
+      "when": { "kind": "renown", "rank": 12 }
+    },
+    {
+      "id": "gate_done",
+      "title": "The Great Gate",
+      "text": [
+        "The Great Gate is finished. The old arch stands tall again, with new timber beams holding up the iron-banded doors.",
+        "The villagers came out to see it swing open for the first time. Someone cheered, and the children ran through it twice just to feel it close behind them.",
+        "My workshops seem to hum a little more now, as if the gate had let some of the old work songs back in."
+      ],
+      "when": { "kind": "project", "project": "great_gate" }
+    },
+    {
+      "id": "moonwell_done",
+      "title": "The Moonwell",
+      "text": [
+        "The Moonwell is full again. Clear water rose up through the stones when I lifted the old cover, and it caught the moonlight like a silver mirror.",
+        "I sat by its edge for a while and listened to the water. It sounded like a lullaby, and my pets settled down beside me as if they had been waiting for it.",
+        "Rest comes easier now for the creatures I work with. I think the well remembers how to look after its friends."
+      ],
+      "when": { "kind": "project", "project": "moonwell" }
+    },
+    {
+      "id": "emberfall",
+      "title": "The Caldera",
+      "text": [
+        "The road to Emberfall is hot and dusty, and the ground glows orange in the cracks. The old stories say the mountain once sang to the monsters who lived in its warm hollows.",
+        "I walked along the rim and felt the heat rising under my boots. The air tasted of smoke and iron, and I had to stop often to catch my breath.",
+        "I could not stay long, but I came back with a pocket full of warm stones. Each one felt like a small piece of the fire that burned here before."
+      ],
+      "when": { "kind": "renown", "rank": 15 }
+    },
+    {
+      "id": "feast_done",
+      "title": "The Feast Hall",
+      "text": [
+        "The Feast Hall has a long table again, with benches on both sides and lanterns hanging from the rafters. The smell of bread and roasted meat drifted out the open door.",
+        "Mossbrook came to eat with me. Farmers, miners, fishers and hunters sat side by side, and everyone passed their plates along the table.",
+        "Halfway through the evening, an old man raised his cup and said this was how the Sanctuary used to be. Everyone drank to that, and so did I."
+      ],
+      "when": { "kind": "project", "project": "feast_hall" }
+    },
+    {
+      "id": "gardens_done",
+      "title": "The Terraced Gardens",
+      "text": [
+        "The Terraced Gardens rise up the hillside in neat green steps. Paths wind between beds of herbs and flowers, and little streams run from one step to the next.",
+        "I planted the first row myself, and then the villagers brought seeds and cuttings from their own plots. By the end of the day, a colorful patchwork climbed the slope.",
+        "The bees found it before I did. Now the whole hillside hums, and I can hardly walk through without brushing against something sweet-smelling."
+      ],
+      "when": { "kind": "project", "project": "terraced_gardens" }
+    },
+    {
+      "id": "shrine_done",
+      "title": "The Heart Shrine",
+      "text": [
+        "The Heart Shrine is finished, and I stood in front of it for a long time before I could speak. Its stones are warm to the touch, and a soft light seems to rise from somewhere deep underground.",
+        "Then the Sanctuary woke. The old walls glowed, the gardens seemed to breathe, and the air filled with a sound I had almost forgotten. Wild monsters came out of the Wildwood, one by one, and settled among the ruins as if they had always belonged there.",
+        "I did not have to call them. They simply came home, and my own companions ran out to greet them with happy noises.",
+        "A path has opened into the Heartgrove, a hidden grove at the heart of the Sanctuary. Hob says the old guardians are waiting there, and I think I am ready to meet them."
+      ],
+      "when": { "kind": "project", "project": "heart_shrine" }
+    },
+    {
+      "id": "first_elder",
+      "title": "The Elder Grove",
+      "text": [
+        "My oldest companion, the one who had walked every road with me, was ready to rest. I brought it to the Elder Grove, a quiet place of tall trees where retired friends keep watch over the homestead.",
+        "We said our goodbyes slowly, with a long pat on its head and a bowl of its favorite meal. It did not seem sad, and neither did I.",
+        "The next morning, a warm egg was waiting beneath its favorite tree. It is the same kind as my old friend, and I can already feel that it has something of them inside."
+      ],
+      "when": { "kind": "retired", "n": 1 }
+    },
+    {
+      "id": "legend",
+      "title": "A Guardian Appears",
+      "text": [
+        "Deep in the Heartgrove, among the silver trees, I met one of the mythic guardians. It was taller than any creature I had seen, and it seemed to glow softly from within.",
+        "It did not speak in words, but I understood it all the same. It was glad that the Sanctuary had woken and that people and monsters had found their way back to each other.",
+        "I bowed my head, and it leaned down until its brow touched mine. I left the grove feeling as though I had been given something very old and very kind."
+      ],
+      "when": { "kind": "mythics", "n": 1 }
+    }
+  ],
+  "scenes": {
+    "great_gate": {
+      "title": "The Great Gate",
+      "lines": [
+        "Old stone posts stand in the morning mist.",
+        "Timber beams are laid across the arch.",
+        "Iron bands are hammered tight, one by one.",
+        "The last beam slides into place.",
+        "The great doors swing open, creaking softly."
+      ]
+    },
+    "moonwell": {
+      "title": "The Moonwell",
+      "lines": [
+        "Dust is swept from the round stone rim.",
+        "Cracked tiles are set back in their circle.",
+        "Clear water seeps up from far below.",
+        "Moonlight spills across the rippling surface.",
+        "The well hums softly, as if it remembers."
+      ]
+    },
+    "feast_hall": {
+      "title": "The Feast Hall",
+      "lines": [
+        "Rafters are raised and pinned with care.",
+        "A long table is carried through the door.",
+        "Lanterns swing back onto their hooks.",
+        "The hearth catches, bright and warm.",
+        "Voices gather, and the first plates are set."
+      ]
+    },
+    "terraced_gardens": {
+      "title": "The Terraced Gardens",
+      "lines": [
+        "Stone steps are cut into the green hillside.",
+        "Soil is carried up in baskets, step by step.",
+        "Seedlings are tucked into rows of earth.",
+        "Little streams find their way from step to step.",
+        "Bees arrive, drawn by the first blossoms."
+      ]
+    },
+    "heart_shrine": {
+      "title": "The Heart Shrine",
+      "lines": [
+        "The last stone of the shrine is set in place.",
+        "A quiet light rises from deep within the ground.",
+        "The old walls glow, and the air begins to hum.",
+        "The gardens breathe in the warm evening wind.",
+        "Far off in the Wildwood, a leaf begins to stir.",
+        "Wild monsters step out from the trees, one by one.",
+        "They wander through the ruins, curious and unafraid.",
+        "Old friends and new ones find their way home.",
+        "A path opens at the heart of the Sanctuary.",
+        "The Heartgrove waits, and its door stands open."
+      ]
+    }
+  }
+}

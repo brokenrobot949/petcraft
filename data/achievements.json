@@ -75,6 +75,20 @@
     { "id": "bestiary_keeper", "name": "Bestiary Keeper", "desc": "Collect 30 Bestiary stars.", "group": "collection", "renown": 90, "title": null, "when": { "kind": "bestiary", "n": 30 } },
     { "id": "bestiary_master", "name": "Bestiary Master", "desc": "Collect 60 Bestiary stars.", "group": "collection", "renown": 250, "title": "Bestiary Master", "when": { "kind": "bestiary", "n": 60 } },
     { "id": "talent_scout", "name": "Talent Scout", "desc": "Choose 10 pet talents.", "group": "pets", "renown": 60, "title": null, "when": { "kind": "talentPicks", "n": 10 } },
-    { "id": "thoughtful_gifts", "name": "Thoughtful Gifts", "desc": "Receive 10 gifts from your pets.", "group": "pets", "renown": 50, "title": null, "when": { "kind": "petGifts", "n": 10 } }
+    { "id": "thoughtful_gifts", "name": "Thoughtful Gifts", "desc": "Receive 10 gifts from your pets.", "group": "pets", "renown": 50, "title": null, "when": { "kind": "petGifts", "n": 10 } },
+
+    { "id": "gate_stands", "name": "The Gate Stands", "desc": "Finish your first Grand Project.", "group": "story", "renown": 100, "title": null, "when": { "kind": "projects", "n": 1 } },
+    { "id": "sanctuary_rising", "name": "Sanctuary Rising", "desc": "Finish 3 Grand Projects.", "group": "story", "renown": 150, "title": null, "when": { "kind": "projects", "n": 3 } },
+    { "id": "heart_of_sanctuary", "name": "Heart of the Sanctuary", "desc": "Finish all 5 Grand Projects.", "group": "story", "renown": 250, "title": "Heart of the Sanctuary", "when": { "kind": "projects", "n": 5 } },
+    { "id": "into_heartgrove", "name": "Into the Heartgrove", "desc": "Open the path into the Heartgrove.", "group": "story", "renown": 100, "title": null, "when": { "kind": "zone", "zone": "heartgrove" } },
+    { "id": "star_underfoot", "name": "A Star Underfoot", "desc": "Find Starmetal Ore.", "group": "story", "renown": 100, "title": null, "when": { "kind": "foundItem", "item": "starmetal_ore" } },
+    { "id": "beyond_mastery", "name": "Beyond Mastery", "desc": "Earn a Mastery star.", "group": "story", "renown": 100, "title": null, "when": { "kind": "mastery", "n": 1 } },
+    { "id": "stars_aplenty", "name": "Stars Aplenty", "desc": "Earn 25 Mastery stars.", "group": "story", "renown": 200, "title": null, "when": { "kind": "mastery", "n": 25 } },
+    { "id": "grand_master", "name": "Grand Master", "desc": "Earn 100 Mastery stars.", "group": "story", "renown": 250, "title": "Grand Master", "when": { "kind": "mastery", "n": 100 } },
+    { "id": "gentle_retirement", "name": "Gentle Retirement", "desc": "Retire a pet to the Elder Grove.", "group": "pets", "renown": 100, "title": null, "when": { "kind": "retired", "n": 1 } },
+    { "id": "elder_circle", "name": "Elder Circle", "desc": "Retire 3 pets to the Elder Grove.", "group": "pets", "renown": 150, "title": "Grove Keeper", "when": { "kind": "retired", "n": 3 } },
+    { "id": "legend_befriended", "name": "Legend Befriended", "desc": "Tame a mythic pet.", "group": "pets", "renown": 200, "title": null, "when": { "kind": "mythics", "n": 1 } },
+    { "id": "four_guardians", "name": "Four Guardians", "desc": "Tame all 4 mythic pets.", "group": "pets", "renown": 250, "title": "Guardian of the Grove", "when": { "kind": "mythics", "n": 4 } },
+    { "id": "picture_perfect", "name": "Picture Perfect", "desc": "Raise a Legendary pet with 2 gifts and 6 talents.", "group": "pets", "renown": 200, "title": null, "when": { "kind": "perfectPet" } }
   ]
 }

@@ -6,6 +6,7 @@ import { addRenownXp } from './renown.js';
 import { parseKey } from './bag.js';
 import { zoneUnlocked } from './harvest.js';
 import { petHearts } from './petstats.js';
+import { masteryStars } from './skills.js';
 
 export const id = 'achievements';
 
@@ -72,6 +73,20 @@ export function conditionProgress(state, data, w) {
     case 'garden': return progress(state.stats.garden || 0, w.n);
     case 'found': return progress(Object.keys(state.stats.found || {}).length, w.n);
     case 'foundItem': return progress(state.stats.found?.[w.item] ? 1 : 0, 1);
+    // Phase 9
+    case 'start': return progress(1, 1);
+    case 'projects': return progress(state.sanctuary?.done.length || 0, w.n);
+    case 'project': return progress(state.sanctuary?.done.includes(w.project) ? 1 : 0, 1);
+    case 'retired': return progress(state.stats.retired || 0, w.n);
+    case 'mastery': return progress(skills.reduce((n, s) => n + masteryStars(state, data, s.id), 0), w.n);
+    case 'mythics': return progress(Object.keys(state.bestiary || {}).filter((e) => e.startsWith('mythic.')).length, w.n); // mythics ever had
+    case 'perfectPet': {
+      const b = data.balance.pets;
+      const top = data.pets.qualities[data.pets.qualities.length - 1]?.id;
+      const perfect = pets.some((p) => p.quality === top && p.gifts.length >= (b.qualities[top]?.gifts || 0) && p.talents.length >= b.talents.pickLevels.length);
+      return progress(perfect ? 1 : 0, 1);
+    }
+    case 'story': return progress(Object.keys(state.story?.got || {}).length, w.n);
     default: return { have: 0, need: 1 };
   }
 }

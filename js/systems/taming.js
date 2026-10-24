@@ -6,12 +6,13 @@
 // from its own stream (seeded when it is set), so live play and offline catch-up agree.
 import { random, randomInt, chance, deriveSeed } from '../core/rng.js';
 import { addItem, removeItem, itemDef, itemLabel } from './bag.js';
-import { addXp, skillLevel } from './skills.js';
+import { addXp, skillLevel, masterySpeed } from './skills.js';
 import { buffSpeed } from './buffs.js';
 import { zoneUnlocked, isHarvestTask } from './harvest.js';
 import { createPet } from './pets.js';
-import { archetypeOf, bestEffect } from './petstats.js';
+import { archetypeOf, bestEffect, mythicDef } from './petstats.js';
 import { petCapacity } from './buildings.js';
+import { sanctuaryBonus } from './sanctuary.js';
 
 export const id = 'taming';
 export { isHarvestTask };
@@ -32,6 +33,8 @@ export function init(state, ctx) {
   }
   for (const zone of Object.keys(t.traps)) if (!t.encounters[zone]) delete t.traps[zone];
   if (t.lure && !(t.lure.msLeft > EPS)) t.lure = null;
+  if (!Number.isFinite(t.mythicMs) || t.mythicMs < 0) t.mythicMs = 0;
+  for (const e of Object.values(t.encounters)) if (e.mythic && !mythicDef(data, e.archetype)) e.mythic = false;
   const w = state.workers.player;
   if (w.resume === undefined) w.resume = null;
   if (w.task?.skill === 'taming' && !zoneById(data, w.task.zone)) {
@@ -70,15 +73,15 @@ function baseTrackMs(data, zone) {
 }
 
 export function trackMs(state, data, zoneId) {
-  return baseTrackMs(data, zoneById(data, zoneId)) / (1 + buffSpeed(state, 'taming'));
+  return baseTrackMs(data, zoneById(data, zoneId)) / (1 + buffSpeed(state, 'taming') + masterySpeed(state, data, 'taming'));
 }
 
 // Chance per tracking action of finding an encounter (when the zone has none). The best tracker
-// among the active pets (Scout branch, talents) adds its track bonus.
+// among the active pets (Scout branch, talents) adds its track bonus; so does the Heart Shrine.
 export function revealChance(state, data) {
   const b = data.balance.taming;
   const helpers = state.pets.active.filter(Boolean).map((id) => state.pets.list[id]).filter(Boolean);
-  return b.revealBase + b.revealPerLevel * skillLevel(state, 'taming') + bestEffect(data, helpers, 'track');
+  return b.revealBase + b.revealPerLevel * skillLevel(state, 'taming') + bestEffect(data, helpers, 'track') + sanctuaryBonus(state, data, 'reveal');
 }
 
 // Pet spaces left for new pets: Stable capacity minus pets and traps already set (a set trap
@@ -88,10 +91,19 @@ export function freePetSpaces(state, data) {
 }
 
 // Catch chance for a trap and bait on the zone's encounter, with its parts (fractions 0..1).
+// A mythic needs a mythic trap and mythic bait (otherwise the chance is 0); its chance does not
+// depend on the trap tier or on the bait matching.
 export function catchChance(state, data, zoneId, trapKey, baitKey = null) {
   const c = data.balance.taming.catch;
   const zone = zoneById(data, zoneId);
   const enc = state.taming.encounters[zoneId];
+  if (enc?.mythic) {
+    const m = data.balance.taming.mythic;
+    const ok = !!itemDef(data, trapKey)?.trap?.mythic && !!(baitKey && itemDef(data, baitKey)?.bait?.mythic);
+    const level = m.catchPerLevel * skillLevel(state, 'taming');
+    const raw = ok ? m.catchBase + level : 0;
+    return { chance: Math.min(m.cap, raw), base: ok ? m.catchBase : 0, trap: 0, bait: 0, level: ok ? level : 0, capped: raw > m.cap, mythic: true, ok };
+  }
   const trapTier = itemDef(data, trapKey)?.trap?.tier ?? zone.tier;
   const dish = baitKey ? itemDef(data, baitKey)?.bait?.dish : null;
   const base = c.base;
@@ -114,7 +126,8 @@ export function encounterInfo(state, data, zoneId) {
   const tr = state.taming.traps[zoneId];
   return {
     archetype: e.archetype,
-    species: archetypeOf(data, e.archetype)?.species || e.archetype,
+    mythic: !!e.mythic,
+    species: (e.mythic ? mythicDef(data, e.archetype)?.species : archetypeOf(data, e.archetype)?.species) || e.archetype,
     quality: reads ? e.quality : null,
     special,
     hint: reads ? data.pets.qualities.find((q) => q.id === e.quality)?.name || e.quality : special ? 'Something special' : 'Looks ordinary',
@@ -137,13 +150,15 @@ export function trapCheck(state, data, zoneId) {
 // Traps in the bag for this zone: [{ key, item, tier, count, ok, reason }], lowest usable tier first.
 export function trapOptions(state, data, zoneId) {
   const zone = zoneById(data, zoneId);
+  const mythic = !!state.taming.encounters[zoneId]?.mythic;
   return Object.entries(state.bag)
     .filter(([key, n]) => n > 0 && itemDef(data, key)?.trap)
     .map(([key, count]) => {
       const item = itemDef(data, key);
       const tier = item.trap.tier;
-      const ok = tier >= zone.tier;
-      return { key, item, tier, count, ok, reason: ok ? '' : `Needs a tier ${zone.tier} trap or better.` };
+      const ok = mythic ? !!item.trap.mythic : tier >= zone.tier;
+      const reason = ok ? '' : mythic ? 'Only a Starmetal Trap can hold a mythic.' : `Needs a tier ${zone.tier} trap or better.`;
+      return { key, item, tier, count, ok, reason };
     })
     .sort((a, b) => b.ok - a.ok || a.tier - b.tier || a.key.localeCompare(b.key));
 }
@@ -156,7 +171,8 @@ export function baitOptions(state, data, zoneId) {
     .filter(([key, n]) => n > 0 && itemDef(data, key)?.bait)
     .map(([key, count]) => {
       const item = itemDef(data, key);
-      return { key, item, count, match: !!dish && item.bait.dish === dish };
+      const match = enc?.mythic ? !!item.bait.mythic : !!dish && item.bait.dish === dish;
+      return { key, item, count, match };
     })
     .sort((a, b) => b.match - a.match || a.key.localeCompare(b.key));
 }
@@ -206,13 +222,13 @@ function resolveTrap(state, ctx, zoneId) {
   let pet = null;
   if (caught) {
     delete t.encounters[zoneId];
-    pet = createPet(state, ctx, { archetype: enc.archetype, quality: enc.quality, name: '' }, { force: true }).id;
+    pet = createPet(state, ctx, { archetype: enc.archetype, quality: enc.quality, name: '', mythic: !!enc.mythic }, { force: true }).id;
     state.stats.tamed += 1;
     addXp(state, ctx, 'taming', b.catchXp * zoneById(data, zoneId).tier);
   } else {
     enc.msLeft = b.escapeStayHours * HOUR_MS;
   }
-  const result = { zone: zoneId, archetype: enc.archetype, quality: enc.quality, caught, pet, trap: tr.trap, trapKept };
+  const result = { zone: zoneId, archetype: enc.archetype, quality: enc.quality, mythic: !!enc.mythic, caught, pet, trap: tr.trap, trapKept };
   t.results.push(result);
   if (t.results.length > b.maxResults) t.results.splice(0, t.results.length - b.maxResults);
   t.seen = false;
@@ -230,10 +246,19 @@ function trackAction(state, ctx, w) {
   ctx.emit?.({ type: 'tracked', zone: zone.id, xp });
   addXp(state, ctx, 'taming', xp);
   if (t.encounters[zone.id] || !zone.archetypes?.length || !chance(w, revealChance(state, data))) return false;
-  const archetype = zone.archetypes[randomInt(w, 0, zone.archetypes.length - 1)];
+  // Mythics (zones with `mythics`): at most one per cooldown; one the player has never had first.
+  const mythic = !!zone.mythics && t.mythicMs <= EPS && chance(w, b.mythic.revealShare);
+  let choices = zone.archetypes;
+  if (mythic) {
+    const all = zone.archetypes.filter((a) => mythicDef(data, a));
+    const missing = all.filter((a) => !Object.keys(state.bestiary[`mythic.${a}`] || {}).length);
+    choices = missing.length ? missing : all;
+  }
+  const archetype = choices[randomInt(w, 0, choices.length - 1)];
   const quality = rollQuality(w, data, { bands: t.lure?.bands || 0, luck: b.qualityLuckPerLevel * skillLevel(state, 'taming') });
-  t.encounters[zone.id] = { archetype, quality, msLeft: null };
-  ctx.emit?.({ type: 'encounter', zone: zone.id, archetype, quality });
+  t.encounters[zone.id] = { archetype, quality, msLeft: null, ...(mythic ? { mythic: true } : {}) };
+  if (mythic) t.mythicMs = b.mythic.cooldownHours * HOUR_MS;
+  ctx.emit?.({ type: 'encounter', zone: zone.id, archetype, quality, mythic });
   if (!w.resume) return false;
   w.task = w.resume;
   w.resume = null;
@@ -252,6 +277,7 @@ export function advance(state, ms, ctx) {
     const dur = tracking ? trackMs(state, ctx.data, w.task.zone) : Infinity;
     const step = Math.min(left, tracking ? Math.max(0, dur - w.progressMs) : Infinity, t.lure ? t.lure.msLeft : Infinity);
     left -= step;
+    t.mythicMs = Math.max(0, t.mythicMs - step); // stepped with tracking, so each action sees it as it was
     if (tracking) w.progressMs += step;
     if (t.lure) {
       t.lure.msLeft -= step;
@@ -266,6 +292,7 @@ export function advance(state, ms, ctx) {
       if (trackAction(state, ctx, w)) w.progressMs = left;
     }
   }
+  t.mythicMs = Math.max(0, t.mythicMs - left);
   // Escaped monsters count down before traps finish, so one that escapes now gets its full stay.
   for (const [zone, e] of Object.entries(t.encounters)) {
     if (e.msLeft === null || t.traps[zone]) continue;
@@ -304,7 +331,10 @@ export const commands = {
     if (!trapDef?.trap) throw new Error('Pick a trap first.');
     if (!state.bag[trap]) throw new Error(`You don't have a ${itemLabel(data, trap)}.`);
     const zone = zoneById(data, zoneId);
-    if (trapDef.trap.tier < zone.tier) throw new Error(`${zone.name} needs a tier ${zone.tier} trap or better.`);
+    const mythic = !!state.taming.encounters[zoneId].mythic;
+    if (mythic && !trapDef.trap.mythic) throw new Error('Only a Starmetal Trap can hold a mythic.');
+    if (!mythic && trapDef.trap.tier < zone.tier) throw new Error(`${zone.name} needs a tier ${zone.tier} trap or better.`);
+    if (mythic && !(bait && itemDef(data, bait)?.bait?.mythic)) throw new Error('A mythic only comes close for Mythic Bait.');
     if (bait) {
       if (!itemDef(data, bait)?.bait) throw new Error("That isn't bait.");
       if (!state.bag[bait]) throw new Error(`You don't have any ${itemLabel(data, bait)}.`);

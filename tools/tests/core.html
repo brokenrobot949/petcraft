@@ -13,7 +13,7 @@
 // Dev-only checks of the simulation core: pets, energy, feeding, Bond, saves.
 // Open http://localhost:<port>/tools/tests/core.html. Not shipped.
 import { loadData } from '../../js/core/data.js';
-import { createInitialState, validateState, newTamingState } from '../../js/core/state.js';
+import { createInitialState, validateState, newTamingState, SCHEMA_VERSION } from '../../js/core/state.js';
 import { createGame } from '../../js/core/game.js';
 import { parseSave } from '../../js/core/save.js';
 import { petMaxEnergy, petDrainPerHour } from '../../js/systems/petstats.js';
@@ -38,6 +38,12 @@ import { talentInfo, evolveInfo, assistInfo, petNotice, talentPicksDue, isFavori
 import { stationList } from '../../js/systems/crafting.js';
 import { revealChance } from '../../js/systems/taming.js';
 import { gardenBonus } from '../../js/systems/garden.js';
+import { currentStage, pendingScene, sanctuaryBonus, ended, projectList } from '../../js/systems/sanctuary.js';
+import { storyList, storyNotice, sceneFor } from '../../js/systems/story.js';
+import { groveOpen, retireInfo, legacyValue, legacyLines } from '../../js/systems/elders.js';
+import { masteryStars, masteryProgress } from '../../js/systems/skills.js';
+import { trapOptions } from '../../js/systems/taming.js';
+import { petStage, petRole, talentDef } from '../../js/systems/petstats.js';
 
 const out = document.getElementById('out');
 const lines = [];
@@ -83,7 +89,7 @@ try {
     workers: { player: { task: { zone: 'meadowfold', skill: 'chopping', node: 'pine' }, progressMs: 100 } }, stats: { actions: { chopping: 50 } },
   };
   const mig = parseSave(JSON.stringify(v2));
-  check('v2 save migrates to the current version and validates', !!mig.state && mig.state.version === 7, mig.error || '');
+  check('v2 save migrates to the current version and validates', !!mig.state && mig.state.version === SCHEMA_VERSION, mig.error || '');
   check('migration keeps progress', mig.state?.bag.pine_log === 40 && mig.state?.skills.chopping.level === 4 && mig.state?.workers.player.task?.node === 'pine');
   const g0 = createGame(data, mig.state, { clock });
   check('migrated save needs a starter egg', g0.getState().pets.active.length === 2 && !g0.getState().pets.starter);
@@ -240,7 +246,7 @@ try {
   const v3 = JSON.parse(JSON.stringify(so));
   v3.version = 3; delete v3.crafting; delete v3.buffs; delete v3.stats.crafts;
   const m3 = parseSave(JSON.stringify(v3));
-  check('v3 save migrates to v7 and keeps pets', !!m3.state && m3.state.version === 7 && Object.keys(m3.state.pets.list).length === Object.keys(so.pets.list).length, m3.error || '');
+  check('v3 save migrates to the current version and keeps pets', !!m3.state && m3.state.version === SCHEMA_VERSION && Object.keys(m3.state.pets.list).length === Object.keys(so.pets.list).length, m3.error || '');
   const gc = freshGame(777);
   const sc = gc.getState();
   const refused = (type, payload) => { try { gc.dispatch(type, payload); return false; } catch { return true; } };
@@ -386,7 +392,7 @@ try {
   v4.crafting.stations.kitchen.queue = [{ recipe: 'berry_compote', qty: 2, done: 0, focus: null, inputs: { berries: 3 }, made: {} }];
   v4.crafting.stations.forge.queue = [{ recipe: 'copper_bar', qty: 2, done: 0, focus: null, inputs: { copper_ore: 2 }, made: {} }];
   const m4 = parseSave(JSON.stringify(v4));
-  check('v4 save migrates to v7 and validates', !!m4.state && m4.state.version === 7, m4.error || '');
+  check('v4 save migrates to the current version and validates', !!m4.state && m4.state.version === SCHEMA_VERSION, m4.error || '');
   check('migration: the first busy station keeps working, the other pauses', JSON.stringify(m4.state?.crafting.working) === '["forge"]', JSON.stringify(m4.state?.crafting.working));
   const g4 = createGame(data, m4.state, { clock });
   const s4 = g4.getState();
@@ -541,7 +547,7 @@ try {
   delete v5.taming; delete v5.treasure; delete v5.nest;
   v5.version = 5;
   const m5 = parseSave(JSON.stringify(v5));
-  check('v5 save migrates to v7 and validates', m5.state?.version === 7 && validateState(m5.state) === null && !!m5.state.taming && Array.isArray(m5.state.nest.slots), m5.error || validateState(m5.state || {}) || '');
+  check('v5 save migrates to the current version and validates', m5.state?.version === SCHEMA_VERSION && validateState(m5.state) === null && !!m5.state.taming && Array.isArray(m5.state.nest.slots), m5.error || validateState(m5.state || {}) || '');
 
   // Catch-chance math (design: 35% base, +10% per trap tier above the zone, +20% matching bait, +0.5% per Taming level, cap 95%).
   const gT = freshGame(71);
@@ -925,11 +931,204 @@ try {
   delete v6.crafting.assists; delete v6.bestiary; v6.version = 6;
   const m6 = parseSave(JSON.stringify(v6));
   const s6 = m6.state && createGame(data, m6.state, { clock }).getState();
-  check('v6 save migrates to v7 and validates', s6?.version === 7 && validateState(s6) === null, m6.error || validateState(s6 || {}) || '');
+  check('v6 save migrates to the current version and validates', s6?.version === SCHEMA_VERSION && validateState(s6) === null, m6.error || validateState(s6 || {}) || '');
   check('migrated pets: a stream, a dish, gifts by quality, a talent pick due at level 7', Object.values(s6.pets.list).every((p) => Number.isInteger(p.rng) && p.favorite && p.offer?.length === 2)
     && byName(s6, 'Shiny').gifts.length === 1 && byName(s6, 'Old').gifts.length === 0);
   check('migrated: Bestiary filled from current pets, no assists', bestiaryStars(s6, data).have === 2 && Object.keys(s6.crafting.assists).length === 0);
   check('Phase 8 state is valid', [sG, sE, sA, sO8, ss8, sF].every((x) => validateState(x) === null), [sG, sE, sA, sO8, ss8, sF].map(validateState).filter(Boolean).join(', '));
+  }
+
+  // ---- Phase 9: endgame ----
+  {
+  const byName = (s, n) => Object.values(s.pets.list).find((p) => p.name === n);
+  // Migration from v7.
+  const v7 = JSON.parse(JSON.stringify(freshGame(101).getState()));
+  {
+    const g7 = createGame(data, v7, { clock });
+    g7.dispatch('pets/hatchStarter', { archetype: 'sprout', name: 'Elm' });
+  }
+  for (const p of Object.values(v7.pets.list)) { delete p.heirloom; delete p.parent; }
+  delete v7.sanctuary; delete v7.story; delete v7.elders; delete v7.taming.mythicMs; v7.version = 7;
+  const m7 = parseSave(JSON.stringify(v7));
+  const s7 = m7.state && createGame(data, m7.state, { clock }).getState();
+  check('v7 save migrates to v8 and validates', s7?.version === SCHEMA_VERSION && validateState(s7) === null, m7.error || validateState(s7 || {}) || '');
+  check('migrated: project 1 stage 1, story entries already earned unlock unread', s7.sanctuary.project === 0 && s7.sanctuary.stage === 0
+    && s7.story.got.inheritance && s7.story.got.four_eggs && storyNotice(s7) && byName(s7, 'Elm').heirloom === null);
+
+  // Grand Projects.
+  const gP = freshGame(102);
+  gP.dispatch('pets/hatchStarter', { archetype: 'sprout', name: 'Moss' });
+  const sP = gP.getState();
+  let refused = '';
+  try { gP.dispatch('sanctuary/deliver', {}); } catch (e) { refused = e.message; }
+  check('the Old Sanctuary is closed before Renown 12', /Renown 12/.test(refused) && currentStage(sP, data) === null, refused);
+  gP.dispatch('dev/setRenown', { rank: data.balance.sanctuary.openRenown });
+  const st0 = currentStage(sP, data);
+  const def0 = data.projects.projects[0].stages[0];
+  check('stage 1 lists its items and coins', st0 && st0.needs.length === Object.keys(def0.items).length + (def0.coins > 0 ? 1 : 0) && !st0.ready);
+  const [firstItem, firstNeed] = Object.entries(def0.items)[0];
+  gP.dispatch('dev/grant', { item: firstItem, qty: Math.floor(firstNeed / 2) });
+  gP.dispatch('sanctuary/deliver', { item: firstItem });
+  check('a partial delivery counts toward the stage', sP.sanctuary.delivered[firstItem] === Math.floor(firstNeed / 2) && sP.sanctuary.stage === 0 && !sP.bag[firstItem]);
+  const craftMs0 = itemMs(sP, data, data.recipes.recipes.find((r) => r.id === 'pine_plank'));
+  const renown0 = sP.renown.rank * 100000 + sP.renown.xp;
+  gP.dispatch('dev/stageNeeds');
+  gP.dispatch('dev/grant', { item: firstItem, qty: 5 });
+  gP.dispatch('sanctuary/deliver', {});
+  check('a full stage completes, keeps extra items and gives Renown', sP.sanctuary.stage === 1 && sP.bag[firstItem] === 5 && sP.renown.rank * 100000 + sP.renown.xp > renown0);
+  let guard = 0;
+  while (sP.sanctuary.project < 1 && guard++ < 5) { gP.dispatch('dev/stageNeeds'); gP.dispatch('sanctuary/deliver', {}); }
+  check('the Great Gate is done: +5% craft speed, a scene waits', sP.sanctuary.done[0] === 'great_gate' && pendingScene(sP) === 'great_gate'
+    && near(craftMs0 / itemMs(sP, data, data.recipes.recipes.find((r) => r.id === 'pine_plank')), 1 + (1.05 - 1) / 1, 1e-9) && sanctuaryBonus(sP, data, 'craftSpeed') === 0.05);
+  gP.dispatch('sanctuary/sceneSeen', { project: 'great_gate' });
+  check('a watched scene is cleared', pendingScene(sP) === null);
+  check('Heartgrove is closed before the fifth project', !zoneUnlocked(sP, data, 'heartgrove'));
+  while (!ended(sP, data) && guard++ < 30) gP.dispatch('dev/finishStage');
+  check('test mode pushes a save through all 5 projects', ended(sP, data) && sP.sanctuary.done.length === 5 && projectList(sP, data).every((p) => p.status === 'done'));
+  check('the ending opens the Heartgrove and its story entry', zoneUnlocked(sP, data, 'heartgrove') && sP.story.got.shrine_done && storyList(sP, data).some((e) => e.id === 'shrine_done'));
+  check('project rewards: rest +25%, Garden +50%, Foraging +5%, tracking +2 points', sanctuaryBonus(sP, data, 'petRest') === 0.25 && gardenBonus(sP, data) === 0.5
+    && sanctuaryBonus(sP, data, 'speed', 'foraging') === 0.05 && sanctuaryBonus(sP, data, 'speed', 'mining') === 0 && near(sanctuaryBonus(sP, data, 'reveal'), 0.02, 1e-12));
+  {
+    const pet = sP.pets.list.pet1;
+    const base = data.balance.pets.energy.restPerHour * (1 + data.balance.pets.energy.stableRestBonusPerTier * (sP.buildings.stable.tier - 1) + 0.25);
+    check('the Moonwell makes pets rest faster', near(petRestPerHour(sP, data, pet), base, 1e-9));
+    const meal = Object.keys(data.items.items).find((k) => data.items.items[k].category === 'meal' && data.items.items[k].food && !data.items.items[k].dish);
+    if (meal) {
+      gP.dispatch('dev/grant', { item: meal, qty: 1 });
+      gP.dispatch('dev/petEnergy', { pet: 'pet1', energy: 0 });
+      gP.dispatch('pets/feed', { pet: 'pet1', item: meal });
+      check('the Feast Hall makes meals 25% stronger', near(pet.energy, data.items.items[meal].food * 1.25, 1e-6), `${pet.energy}`);
+    }
+  }
+  check('every scene and story entry exists for the projects', data.projects.projects.every((p) => sceneFor(data, p.id)?.lines?.length));
+  gP.dispatch('story/seen', {});
+  check('reading the journal clears its badge', !storyNotice(sP));
+
+  // Mastery stars and Starmetal.
+  const gM = freshGame(103);
+  const sM = gM.getState();
+  const task = { zone: 'meadowfold', skill: 'chopping', node: 'pine' };
+  sM.workers.player.task = task;
+  const ms0 = actionMs(sM, data, 'player', task);
+  gM.dispatch('dev/masteryStars', { skill: 'chopping', stars: 10 });
+  check('10 Mastery stars: +5% chopping speed', masteryStars(sM, data, 'chopping') === 10 && near(ms0 / actionMs(sM, data, 'player', task), 1.05, 1e-9));
+  const mp = masteryProgress(sM, data, 'chopping');
+  sM.skills.chopping.xp += mp.next - mp.xp - 0.001;
+  const sumM = gM.catchUp(60000);
+  check('a new star shows in the away summary', sumM.mastery.chopping === 11 && masteryStars(sM, data, 'chopping') === 11);
+  gM.dispatch('dev/masteryStars', { skill: 'chopping', stars: 999 });
+  check('stars stop at the cap', masteryStars(sM, data, 'chopping') === data.balance.skills.mastery.maxStars && masteryProgress(sM, data, 'chopping').next === 0);
+  gM.dispatch('dev/masteryStars', { skill: 'chopping', stars: 0 });
+  gM.dispatch('dev/grant', { item: 'starmetal_axe', qty: 1 });
+  gM.dispatch('tools/equip', { item: 'starmetal_axe' });
+  check('a Starmetal axe adds the prestige speed', near(ms0 / actionMs(sM, data, 'player', task), 1 + data.balance.harvest.prestigeSpeed, 1e-9));
+
+  // The Elder Grove: retire, legacy bonus, heir egg.
+  const gE9 = freshGame(104);
+  gE9.dispatch('pets/hatchStarter', { archetype: 'sprout', name: 'Oak' });
+  gE9.dispatch('dev/addPet', { archetype: 'sprout', quality: 'rare', name: 'Ash' });
+  gE9.dispatch('dev/addPet', { archetype: 'sprout', quality: 'common', name: 'Fir' });
+  const sE9 = gE9.getState();
+  check('the Elder Grove starts closed', !groveOpen(sE9) && !retireInfo(sE9, data, 'pet1').can);
+  gE9.dispatch('dev/readyToRetire', { pet: 'pet1' });
+  const oak = sE9.pets.list.pet1;
+  while (oak.offer) gE9.dispatch('pets/pickTalent', { pet: 'pet1', talent: oak.offer[0] });
+  const info = retireInfo(sE9, data, 'pet1');
+  check('a level 30, heart 5 adult can retire; it opens the Grove', groveOpen(sE9) && info.can && info.heirlooms.length === oak.talents.length, info.reason);
+  oak.branch = 'timber';
+  
+  const choppingTask = { zone: 'meadowfold', skill: 'chopping', node: 'pine' };
+  gE9.dispatch('harvest/assign', { worker: 'pet2', ...choppingTask });
+  const firMs0 = actionMs(sE9, data, 'pet2', choppingTask);
+  const heirloom = oak.talents[0];
+  gE9.dispatch('elders/retire', { pet: 'pet1', heirloom });
+  check('a retired pet becomes an elder with an heir egg', !sE9.pets.list.pet1 && sE9.elders.list.length === 1 && sE9.elders.list[0].name === 'Oak'
+    && sE9.elders.eggs.length === 1 && sE9.elders.eggs[0].heirloom === heirloom && sE9.stats.retired === 1);
+  const q = data.pets.qualities.map((x) => x.id);
+  const eq = q.indexOf(sE9.elders.eggs[0].quality);
+  check('the heir is the same archetype, at most one band below', sE9.elders.eggs[0].archetype === 'sprout' && eq <= q.indexOf('uncommon') && eq >= q.indexOf('common'));
+  check('a Timber elder: +2% chopping speed for every pet', near(legacyValue(sE9, data, 'speed', 'chopping'), 0.02, 1e-12) && legacyValue(sE9, data, 'speed', 'mining') === 0
+    && near(firMs0 / actionMs(sE9, data, 'pet2', choppingTask), 1.02, 1e-9) && legacyLines(sE9, data).length === 1);
+  sE9.elders.list.push({ ...sE9.elders.list[0], id: 'x1' }, { ...sE9.elders.list[0], id: 'x2' }, { ...sE9.elders.list[0], id: 'x3' }, { ...sE9.elders.list[0], id: 'x4' }, { ...sE9.elders.list[0], form: 'mythic', id: 'x5' });
+  check('same-branch elders stack 2 + 1.5 + 1 + 0.5 + 0.5; a mythic elder adds 1% everywhere', near(legacyValue(sE9, data, 'speed', 'chopping'), 0.055 + 0.01, 1e-12)
+    && near(legacyValue(sE9, data, 'speed', 'fishing'), 0.01, 1e-12));
+  sE9.elders.list.splice(1);
+  gE9.dispatch('dev/setBuilding', { building: 'nest', tier: 1 });
+  gE9.dispatch('nest/placeHeir', { egg: 0 });
+  gE9.dispatch('dev/finishTimers');
+  gE9.advance(10);
+  gE9.dispatch('nest/hatch', { slot: 0, name: 'Acorn' });
+  const acorn = byName(sE9, 'Acorn');
+  check('the heir hatches with the heirloom talent and its parent', acorn && acorn.heirloom === heirloom && acorn.parent === 'pet1' && acorn.form === 'hatchling'
+    && sE9.elders.eggs.length === 0 && effectValue(data, acorn, (talentDef(data, heirloom).effects[0] || {}).kind, (talentDef(data, heirloom).effects[0]?.skills || [])[0]) > 0);
+  check('heirloom talents are never offered again', !(acorn.offer || []).includes(heirloom));
+  let lastRefused = '';
+  for (const id of Object.keys(sE9.pets.list).slice(0, -1)) gE9.dispatch('pets/release', { pet: id });
+  const last = Object.keys(sE9.pets.list)[0];
+  gE9.dispatch('dev/readyToRetire', { pet: last });
+  try { gE9.dispatch('elders/retire', { pet: last, heirloom: sE9.pets.list[last].talents[0] || null }); } catch (e) { lastRefused = e.message; }
+  check('your only pet cannot retire', /only pet/.test(lastRefused), lastRefused);
+
+  // Mythics in the Heartgrove.
+  const gY = freshGame(105);
+  gY.dispatch('pets/hatchStarter', { archetype: 'tide', name: 'Rill' });
+  const sY = gY.getState();
+  gY.dispatch('dev/setRenown', { rank: 12 });
+  for (let i = 0; i < 15; i++) gY.dispatch('dev/finishStage');
+  gY.dispatch('dev/setBuilding', { building: 'stable', tier: 3 });
+  gY.dispatch('dev/encounter', { zone: 'heartgrove', archetype: 'stone', quality: 'rare', mythic: true });
+  gY.dispatch('dev/grant', { item: 'ashwood_trap', qty: 1 });
+  gY.dispatch('dev/endgameKit');
+  check('a mythic needs a Starmetal trap and Mythic Bait', catchChance(sY, data, 'heartgrove', 'ashwood_trap', 'mythic_bait').chance === 0
+    && catchChance(sY, data, 'heartgrove', 'starmetal_trap', null).chance === 0 && catchChance(sY, data, 'heartgrove', 'starmetal_trap', 'mythic_bait').chance > 0
+    && trapOptions(sY, data, 'heartgrove').find((o) => o.key === 'ashwood_trap').ok === false && encounterInfo(sY, data, 'heartgrove').mythic
+    && encounterInfo(sY, data, 'heartgrove').species === data.pets.mythics.find((m) => m.archetype === 'stone').species);
+  let noBait = '';
+  try { gY.dispatch('taming/setTrap', { zone: 'heartgrove', trap: 'starmetal_trap', bait: null }); } catch (e) { noBait = e.message; }
+  gY.dispatch('taming/setTrap', { zone: 'heartgrove', trap: 'starmetal_trap', bait: 'mythic_bait' });
+  sY.taming.traps.heartgrove.chance = 1;
+  gY.dispatch('dev/finishTimers');
+  gY.advance(10);
+  const myth = Object.values(sY.pets.list).find((p) => p.form === 'mythic');
+  check('a caught mythic is a single-form pet at the top stage', !!noBait && myth && myth.archetype === 'stone' && petStage(data, myth) === 3 && petRole(myth) === 'mythic.stone'
+    && evolveInfo(sY, data, myth.id).next === null && sY.bestiary['mythic.stone']?.rare && effectValue(data, myth, 'speed', 'mining') > 0, noBait);
+  gY.dispatch('dev/petLevel', { pet: myth.id, level: 15 });
+  while (myth.offer && myth.talents.length < 3) gY.dispatch('pets/pickTalent', { pet: myth.id, talent: myth.offer[0] });
+  check('a mythic picks from the mythic pool after level 10', data.talents.pools.mythic.includes(myth.talents[2]));
+  // Reveals: with every reveal forced to be mythic, a second one waits for the cooldown.
+  const dY = JSON.parse(JSON.stringify(data));
+  dY.balance.taming.revealBase = 1;
+  dY.balance.taming.mythic.revealShare = 1;
+  const gR = createGame(dY, JSON.parse(JSON.stringify(sY)), { clock });
+  const sR = gR.getState();
+  delete sR.taming.encounters.heartgrove;
+  gR.dispatch('taming/track', { zone: 'heartgrove' });
+  gR.advance(60000);
+  const firstMythic = sR.taming.encounters.heartgrove;
+  gR.dispatch('taming/letGo', { zone: 'heartgrove' });
+  gR.advance(60000);
+  check('a mythic reveal favors a mythic you lack, then waits a day', firstMythic?.mythic && firstMythic.archetype !== 'stone'
+    && sR.taming.encounters.heartgrove && !sR.taming.encounters.heartgrove.mythic && sR.taming.mythicMs > 0);
+  // Live ticks and offline catch-up agree with every endgame bonus active.
+  const twin = () => {
+    const g = createGame(data, JSON.parse(JSON.stringify(sE9)), { clock });
+    const s = g.getState();
+    s.sanctuary = JSON.parse(JSON.stringify(sP.sanctuary));
+    s.skills.chopping = JSON.parse(JSON.stringify(sM.skills.chopping));
+    s.renown.rank = 30;
+    for (const id of s.pets.active.filter(Boolean)) g.dispatch('harvest/assign', { worker: id, zone: 'meadowfold', skill: 'foraging', node: 'herb_patch' });
+    g.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'chopping', node: 'pine' });
+    g.dispatch('dev/grant', { item: 'pine_log', qty: 200 });
+    g.dispatch('crafting/start', { recipe: 'pine_plank', qty: 80 });
+    return g;
+  };
+  const gLive = twin();
+  const gOff = twin();
+  runChunks(gLive, 2 * H, 250);
+  gOff.catchUp(2 * H);
+  check('endgame: live play and offline catch-up give the same results', sortedJson(gLive.getState().bag) === sortedJson(gOff.getState().bag)
+    && JSON.stringify(gLive.getState().skills) === JSON.stringify(gOff.getState().skills));
+  check('Phase 9 state is valid', [s7, sP, sM, sE9, sY, sR].every((x) => validateState(x) === null), [s7, sP, sM, sE9, sY, sR].map(validateState).filter(Boolean).join(', '));
   }
 } catch (err) {
   failed++;

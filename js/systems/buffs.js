@@ -3,6 +3,7 @@
 // Eating the same food again restarts its timer at the new copy's strength. Buffs count down in
 // game time, offline too. For one skill the strongest active buff applies (they don't add up).
 import { removeItem, itemDef, parseKey } from './bag.js';
+import { sanctuaryBonus } from './sanctuary.js';
 
 export const id = 'buffs';
 
@@ -58,6 +59,7 @@ export const commands = {
     const buff = buffOf(ctx.data, item);
     if (!buff) throw new Error("That doesn't do anything for you.");
     const def = itemDef(ctx.data, item);
+    if (def.category === 'meal') buff.speed *= 1 + sanctuaryBonus(state, ctx.data, 'mealStrength'); // the Feast Hall
     if (!removeItem(state, item, 1)) throw new Error(`You don't have any ${def.name}.`);
     const base = parseKey(item).id;
     state.buffs[base] = { skills: [...buff.skills], speed: buff.speed, msLeft: buff.ms };

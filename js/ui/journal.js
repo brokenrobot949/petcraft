@@ -8,6 +8,8 @@ import { openMossbrook } from './mossbrook.js';
 import { rankInfo } from '../systems/renown.js';
 import { boardList, greatCommission } from '../systems/village.js';
 import { achievementList, wornTitle } from '../systems/achievements.js';
+import { createStoryPanel } from './story.js';
+import { createElderPanel } from './elders.js';
 
 export const id = 'journal';
 export const label = 'Journal';
@@ -24,6 +26,8 @@ export function mount(container, app) {
   // ---- Renown, commissions, achievements ----
   const progressHost = el('div');
   const bestiary = createBestiary(game);
+  const story = createStoryPanel(app);
+  const elderPanel = createElderPanel(app);
 
   // ---- sound ----
   const toggles = ['music', 'sound'].map((key) => {
@@ -119,9 +123,10 @@ export function mount(container, app) {
 
   container.append(
     el('h1', {}, 'Journal'),
+    story.node,
+    elderPanel.node,
     progressHost,
     bestiary.node,
-    el('p.small.muted', {}, 'Coming soon: Story journal and Elder Grove (Phase 9).'),
     el('div.panel', {}, el('h2', {}, 'Sound'), ...toggles.map((t) => t.row),
       el('p.small.muted', {}, 'Music and sound arrive in Phase 10. Your choice is remembered.')),
     el('div.panel', {},
@@ -145,7 +150,7 @@ export function mount(container, app) {
 
 
   // ---- Renown, commissions and achievements panels ----
-  const GROUPS = [['skills', 'Skills'], ['homestead', 'Homestead'], ['pets', 'Pets'], ['village', 'Village'], ['collection', 'Collection']];
+  const GROUPS = [['skills', 'Skills'], ['homestead', 'Homestead'], ['pets', 'Pets'], ['village', 'Village'], ['collection', 'Collection'], ['story', 'Story']];
   let progressKey = null;
   function renderProgress(state) {
     const d = game.data;
@@ -229,6 +234,8 @@ export function mount(container, app) {
   function render(state) {
     if (!container.hidden) {
       renderProgress(state);
+      story.update(state);
+      elderPanel.update(state);
       bestiary.update(state);
     }
     for (const t of toggles) t.btn.textContent = state.settings[t.key] ? 'On' : 'Off';
@@ -238,8 +245,12 @@ export function mount(container, app) {
   game.subscribe(render);
   render(game.getState());
   renderProgress(game.getState());
+  story.update(game.getState());
+  elderPanel.update(game.getState());
   showRender = () => {
     renderProgress(game.getState());
+    story.update(game.getState());
+    elderPanel.update(game.getState());
     bestiary.update(game.getState());
   };
   setInterval(() => !container.hidden && render(game.getState()), 5000);

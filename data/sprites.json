@@ -3418,6 +3418,499 @@
       "frameHeight": 16,
       "x": 0,
       "y": 0
+    },
+    "item.elderwood_log": {
+      "group": "items",
+      "label": "Elderwood Log",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 208,
+      "y": 208
+    },
+    "item.heart_sap": {
+      "group": "items",
+      "label": "Heart Sap",
+      "layout": "icon",
+      "src": "Items/Food/Honey.png"
+    },
+    "item.starmetal_ore": {
+      "group": "items",
+      "label": "Starmetal Ore",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 16,
+      "y": 224
+    },
+    "item.moonpetal": {
+      "group": "items",
+      "label": "Moonpetal",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 96,
+      "y": 176
+    },
+    "item.star_carp": {
+      "group": "items",
+      "label": "Star Carp",
+      "layout": "icon",
+      "src": "Items/Food/Fish.png"
+    },
+    "item.gilded_pheasant": {
+      "group": "items",
+      "label": "Gilded Pheasant",
+      "layout": "icon",
+      "src": "Items/Food/Yakitori.png"
+    },
+    "item.golden_feather": {
+      "group": "items",
+      "label": "Golden Feather",
+      "layout": "icon",
+      "src": "Items/Resource/feather.png"
+    },
+    "item.everbloom_bough": {
+      "group": "items",
+      "label": "Everbloom Bough",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 112,
+      "y": 32
+    },
+    "item.star_shard": {
+      "group": "items",
+      "label": "Star Shard",
+      "layout": "icon",
+      "src": "Items/Resource/GemYellow.png",
+      "frameWidth": 14,
+      "frameHeight": 14
+    },
+    "item.dreamdew_blossom": {
+      "group": "items",
+      "label": "Dreamdew Blossom",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 80,
+      "y": 48
+    },
+    "item.moon_pearl": {
+      "group": "items",
+      "label": "Moon Pearl",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 80,
+      "y": 32
+    },
+    "item.gilded_antler": {
+      "group": "items",
+      "label": "Gilded Antler",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 128,
+      "y": 0
+    },
+    "item.elderwood_plank": {
+      "group": "items",
+      "label": "Elderwood Plank",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 160,
+      "y": 32
+    },
+    "item.elderwood_handle": {
+      "group": "items",
+      "label": "Elderwood Handle",
+      "layout": "icon",
+      "src": "Items/Weapons/Club/Sprite.png",
+      "frameWidth": 8,
+      "frameHeight": 14
+    },
+    "item.starmetal_bar": {
+      "group": "items",
+      "label": "Starmetal Bar",
+      "layout": "icon",
+      "src": "Items/Resource/BarPurple.png",
+      "frameWidth": 16,
+      "frameHeight": 15
+    },
+    "item.starmetal_fittings": {
+      "group": "items",
+      "label": "Starmetal Fittings",
+      "layout": "icon",
+      "src": "Items/Weapons/Hammer/Sprite.png",
+      "frameWidth": 9,
+      "frameHeight": 16
+    },
+    "item.starmetal_axe_head": {
+      "group": "items",
+      "label": "Starmetal Axe Head",
+      "layout": "icon",
+      "src": "Items/Tool/Axe.png"
+    },
+    "item.starmetal_pickaxe_head": {
+      "group": "items",
+      "label": "Starmetal Pickaxe Head",
+      "layout": "icon",
+      "src": "Items/Tool/Pickaxe.png"
+    },
+    "item.starmetal_sickle_blade": {
+      "group": "items",
+      "label": "Starmetal Sickle Blade",
+      "layout": "icon",
+      "src": "Items/Tool/Sickle.png"
+    },
+    "item.starmetal_shovel_head": {
+      "group": "items",
+      "label": "Starmetal Shovel Head",
+      "layout": "icon",
+      "src": "Items/Tool/Hoe.png"
+    },
+    "item.starmetal_axe": {
+      "group": "items",
+      "label": "Starmetal Axe",
+      "layout": "icon",
+      "src": "Items/Weapons/Axe/Sprite.png",
+      "frameWidth": 11,
+      "frameHeight": 13
+    },
+    "item.starmetal_pickaxe": {
+      "group": "items",
+      "label": "Starmetal Pickaxe",
+      "layout": "icon",
+      "src": "Items/Weapons/Pickaxe/Sprite.png",
+      "frameWidth": 11,
+      "frameHeight": 13
+    },
+    "item.starmetal_sickle": {
+      "group": "items",
+      "label": "Starmetal Sickle",
+      "layout": "icon",
+      "src": "Items/Tool/Sickle.png"
+    },
+    "item.starmetal_rod": {
+      "group": "items",
+      "label": "Starmetal Fishing Rod",
+      "layout": "icon",
+      "src": "Items/Weapons/Fishing Rod/Sprite.png",
+      "frameWidth": 10,
+      "frameHeight": 14
+    },
+    "item.starmetal_bow": {
+      "group": "items",
+      "label": "Starmetal Bow",
+      "layout": "icon",
+      "src": "Items/Weapons/Bow2/Sprite.png",
+      "frameWidth": 15,
+      "frameHeight": 7
+    },
+    "item.starmetal_shovel": {
+      "group": "items",
+      "label": "Starmetal Shovel",
+      "layout": "icon",
+      "src": "Items/Tool/Shovel.png"
+    },
+    "item.starcarp_stew": {
+      "group": "items",
+      "label": "Starcarp Stew",
+      "layout": "icon",
+      "src": "Items/Food/Sushi.png"
+    },
+    "item.gilded_pheasant_roast": {
+      "group": "items",
+      "label": "Gilded Pheasant Roast",
+      "layout": "icon",
+      "src": "Items/Food/Yakitori.png"
+    },
+    "item.moonpetal_tart": {
+      "group": "items",
+      "label": "Moonpetal Tart",
+      "layout": "icon",
+      "src": "Items/Food/Onigiri.png"
+    },
+    "item.elderwood_trap_frame": {
+      "group": "items",
+      "label": "Elderwood Trap Frame",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 144,
+      "y": 16
+    },
+    "item.starmetal_trap_spring": {
+      "group": "items",
+      "label": "Starmetal Trap Spring",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 160,
+      "y": 112
+    },
+    "item.elderwood_trap": {
+      "group": "items",
+      "label": "Elderwood Trap",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 96,
+      "y": 16
+    },
+    "item.starmetal_trap": {
+      "group": "items",
+      "label": "Starmetal Trap",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 16,
+      "y": 0
+    },
+    "item.mythic_bait": {
+      "group": "items",
+      "label": "Mythic Bait",
+      "layout": "icon",
+      "src": "Items/Food/Nut2.png",
+      "frameWidth": 15,
+      "frameHeight": 15
+    },
+    "item.heir_egg": {
+      "group": "items",
+      "label": "Heir Egg",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 32,
+      "y": 32
+    },
+    "item.heartgrove_map": {
+      "group": "items",
+      "label": "Heartgrove Map",
+      "layout": "icon",
+      "src": "Items/Scroll/Scroll.png",
+      "frameWidth": 14,
+      "frameHeight": 14
+    },
+    "prop.sanctuary.1": {
+      "group": "props",
+      "label": "Sanctuary stage 1: ruins with a rebuilt gate",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetVillageAbandoned.png",
+      "frameWidth": 64,
+      "frameHeight": 44,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetVillageAbandoned.png", "x": 0, "y": 4, "w": 64, "h": 44, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetVillageAbandoned.png", "x": 145, "y": 86, "w": 31, "h": 24, "dx": 33, "dy": 20 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 7, "y": 82, "w": 35, "h": 30, "dx": 14, "dy": 14 }
+      ]
+    },
+    "prop.sanctuary.2": {
+      "group": "props",
+      "label": "Sanctuary stage 2: ruins, gate and pool",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetVillageAbandoned.png",
+      "frameWidth": 64,
+      "frameHeight": 44,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetVillageAbandoned.png", "x": 0, "y": 4, "w": 64, "h": 44, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetVillageAbandoned.png", "x": 145, "y": 86, "w": 31, "h": 24, "dx": 33, "dy": 20 },
+        { "src": "Backgrounds/Tilesets/TilesetWater.png", "x": 1, "y": 145, "w": 46, "h": 14, "dx": 0, "dy": 30 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 7, "y": 82, "w": 35, "h": 30, "dx": 26, "dy": 14 }
+      ]
+    },
+    "prop.sanctuary.3": {
+      "group": "props",
+      "label": "Sanctuary stage 3: hall with a roof",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 64,
+      "frameHeight": 46,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 64, "y": 0, "w": 64, "h": 46, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetWater.png", "x": 1, "y": 145, "w": 46, "h": 14, "dx": 9, "dy": 32 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 7, "y": 82, "w": 35, "h": 30, "dx": 14, "dy": 16 }
+      ]
+    },
+    "prop.sanctuary.4": {
+      "group": "props",
+      "label": "Sanctuary stage 4: hall, flower terraces",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 72,
+      "frameHeight": 52,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 22, "h": 12, "dx": 0, "dy": 40 },
+        { "src": "Backgrounds/Tilesets/TilesetField.png", "x": 6, "y": 6, "w": 22, "h": 12, "dx": 50, "dy": 40 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 64, "y": 0, "w": 64, "h": 46, "dx": 4, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 17, "y": 176, "w": 15, "h": 16, "dx": 3, "dy": 36 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 1, "y": 176, "w": 15, "h": 15, "dx": 54, "dy": 37 },
+        { "src": "Backgrounds/Tilesets/TilesetWater.png", "x": 1, "y": 145, "w": 30, "h": 14, "dx": 21, "dy": 38 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 7, "y": 82, "w": 35, "h": 30, "dx": 18, "dy": 22 }
+      ]
+    },
+    "prop.sanctuary.5": {
+      "group": "props",
+      "label": "Sanctuary stage 5: whole and bright with a shrine",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetHouse.png",
+      "frameWidth": 72,
+      "frameHeight": 56,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 64, "y": 0, "w": 64, "h": 46, "dx": 4, "dy": 10 },
+        { "src": "Backgrounds/Tilesets/TilesetTowers.png", "x": 196, "y": 0, "w": 26, "h": 32, "dx": 0, "dy": 24 },
+        { "src": "Backgrounds/Tilesets/TilesetTowers.png", "x": 196, "y": 0, "w": 26, "h": 32, "dx": 46, "dy": 24 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 17, "y": 176, "w": 15, "h": 16, "dx": 10, "dy": 40 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 1, "y": 176, "w": 15, "h": 15, "dx": 47, "dy": 41 },
+        { "src": "Backgrounds/Tilesets/TilesetHouse.png", "x": 49, "y": 242, "w": 30, "h": 30, "dx": 21, "dy": 26 },
+        { "src": "Backgrounds/Tilesets/TilesetFloorDetail.png", "x": 48, "y": 0, "w": 16, "h": 16, "dx": 28, "dy": 8 },
+        { "src": "Backgrounds/Tilesets/TilesetFloorDetail.png", "x": 48, "y": 0, "w": 16, "h": 16, "dx": 8, "dy": 20 },
+        { "src": "Backgrounds/Tilesets/TilesetFloorDetail.png", "x": 48, "y": 0, "w": 16, "h": 16, "dx": 48, "dy": 14 }
+      ]
+    },
+    "prop.elder_grove": {
+      "group": "props",
+      "label": "Elder Grove: old trees and a bench",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 48,
+      "frameHeight": 40,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 96, "y": 128, "w": 32, "h": 32, "dx": 0, "dy": 8 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 224, "y": 0, "w": 32, "h": 32, "dx": 16, "dy": 4 },
+        { "src": "Backgrounds/Tilesets/TilesetElement.png", "x": 176, "y": 16, "w": 48, "h": 16, "dx": 0, "dy": 24 }
+      ]
+    },
+    "prop.elderwood_tree": {
+      "group": "props",
+      "label": "Elderwood tree (Heartgrove chopping)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 48,
+      "frameHeight": 48,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 0, "y": 288, "w": 48, "h": 48, "dx": 0, "dy": 0 }
+      ]
+    },
+    "prop.starmetal_rock": {
+      "group": "props",
+      "label": "Starmetal rock (Heartgrove mining)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 0, "y": 192, "w": 32, "h": 32, "dx": 0, "dy": 0 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 16, "y": 224, "w": 16, "h": 16, "dx": 8, "dy": 2 }
+      ]
+    },
+    "prop.moonpetal_patch": {
+      "group": "props",
+      "label": "Moonpetal patch (Heartgrove foraging)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 42,
+      "frameHeight": 24,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetFloorDetail.png", "x": 0, "y": 48, "w": 16, "h": 16, "dx": 13, "dy": 8 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 96, "y": 176, "w": 16, "h": 16, "dx": 0, "dy": 6 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 96, "y": 176, "w": 16, "h": 16, "dx": 26, "dy": 6 },
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 96, "y": 176, "w": 16, "h": 16, "dx": 13, "dy": 0 }
+      ]
+    },
+    "prop.star_pool": {
+      "group": "props",
+      "label": "Star pool (Heartgrove fishing)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetWater.png",
+      "frameWidth": 44,
+      "frameHeight": 44,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetWater.png", "x": 208, "y": 0, "w": 44, "h": 44, "dx": 0, "dy": 0 }
+      ]
+    },
+    "prop.pheasant_glade": {
+      "group": "props",
+      "label": "Pheasant glade (Heartgrove hunting)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 32,
+      "frameHeight": 20,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetFloorDetail.png", "x": 32, "y": 32, "w": 16, "h": 16, "dx": 0, "dy": 4 },
+        { "src": "Backgrounds/Tilesets/TilesetFloorDetail.png", "x": 112, "y": 32, "w": 16, "h": 16, "dx": 16, "dy": 4 },
+        { "src": "Backgrounds/Tilesets/TilesetFloorDetail.png", "x": 0, "y": 32, "w": 16, "h": 16, "dx": 8, "dy": 0 }
+      ]
+    },
+    "prop.moon_stone": {
+      "group": "props",
+      "label": "Glowing moon stone on a pedestal",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetDungeon.png", "x": 32, "y": 32, "w": 16, "h": 16, "dx": 0, "dy": 0 }
+      ]
+    },
+    "prop.grove_bush": {
+      "group": "props",
+      "label": "Blossom bush (Heartgrove decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetNature.png",
+      "frameWidth": 32,
+      "frameHeight": 32,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetNature.png", "x": 224, "y": 0, "w": 32, "h": 32, "dx": 0, "dy": 0 }
+      ]
+    },
+    "prop.grove_sparkles": {
+      "group": "props",
+      "label": "Drifting sparkles (Heartgrove decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetFloorDetail.png", "x": 48, "y": 0, "w": 16, "h": 16, "dx": 0, "dy": 0 }
+      ]
+    },
+    "prop.grove_flowers": {
+      "group": "props",
+      "label": "Pale flowers (Heartgrove decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetFloorDetail.png", "x": 80, "y": 48, "w": 16, "h": 16, "dx": 0, "dy": 0 }
+      ]
+    },
+    "prop.grove_glow": {
+      "group": "props",
+      "label": "White orb (Heartgrove decor)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "parts": [
+        { "src": "Backgrounds/Tilesets/TilesetDungeon.png", "x": 80, "y": 32, "w": 16, "h": 16, "dx": 0, "dy": 0 }
+      ]
     }
   }
 }

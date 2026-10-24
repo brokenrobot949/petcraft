@@ -9,6 +9,7 @@
     "current": ["quick_cast", "river_sense", "silver_scales", "patient_ripples"],
     "fang": ["swift_forager", "pelt_finder", "keen_tracker", "feather_collector"],
     "scout": ["trail_finder", "digging_paws", "far_sight", "path_marker"],
+    "mythic": ["ancient_stride", "starlit_fortune", "ancient_calm", "starlit_heart"],
     "gift": ["lucky_charm", "golden_touch", "gift_bringer", "treasure_sense", "wonder_heart", "star_blessed", "bountiful"]
   },
   "talents": {
@@ -67,6 +68,11 @@
     "treasure_sense": { "name": "Treasure Sense", "desc": "Finds treasure maps 50% more often.", "effects": [ { "kind": "maps", "value": 0.5 } ] },
     "wonder_heart": { "name": "Wonder Heart", "desc": "Gains 30% more Bond and 25% more pet XP.", "effects": [ { "kind": "bond", "value": 0.3 }, { "kind": "xp", "value": 0.25 } ] },
     "star_blessed": { "name": "Star-blessed", "desc": "Works 15% faster and uses 15% less energy.", "effects": [ { "kind": "speed", "value": 0.15 }, { "kind": "drain", "value": 0.15 } ] },
-    "bountiful": { "name": "Bountiful", "desc": "Garden harvests give 20% more and food gives 30% more energy.", "effects": [ { "kind": "garden", "value": 0.2 }, { "kind": "meal", "value": 0.3 } ] }
+    "bountiful": { "name": "Bountiful", "desc": "Garden harvests give 20% more and food gives 30% more energy.", "effects": [ { "kind": "garden", "value": 0.2 }, { "kind": "meal", "value": 0.3 } ] },
+
+    "ancient_stride": { "name": "Ancient Stride", "desc": "Works 20% faster at everything.", "effects": [ { "kind": "speed", "value": 0.2 } ] },
+    "starlit_fortune": { "name": "Starlit Fortune", "desc": "Finds rare items 2 points more often and treasure maps 50% more often.", "effects": [ { "kind": "rare", "value": 0.02 }, { "kind": "maps", "value": 0.5 } ] },
+    "ancient_calm": { "name": "Ancient Calm", "desc": "Uses 25% less energy and has 20% more maximum energy.", "effects": [ { "kind": "drain", "value": 0.25 }, { "kind": "stamina", "value": 0.2 } ] },
+    "starlit_heart": { "name": "Starlit Heart", "desc": "Gains 40% more Bond and 30% more pet XP.", "effects": [ { "kind": "bond", "value": 0.4 }, { "kind": "xp", "value": 0.3 } ] }
   }
 }

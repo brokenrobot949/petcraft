@@ -1,6 +1,8 @@
 // Pet numbers derived from a pet's level, quality, archetype and Bond (docs/design.md "Pets").
 // Pure read-only helpers shared by the harvest and pets systems and the UI. Nothing here changes
 // state, and every number comes from data.balance.pets.
+import { sanctuaryBonus } from './sanctuary.js';
+
 export const HOUR_MS = 3600 * 1000;
 
 export function archetypeOf(data, archetypeId) {
@@ -69,7 +71,7 @@ export function petDrainPerHour(data, pet) {
 export function petRestPerHour(state, data, pet, { stabled = false } = {}) {
   const e = data.balance.pets.energy;
   const stableTier = state.buildings.stable?.tier ?? 1;
-  const rate = e.restPerHour * (1 + e.stableRestBonusPerTier * (stableTier - 1) + effectValue(data, pet, 'rest'));
+  const rate = e.restPerHour * (1 + e.stableRestBonusPerTier * (stableTier - 1) + effectValue(data, pet, 'rest') + sanctuaryBonus(state, data, 'petRest'));
   return stabled ? rate * e.stabledRestMult : rate;
 }
 
@@ -99,6 +101,7 @@ export function petRareBonus(data, pet, skillId = null) {
 
 // Sprite role for the pet's current form (data/sprites.json).
 export function petRole(pet) {
+  if (pet.form === 'mythic') return `mythic.${pet.archetype}`;
   return pet.form === 'hatchling' || !pet.branch ? `pet.${pet.archetype}.hatchling` : `pet.${pet.archetype}.${pet.branch}.${pet.form}`;
 }
 
@@ -110,8 +113,14 @@ export function branchDef(data, archetypeId, branchId) {
 
 // Species name of the pet's current form (hatchlings use the archetype's species).
 export function petSpecies(data, pet) {
+  if (pet.form === 'mythic') return mythicDef(data, pet.archetype)?.species || pet.archetype;
   const br = pet.form !== 'hatchling' && branchDef(data, pet.archetype, pet.branch);
   return (br && br[pet.form]?.species) || archetypeOf(data, pet.archetype)?.species || pet.archetype;
+}
+
+// The mythic of an archetype (pets.json mythics), or null.
+export function mythicDef(data, archetypeId) {
+  return (data.pets.mythics || []).find((m) => m.archetype === archetypeId) || null;
 }
 
 export function talentDef(data, talentId) {
@@ -121,11 +130,12 @@ export function talentDef(data, talentId) {
 // The effect kinds a branch strength or talent can have (docs/architecture.md "Phase 8").
 export const EFFECT_KINDS = ['speed', 'rare', 'extraItem', 'byproduct', 'maps', 'drain', 'stamina', 'rest', 'meal', 'bond', 'xp', 'track', 'garden', 'gift', 'dig'];
 
-// Every effect the pet has: its branch strength (juvenile x1, adult x adultStrengthMult), its gift
-// talents and its chosen talents. Cached per pet object until its form or talents change.
+// Every effect the pet has: its branch strength (juvenile x1, adult x adultStrengthMult) or its
+// mythic strength, its gift talents, its chosen talents and its heirloom talent (from an elder
+// parent). Cached per pet object until its form or talents change.
 const effectCache = new WeakMap();
 export function petEffects(data, pet) {
-  const sig = `${pet.form}|${pet.branch}|${(pet.gifts || []).join(',')}|${(pet.talents || []).join(',')}`;
+  const sig = `${pet.form}|${pet.branch}|${(pet.gifts || []).join(',')}|${(pet.talents || []).join(',')}|${pet.heirloom || ''}`;
   const hit = effectCache.get(pet);
   if (hit && hit.sig === sig && hit.data === data) return hit.list;
   const list = [];
@@ -134,7 +144,9 @@ export function petEffects(data, pet) {
     const mult = pet.form === 'adult' ? data.balance.pets.evolve.adultStrengthMult : 1;
     for (const e of br.strength || []) list.push({ ...e, value: e.value * mult });
   }
-  for (const t of [...(pet.gifts || []), ...(pet.talents || [])]) list.push(...(talentDef(data, t)?.effects || []));
+  if (pet.form === 'mythic') list.push(...(mythicDef(data, pet.archetype)?.strength || []));
+  const talents = [...(pet.gifts || []), ...(pet.talents || []), ...(pet.heirloom ? [pet.heirloom] : [])];
+  for (const t of talents) list.push(...(talentDef(data, t)?.effects || []));
   effectCache.set(pet, { sig, data, list });
   return list;
 }

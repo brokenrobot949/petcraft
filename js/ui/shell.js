@@ -9,6 +9,8 @@ import { canUpgradeAny } from '../systems/buildings.js';
 import { villageNotice } from '../systems/village.js';
 import { tamingNotice } from '../systems/taming.js';
 import { nestNotice } from '../systems/nest.js';
+import { sanctuaryNotice } from '../systems/sanctuary.js';
+import { storyNotice } from '../systems/story.js';
 import { rankInfo, rankTitle } from '../systems/renown.js';
 import * as home from './home.js';
 import * as world from './world.js';
@@ -75,6 +77,16 @@ export function mountShell(app) {
     for (const e of events) {
       if (e.type === 'rankUp') toast(`Renown ${e.rank}: ${rankTitle(d, e.rank)}!`, 3000);
     }
+    // Phase 9 events (the World tab says its own thing about mythic encounters and catches).
+    const projectName = (id) => d.projects?.projects?.find((p) => p.id === id)?.name || 'The project';
+    for (const e of events) {
+      if (e.type === 'projectStage') toast('Stage complete!', 2500);
+      else if (e.type === 'projectDone') toast(`${projectName(e.project)} is finished!`, 3500);
+      else if (e.type === 'story') toast(`New journal entry: ${d.story?.entries?.find((x) => x.id === e.entry)?.title || ''}`, 3000);
+      else if (e.type === 'masteryStar') toast(`${d.skills.skills.find((s) => s.id === e.skill)?.name || e.skill} Mastery: ${e.stars} star${e.stars === 1 ? '' : 's'}!`, 3000);
+      else if (e.type === 'retired') toast(`${e.name} has retired to the Elder Grove.`, 3000);
+      else if (e.type === 'groveOpened') toast('The Elder Grove has opened on your homestead', 3500);
+    }
   });
 
   const topbar = mountTopbar(app);
@@ -99,9 +111,13 @@ export function mountShell(app) {
   app.game.subscribe(craftBadge);
   craftBadge(app.game.getState());
   // Home badge: a building can be upgraded right now, or Mossbrook has news (new board, something to deliver).
-  const homeBadge = (state) => setBadge('home', canUpgradeAny(state, app.game.data) || villageNotice(state, app.game.data));
+  const homeBadge = (state) => setBadge('home', canUpgradeAny(state, app.game.data) || villageNotice(state, app.game.data) || sanctuaryNotice(state, app.game.data));
   app.game.subscribe(homeBadge);
   homeBadge(app.game.getState());
+  // Journal badge: a story entry the player has not read.
+  const journalBadge = (state) => setBadge('journal', storyNotice(state));
+  app.game.subscribe(journalBadge);
+  journalBadge(app.game.getState());
   // World badge: a trap finished since the player last looked (cleared by taming/seen on the zone page).
   const worldBadge = (state) => setBadge('world', tamingNotice(state));
   app.game.subscribe(worldBadge);

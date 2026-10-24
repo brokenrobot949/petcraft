@@ -1,7 +1,7 @@
 // Save migrations. MIGRATIONS[n] upgrades a version-n save to version n+1.
 // Rules: never delete a migration, never edit one that has shipped, and add one for every
 // SCHEMA_VERSION bump in state.js. Each migration must set the new version number.
-import { SCHEMA_VERSION, newVillage, newTamingState, petSeed } from './state.js';
+import { SCHEMA_VERSION, newVillage, newTamingState, newEndgameState, petSeed } from './state.js';
 import { deriveSeed } from './rng.js';
 
 const MIGRATIONS = {
@@ -74,6 +74,20 @@ const MIGRATIONS = {
     s.crafting.assists = {};
     s.bestiary = {};
     s.version = 7;
+    return s;
+  },
+  // 7 -> 8 (Phase 9): the endgame. The Grand Projects start at the first project, the story
+  // journal and the Elder Grove start empty (their systems' init unlocks what the save already
+  // earned), mythic encounters have no cooldown yet, and pets gain an empty heirloom talent and
+  // no elder parent.
+  7: (s) => {
+    Object.assign(s, newEndgameState(s.rng));
+    s.taming.mythicMs = 0;
+    for (const pet of Object.values(s.pets.list)) {
+      pet.heirloom = null;
+      pet.parent = null;
+    }
+    s.version = 8;
     return s;
   },
 };

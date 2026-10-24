@@ -2,6 +2,7 @@
 // For testing only. Removed before release.
 import { el, toast } from './dom.js';
 import { petList } from '../systems/pets.js';
+import { ended } from '../systems/sanctuary.js';
 
 export function createDevPanel(app) {
   const { game } = app;
@@ -77,6 +78,20 @@ export function createDevPanel(app) {
     el('option', { value: '' }, 'Random species'), data.pets.archetypes.map((a) => el('option', { value: a.id }, a.name)));
   const encQual = el('select.field', { 'aria-label': 'Encounter quality' },
     el('option', { value: '' }, 'Random quality'), data.pets.qualities.map((q) => el('option', { value: q.id }, q.name)));
+  // ---- Grand Projects, retirement, mastery, mythics ----
+  const skillSel2 = skillSel.cloneNode(true);
+  const archSel2 = archSel.cloneNode(true);
+  const starsIn = el('input.field', { type: 'number', value: '10', min: '0', inputMode: 'numeric', 'aria-label': 'Mastery stars' });
+  const finishAll = () => {
+    for (let i = 0; i < 100 && !ended(game.getState(), data); i++) {
+      try {
+        game.dispatch('dev/finishStage', {});
+      } catch (err) {
+        toast(err.message);
+        return;
+      }
+    }
+  };
   const grantAll = (list) => () => { for (const [item, n] of list) run('dev/grant', { item, qty: n }); };
 
   return el('div.panel.dev-panel', {},
@@ -135,6 +150,17 @@ export function createDevPanel(app) {
     el('button.btn.wide', { type: 'button', onclick: grantAll([['pine_trap', 1], ['berry_bait', 1], ['nut_bait', 1], ['fish_bait', 1]]) }, 'Pine trap + 3 baits'),
     el('button.btn.wide', { type: 'button', onclick: grantAll([['map_meadowfold', 2]]) }, '2 Meadowfold maps'),
     el('button.btn.wide', { type: 'button', onclick: grantAll([['treasure_egg', 1]]) }, 'Treasure egg'),
+    el('h3', {}, 'Grand Projects'),
+    el('button.btn.wide', { type: 'button', onclick: () => run('dev/stageNeeds', {}) }, 'Give what this stage needs'),
+    el('button.btn.wide', { type: 'button', onclick: () => run('dev/finishStage', {}) }, 'Finish this stage'),
+    el('button.btn.wide', { type: 'button', onclick: finishAll }, 'Finish all projects'),
+    el('h3', {}, 'Endgame'),
+    el('button.btn.wide', { type: 'button', onclick: petCmd('dev/readyToRetire', () => ({})) }, 'Ready to retire'),
+    el('div.row', {}, skillSel2, starsIn,
+      el('button.btn', { type: 'button', onclick: () => run('dev/masteryStars', { skill: skillSel2.value, stars: Number(starsIn.value) }) }, 'Mastery stars')),
+    el('div.row', {}, archSel2,
+      el('button.btn', { type: 'button', onclick: () => run('dev/encounter', { zone: 'heartgrove', archetype: archSel2.value, mythic: true }) }, 'Mythic encounter')),
+    el('button.btn.wide', { type: 'button', onclick: () => run('dev/endgameKit', {}) }, 'Endgame kit (Starmetal trap + mythic bait)'),
     el('h3', {}, 'Pretend I was away'),
     el('div.row', {}, away('10 min', 600000), away('1 h', H), away('8 h', 8 * H), away('20 h', 20 * H)),
     el('h3', {}, 'Start over'),

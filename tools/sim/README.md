@@ -1,4 +1,4 @@
-# PetCraft balance simulator (v4, dev only, never shipped)
+# PetCraft balance simulator (v5, dev only, never shipped)
 
 Plays the real game with a scripted player for N days and reports pacing. It imports the same
 game modules as the app (`createGame`, the systems, `loadData`); there is no copied game logic.
@@ -117,7 +117,25 @@ v4 adds per day (daily table, a chart and the CSV): juveniles, adults, talent pi
 
 ## What the simulator cannot measure yet
 
-Grand Projects themselves (only the Renown 12 mark), Phase 8+ zone content (mythics), and the Focus mini-game (the policy always assumes a 'good' result). Pet feeding is whatever auto-feed
+The Focus mini-game (the policy always assumes a 'good' result). Pet feeding is whatever auto-feed
 does. Milestones during time away are accurate to 30 minutes. The policy checks in only at its check-in times, so
 the "first building upgrade in 10 minutes" target cannot be met by a 4-check-in player (it lands at the first
 check-in after enough materials exist).
+
+## v5: endgame (Phase 9)
+
+Pick **90 days (endgame)** in the Length box (or add `?days=90&auto` to the address). Each check-in the policy now also:
+
+- watches pending scenes (`sanctuary/sceneSeen`) and reads the journal (`story/seen`);
+- delivers to the current Grand Project stage (`sanctuary/deliver`): items first, coins once all items are in (before that only
+  coins above the building steps' goal). The stage's missing, reachable items join the wants (same class as buildings and
+  commissions: after tools, before XP crafting); selling surplus aims at the stage's coins too; once the items are in, the stage's
+  coins are kept back from buildings, scrolls and trap/bait purchases. Relics are never sold (they only come from digs);
+- retires the oldest pet that `retireInfo` allows while 3+ pets remain (heirloom = its first talent), places heir eggs in free
+  Nest slots (`nest/placeHeir`), hatches them like other eggs;
+- after the ending: Starmetal tools become tool goals (tier 7), the Heartgrove is harvested and tracked like any open zone,
+  and a Starmetal Trap plus Mythic Bait are made while mythics are missing. A mythic encounter with no such trap and bait is let go.
+
+The report gains milestones (Grand Projects open, first stage, each project, Elder Grove, first retirement, ending, first mythic,
+first Starmetal tool), an Endgame section (projects, current stage needs, elders, Mastery stars), an Endgame chart, daily columns
+(projects, stages, stage %, elders, stars; also in the CSV) and flags for stalled projects.

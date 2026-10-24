@@ -18,6 +18,7 @@ import {
   petSpecies, branchDef, talentDef, effectText, petEffects,
 } from '../systems/petstats.js';
 import { stationDef } from '../systems/crafting.js';
+import { retireInfo, heirEggList } from '../systems/elders.js';
 
 export const id = 'pets';
 export const label = 'Pets';
@@ -224,6 +225,13 @@ function evolveKey(st, p) {
   return `${info.ready ? 1 : 0}${info.branches.map((b) => (b.unlocked ? 1 : 0)).join('')}${info.catalyst && info.catalyst.have > 0 ? 1 : 0}${info.hearts >= (info.heartsNeed ?? 99) ? 1 : 0}`;
 }
 
+// What changes the Retire panel's layout.
+function retireKey(st, p) {
+  if (p.form !== 'adult' && p.form !== 'mythic') return p.level >= 25 ? 'n' : '-';
+  const info = retireInfo(st, gdata(), p.id);
+  return `${info.can ? 1 : 0}${info.reason}`;
+}
+
 function petKey(st, p, day) {
   const d = gdata();
   const t = st.workers[p.id]?.task;
@@ -231,7 +239,7 @@ function petKey(st, p, day) {
     p.id, p.name, p.level, p.form, petHearts(d, p).hearts, petStatus(st, p.id), t ? `${t.zone}/${t.skill}` : '',
     canPatToday(st, p.id, day) ? 1 : 0, p.autoFeed ? 1 : 0, petProgress(d, p).capped ? 1 : 0,
     p.branch || '-', (p.talents || []).length, (p.gifts || []).length, (p.offer || []).join('+'), p.favoriteKnown ? 1 : 0,
-    evolveKey(st, p), Object.keys(st.crafting.assists || {}).filter((s) => st.crafting.assists[s] === p.id).join('+'),
+    evolveKey(st, p), p.heirloom || '-', retireKey(st, p), Object.keys(st.crafting.assists || {}).filter((s) => st.crafting.assists[s] === p.id).join('+'),
   ].join(':');
 }
 
@@ -241,7 +249,8 @@ function structKey(st, day) {
   if (ui.page && !getPet(st, ui.page)) ui.page = null;
   const pantry = foodList(st, d).map((e) => e.id + (e.on ? '+' : '-')).join(',');
   const pets = petList(st).map((p) => petKey(st, p, day)).join('|');
-  const nest = nestList(st, d).map((n) => `${n.slot}:${n.archetype || '-'}:${n.ready ? 1 : 0}`).join(',');
+  const nest = nestList(st, d).map((n) => `${n.slot}:${n.archetype || '-'}:${n.ready ? 1 : 0}:${n.heir ? 'h' : ''}`).join(',')
+    + `;${heirEggList(st).map((h) => `${h.archetype}${h.quality}`).join(',')}`;
   const eggs = eggList(st, d).map((e) => `${e.key}x${e.count}`).join(',');
   const room = `${petCapacity(st, d)}/${freePetSpaces(st, d)}/${Object.keys(st.taming.traps).length}/${buildingTier(st, 'nest')}`;
   return `${ui.page ? `pet:${ui.page}` : 'roster'}#${st.pets.active.join(',')}#${pantry}#${pets}#${nest}#${eggs}#${room}`;
@@ -393,7 +402,11 @@ function fmtLeft(ms) {
 
 function buildNest(st, d) {
   const eggs = eggList(st, d);
-  const waiting = eggs.map((e) => el('p.small.nest-waiting', {}, `${e.count} ${e.item.name}${e.count === 1 ? '' : 's'} waiting`));
+  const heirs = heirEggList(st);
+  const waiting = [
+    ...eggs.map((e) => el('p.small.nest-waiting', {}, `${e.count} ${e.item.name}${e.count === 1 ? '' : 's'} waiting`)),
+    ...heirs.map((h) => el('p.small.nest-waiting', {}, `An heir egg of ${h.elder || 'an elder'} is waiting in the Elder Grove`)),
+  ];
   const panel = el('div.panel.nest-panel', {}, el('h2', {}, 'Nest'));
   if (buildingTier(st, 'nest') < 1) {
     panel.append(el('p.small.muted', {}, 'The Nest opens at Renown 8 - eggs you find wait in your bag'), ...waiting);
@@ -403,9 +416,12 @@ function buildNest(st, d) {
   for (const n of nestList(st, d)) {
     if (!n.egg) {
       const row = el('div.nest-slot.empty', {}, el('b', {}, `Slot ${n.slot + 1} is empty`));
-      if (eggs.length) {
+      if (eggs.length || heirs.length) {
         for (const e of eggs) {
           row.append(el('button.btn.wide', { type: 'button', onclick: () => act('nest/place', { item: e.key, slot: n.slot }) }, `Place ${e.item.name}`));
+        }
+        for (const h of heirs) {
+          row.append(el('button.btn.wide', { type: 'button', onclick: () => act('nest/placeHeir', { egg: h.index, slot: n.slot }) }, `Place the heir egg of ${h.elder || 'an elder'}`));
         }
       } else row.append(el('p.small.muted', {}, 'No eggs in your bag. Dig up treasure to find one.'));
       panel.append(row);
@@ -417,6 +433,7 @@ function buildNest(st, d) {
         eggPicture(arch, 'egg-wobble-loop'),
         el('div.nest-body', {},
           el('b', {}, 'Ready to hatch!'),
+          n.heir && el('span.small.muted', {}, `Heir of ${n.heir.name || 'an elder'}`),
           el('button.btn.wide', { type: 'button', onclick: () => hatchSheet(n.slot) }, 'Hatch'))));
     } else {
       const fill = el('div.fill', {});
@@ -430,7 +447,7 @@ function buildNest(st, d) {
       });
       panel.append(el('div.nest-slot', {},
         eggPicture(arch, ''),
-        el('div.nest-body', {}, el('b', {}, `${n.egg.name} is warming`), el('div.bar.big', { 'aria-hidden': 'true' }, fill), txt)));
+        el('div.nest-body', {}, el('b', {}, n.heir ? `Heir of ${n.heir.name || 'an elder'} is warming` : `${n.egg.name} is warming`), el('div.bar.big', { 'aria-hidden': 'true' }, fill), txt)));
     }
   }
   panel.append(...waiting);
@@ -638,6 +655,12 @@ function buildEvolution(st, pet) {
   const b = d.balance.pets;
   const pid = pet.id;
   const info = evolveInfo(st, d, pid);
+  if (pet.form === 'mythic') {
+    const m = panelOf('Mythic',
+      el('p', {}, `${petSpecies(d, pet)} is a mythic. Mythics never change form.`));
+    for (const e of petEffects(d, pet)) m.append(el('p.small.pet-effect', {}, effectText(d, e)));
+    return m;
+  }
   const panel = panelOf('Evolution');
   if (info.next === 'juvenile') {
     const atLevel = pet.level >= info.levelNeed;
@@ -722,6 +745,14 @@ function buildTalents(st, pet) {
   const d = gdata();
   const info = talentInfo(st, d, pet.id);
   const panel = panelOf('Talents');
+  if (pet.heirloom) {
+    const parent = st.elders.list.find((e) => e.id === pet.parent);
+    const t = talentDef(d, pet.heirloom);
+    panel.append(el('div.pet-talent.heirloom', {},
+      el('b', {}, el('span.pet-gift-star', { 'aria-hidden': 'true' }, '♥ '), `Heirloom: ${t?.name || pet.heirloom}`),
+      el('span.small', {}, t?.desc || ''),
+      parent && el('span.small.muted', {}, `Passed down by ${parent.name}`)));
+  }
   for (const g of info.gifts) panel.append(talentCard(g, true));
   let nextDue = true;
   for (const pk of info.picks) {
@@ -743,6 +774,9 @@ function buildHelping(st, pet) {
   const d = gdata();
   const pid = pet.id;
   const info = assistInfo(st, d, pid);
+  if (pet.form === 'mythic') {
+    return panelOf('Helping', el('p.small', {}, info.reason));
+  }
   if (pet.form !== 'adult') {
     return panelOf('Helping', el('p.small.muted', {}, 'Adults can help at a crafting station.'));
   }
@@ -763,6 +797,69 @@ function buildHelping(st, pet) {
   } else {
     panel.append(el('p.small.muted', {}, info.reason));
   }
+  return panel;
+}
+
+// ---- retiring to the Elder Grove (Phase 9) ----
+
+function retireSheet(pet, info) {
+  const d = gdata();
+  let pickedLoom = info.heirlooms.length ? info.heirlooms[0] : null;
+  let step = 'pick';
+  const body = el('div');
+  let close = () => {};
+  const qName = (id) => d.pets.qualities.find((q) => q.id === id)?.name || id;
+  const draw = () => {
+    if (step === 'pick') {
+      const kids = [
+        el('p', {}, `${pet.name} will move to the Elder Grove, stay on your homestead and give every pet a bonus. ${pet.name} leaves an heir egg of the same kind, ${qName(info.floor)} quality or better, and exactly ${qName(info.match)} 1 time in ${Math.round(1 / d.balance.elders.heir.matchChance)}.`),
+      ];
+      if (info.heirlooms.length) {
+        kids.push(el('h3.pet-sub-h', {}, 'Pick the talent the heir inherits'));
+        for (const id of info.heirlooms) {
+          const t = talentDef(d, id);
+          kids.push(el('button.pet-talent-card', {
+            type: 'button', 'aria-pressed': id === pickedLoom ? 'true' : 'false',
+            onclick: () => { pickedLoom = id; draw(); },
+          }, el('b', {}, `${id === pickedLoom ? '✓ ' : ''}${t?.name || id}`), el('span.small', {}, t?.desc || '')));
+        }
+      }
+      kids.push(el('button.btn.wide', { type: 'button', onclick: () => { step = 'confirm'; draw(); } }, 'Next'));
+      body.replaceChildren(...kids);
+    } else {
+      const t = pickedLoom ? talentDef(d, pickedLoom) : null;
+      body.replaceChildren(
+        el('p', {}, `Retire ${pet.name} to the Elder Grove? This cannot be undone.`),
+        t && el('p.small', {}, `Heirloom for the heir: ${t.name}`),
+        el('button.btn.wide', {
+          type: 'button',
+          onclick: () => {
+            if (!act('elders/retire', { pet: pet.id, heirloom: pickedLoom })) return;
+            close();
+            toast(`${pet.name} has moved to the Elder Grove. An heir egg is waiting.`, 3500);
+          },
+        }, `Yes, retire ${pet.name}`),
+        el('button.btn.wide', { type: 'button', onclick: () => { step = 'pick'; draw(); } }, 'Go back'));
+    }
+  };
+  draw();
+  close = sheetWithClose('Not yet', `Retire ${pet.name}?`, body);
+}
+
+function buildRetire(st, pet) {
+  const d = gdata();
+  if (pet.form !== 'adult' && pet.form !== 'mythic') {
+    if (pet.level < 25) return null;
+    return panelOf('Retire', el('p.small.muted', {}, `Once ${pet.name} is fully grown and at level ${d.balance.elders.retireLevel}, it can retire to the Elder Grove.`));
+  }
+  const info = retireInfo(st, d, pet.id);
+  const panel = panelOf('Retire',
+    el('p.small.muted', {}, `A retired pet moves to the Elder Grove, stays on your homestead, gives every pet a bonus and leaves an heir egg.`));
+  if (!info.can) {
+    panel.append(el('p.small', {}, info.reason));
+    return panel;
+  }
+  panel.append(el('button.btn.wide', { type: 'button', onclick: () => retireSheet(pet, info) }, `Retire ${pet.name}`));
   return panel;
 }
 
@@ -923,6 +1020,8 @@ function buildPage(st, day, pet) {
   out.push(buildEvolution(st, pet));
   out.push(buildTalents(st, pet));
   out.push(buildHelping(st, pet));
+  const retire = buildRetire(st, pet);
+  if (retire) out.push(retire);
 
   // Active / Stable
   const active = st.pets.active.includes(pid);

@@ -401,7 +401,83 @@
       "id": "heartgrove", "name": "Heartgrove", "tier": 6, "unlock": { "grandProject": 5 },
       "archetypes": ["sprout", "stone", "tide", "wild"],
       "blurb": "A hidden grove at the heart of the sanctuary, where every kind of creature gathers.",
-      "harvest": {}, "rare": {}
+      "mythics": true,
+      "scene": {
+        "idle": [0.46, 0.9],
+        "encounter": { "x": 0.92, "y": 0.55, "face": "left" },
+        "ground": "0x4f7a5a", "speck": "0x5d8a66",
+        "spots": {
+          "chopping": { "prop": "prop.elderwood_tree", "x": 0.13, "y": 0.64, "stand": [0.27, 0.76], "face": "left" },
+          "mining": { "prop": "prop.starmetal_rock", "x": 0.37, "y": 0.54, "stand": [0.37, 0.68], "face": "up" },
+          "foraging": { "prop": "prop.moonpetal_patch", "x": 0.55, "y": 0.6, "stand": [0.55, 0.82], "face": "up" },
+          "hunting": { "prop": "prop.pheasant_glade", "x": 0.7, "y": 0.58, "stand": [0.7, 0.82], "face": "up" },
+          "fishing": { "prop": "prop.star_pool", "x": 0.89, "y": 0.9, "stand": [0.76, 0.8], "face": "right" },
+          "taming": { "x": 0.46, "y": 0.46, "stand": [0.46, 0.46], "face": "down" },
+          "dig": { "prop": "prop.dig_site", "x": 0.31, "y": 0.84, "stand": [0.22, 0.86], "face": "right" }
+        },
+        "decor": [
+          { "prop": "prop.grove_sparkles", "x": 0.06, "y": 0.9 },
+          { "prop": "prop.grove_flowers", "x": 0.3, "y": 0.95 },
+          { "prop": "prop.grove_glow", "x": 0.46, "y": 0.7 },
+          { "prop": "prop.grove_flowers", "x": 0.62, "y": 0.96 },
+          { "prop": "prop.grove_bush", "x": 0.22, "y": 0.4 },
+          { "prop": "prop.moon_stone", "x": 0.46, "y": 0.3 },
+          { "prop": "prop.grove_sparkles", "x": 0.62, "y": 0.34 },
+          { "prop": "prop.grove_bush", "x": 0.86, "y": 0.32 },
+          { "prop": "prop.grove_sparkles", "x": 0.97, "y": 0.5 }
+        ]
+      },
+      "harvest": {
+        "chopping": [
+          { "id": "elderwood_tree", "name": "Elderwood Tree", "level": 50,
+            "drops": [ { "item": "elderwood_log", "qty": [1, 1], "chance": 1 },
+                       { "item": "heart_sap", "qty": [1, 1], "chance": 0.08 } ] },
+          { "id": "silver_elder", "name": "Silver Elderwood", "level": 56,
+            "drops": [ { "item": "elderwood_log", "qty": [1, 2], "chance": 1 },
+                       { "item": "heart_sap", "qty": [1, 1], "chance": 0.1 } ] }
+        ],
+        "mining": [
+          { "id": "starmetal_vein", "name": "Starmetal Vein", "level": 50,
+            "drops": [ { "item": "starmetal_ore", "qty": [1, 1], "chance": 1 },
+                       { "item": "coal", "qty": [1, 1], "chance": 0.2 } ] },
+          { "id": "deep_starmetal", "name": "Deep Starmetal Vein", "level": 57,
+            "drops": [ { "item": "starmetal_ore", "qty": [1, 2], "chance": 1 },
+                       { "item": "coal", "qty": [1, 1], "chance": 0.2 } ] }
+        ],
+        "foraging": [
+          { "id": "moonpetal_patch", "name": "Moonpetal Patch", "level": 50,
+            "drops": [ { "item": "moonpetal", "qty": [1, 1], "chance": 1 },
+                       { "item": "plant_fiber", "qty": [1, 1], "chance": 0.1 } ] },
+          { "id": "moonlit_meadow", "name": "Moonlit Meadow", "level": 55,
+            "drops": [ { "item": "moonpetal", "qty": [1, 2], "chance": 1 },
+                       { "item": "plant_fiber", "qty": [1, 1], "chance": 0.1 } ] }
+        ],
+        "fishing": [
+          { "id": "star_pool", "name": "Star Pool", "level": 50,
+            "drops": [ { "item": "star_carp", "qty": [1, 1], "chance": 1 },
+                       { "item": "river_shell", "qty": [1, 1], "chance": 0.05 } ] },
+          { "id": "starlit_shallows", "name": "Starlit Shallows", "level": 57,
+            "drops": [ { "item": "star_carp", "qty": [1, 2], "chance": 1 },
+                       { "item": "river_shell", "qty": [1, 1], "chance": 0.06 } ] }
+        ],
+        "hunting": [
+          { "id": "pheasant_glade", "name": "Pheasant Glade", "level": 50,
+            "drops": [ { "item": "gilded_pheasant", "qty": [1, 1], "chance": 1 },
+                       { "item": "golden_feather", "qty": [1, 1], "chance": 0.4 },
+                       { "item": "feathers", "qty": [1, 1], "chance": 0.3 } ] },
+          { "id": "gilded_thicket", "name": "Gilded Thicket", "level": 58,
+            "drops": [ { "item": "gilded_pheasant", "qty": [1, 2], "chance": 1 },
+                       { "item": "golden_feather", "qty": [1, 1], "chance": 0.4 },
+                       { "item": "feathers", "qty": [1, 1], "chance": 0.3 } ] }
+        ]
+      },
+      "rare": {
+        "chopping": [ { "item": "everbloom_bough", "weight": 1 } ],
+        "mining": [ { "item": "star_shard", "weight": 1 } ],
+        "foraging": [ { "item": "dreamdew_blossom", "weight": 1 } ],
+        "fishing": [ { "item": "moon_pearl", "weight": 1 } ],
+        "hunting": [ { "item": "gilded_antler", "weight": 1 } ]
+      }
     }
   ]
 }

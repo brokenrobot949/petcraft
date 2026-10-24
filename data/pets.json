@@ -15,10 +15,12 @@
         { "id": "bloom", "name": "Bloom", "calling": "foraging", "catalyst": "verdant_essence",
           "strength": [ { "kind": "rare", "skills": ["foraging"], "value": 0.01 }, { "kind": "garden", "value": 0.1 } ],
           "assist": { "station": "alchemyLab", "speed": 0.1 },
+          "legacy": { "skills": ["foraging"] },
           "juvenile": { "species": "Petalin", "desc": "A flower-crowned sprite that follows the bees and knows where every wild blossom grows. Good at gathering petals and berries." }, "adult": { "species": "Blossomere", "desc": "A gentle garden guardian with a crown of blooms that makes every crop flourish. Helps the garden grow lush and bright." } },
         { "id": "timber", "name": "Timber", "calling": "chopping", "catalyst": "heartwood_resin",
           "strength": [ { "kind": "speed", "skills": ["chopping"], "value": 0.15 } ],
           "assist": { "station": "workbench", "speed": 0.1 },
+          "legacy": { "skills": ["chopping"] },
           "juvenile": { "species": "Barkling", "desc": "A young creature with bark-plated cheeks and a woodsy smell. Quick with an axe and happy to clear away fallen branches." }, "adult": { "species": "Thornwood", "desc": "A sturdy, leafy friend as tall and steady as an old oak. Chops with patience and helps the timber grow." } }
       ]
     },
@@ -37,10 +39,12 @@
         { "id": "gem", "name": "Gem", "calling": "mining", "catalyst": "prism_dust",
           "strength": [ { "kind": "rare", "skills": ["mining"], "value": 0.01 }, { "kind": "rare", "value": 0.003 } ],
           "assist": { "station": "forge", "quality": 0.25 },
+          "legacy": { "skills": ["mining"] },
           "juvenile": { "species": "Glimmock", "desc": "A little crystal-speckled creature that glints whenever it is happy. Has a knack for spotting gems and a little extra luck." }, "adult": { "species": "Jewelcrest", "desc": "A grand, glittering creature with a crest of polished gems. Its shine draws rare treasures and good fortune." } },
         { "id": "boulder", "name": "Boulder", "calling": "chopping", "catalyst": "granite_heart",
           "strength": [ { "kind": "speed", "skills": ["mining"], "value": 0.15 }, { "kind": "stamina", "value": 0.1 } ],
           "assist": { "station": "forge", "speed": 0.2 },
+          "legacy": { "skills": ["mining"] },
           "juvenile": { "species": "Stonehog", "desc": "A round, sturdy little digger that never tires of a good dig. Steady as a hill and strong at mining." }, "adult": { "species": "Graniback", "desc": "A broad, mossy-backed giant of granite. Mines with great strength and keeps the forge humming along." } }
       ]
     },
@@ -59,10 +63,12 @@
         { "id": "deep", "name": "Deep", "calling": "fishing", "catalyst": "abyssal_pearl",
           "strength": [ { "kind": "maps", "value": 0.5 }, { "kind": "rare", "skills": ["fishing"], "value": 0.01 } ],
           "assist": { "station": "alchemyLab", "speed": 0.1 },
+          "legacy": { "skills": ["fishing"] },
           "juvenile": { "species": "Pearlet", "desc": "A small, pearly blob that loves cool, quiet water. Dives for rare fish and tucked-away treasure maps." }, "adult": { "species": "Coralune", "desc": "A graceful, coral-crowned creature from the deepest water. Keen-eyed at fishing and forever finding treasure maps." } },
         { "id": "current", "name": "Current", "calling": "foraging", "catalyst": "rushing_tonic",
           "strength": [ { "kind": "speed", "skills": ["fishing"], "value": 0.15 } ],
           "assist": { "station": "kitchen", "speed": 0.1 },
+          "legacy": { "skills": ["fishing"] },
           "juvenile": { "species": "Rivulet", "desc": "A quick, bubbly stream spirit that dances along the rapids. Fishes swiftly and slips through the water with ease." }, "adult": { "species": "Torrentail", "desc": "A swift, flowing creature with a long, shimmering tail. Carries the river's gift to the fishing spots and never tires." } }
       ]
     },
@@ -81,10 +87,12 @@
         { "id": "fang", "name": "Fang", "calling": "hunting", "catalyst": "hunters_musk",
           "strength": [ { "kind": "speed", "skills": ["hunting"], "value": 0.1 }, { "kind": "byproduct", "skills": ["hunting"], "value": 0.3 } ],
           "assist": { "station": "kitchen", "speed": 0.1 },
+          "legacy": { "skills": ["hunting"] },
           "juvenile": { "species": "Sablepaw", "desc": "A sleek, keen-eyed young cat with soft sable paws. Tracks small game quietly and brings home a gentle catch." }, "adult": { "species": "Dusklynx", "desc": "A graceful lynx who hunts at dusk with a careful, kind heart. Quick on the trail and often brings back extra hides." } },
         { "id": "scout", "name": "Scout", "calling": "foraging", "catalyst": "pathfinder_oil",
           "strength": [ { "kind": "track", "value": 0.02 }, { "kind": "dig", "value": 0.1 } ],
           "assist": null,
+          "legacy": { "skills": ["hunting"] },
           "juvenile": { "species": "Tracklet", "desc": "A curious young explorer with a sharp nose and bright ears. Follows faint tracks and sniffs out hidden spots." }, "adult": { "species": "Delvefox", "desc": "A clever fox with a keen nose for paths and buried things. Digs up treasure and finds the way through any trail." } }
       ]
     }
@@ -92,7 +100,8 @@
   "forms": [
     { "id": "hatchling", "stage": 1, "name": "Hatchling" },
     { "id": "juvenile", "stage": 2, "name": "Juvenile" },
-    { "id": "adult", "stage": 3, "name": "Adult" }
+    { "id": "adult", "stage": 3, "name": "Adult" },
+    { "id": "mythic", "stage": 3, "name": "Mythic" }
   ],
   "qualities": [
     { "id": "common", "name": "Common", "stars": 1 },
@@ -102,10 +111,10 @@
     { "id": "legendary", "name": "Legendary", "stars": 5 }
   ],
   "mythics": [
-    { "archetype": "sprout", "species": "Sylvareth", "desc": "An ancient guardian of the Heartgrove, older than its oldest tree. Those who tend the grove say they can hear it humming in the leaves." },
-    { "archetype": "stone", "species": "Tellurion", "desc": "A slow, gentle giant of crystal and moss that sleeps beneath the grove's roots. Some say it only wakes when the Heartgrove is truly at peace." },
-    { "archetype": "tide", "species": "Serenthe", "desc": "A calm river spirit that drifts through the still pools of the Heartgrove. Its song is said to carry lost things back home." },
-    { "archetype": "wild", "species": "Vesperine", "desc": "A silent, silver-furred guardian that watches over the grove at dusk. Few have seen it, but its paw prints appear in the morning dew." }
+    { "archetype": "sprout", "species": "Sylvareth", "strength": [ { "kind": "speed", "skills": ["foraging", "chopping"], "value": 0.25 }, { "kind": "garden", "value": 0.15 } ], "desc": "An ancient guardian of the Heartgrove, older than its oldest tree. Those who tend the grove say they can hear it humming in the leaves." },
+    { "archetype": "stone", "species": "Tellurion", "strength": [ { "kind": "speed", "skills": ["mining"], "value": 0.3 }, { "kind": "rare", "value": 0.005 } ], "desc": "A slow, gentle giant of crystal and moss that sleeps beneath the grove's roots. Some say it only wakes when the Heartgrove is truly at peace." },
+    { "archetype": "tide", "species": "Serenthe", "strength": [ { "kind": "speed", "skills": ["fishing"], "value": 0.3 }, { "kind": "maps", "value": 0.75 } ], "desc": "A calm river spirit that drifts through the still pools of the Heartgrove. Its song is said to carry lost things back home." },
+    { "archetype": "wild", "species": "Vesperine", "strength": [ { "kind": "speed", "skills": ["hunting"], "value": 0.3 }, { "kind": "track", "value": 0.03 } ], "desc": "A silent, silver-furred guardian that watches over the grove at dusk. Few have seen it, but its paw prints appear in the morning dew." }
   ],
   "suggestedNames": [
     "Pip", "Bramble", "Mochi", "Biscuit", "Clover", "Noodle",

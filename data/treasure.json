@@ -54,6 +54,16 @@
       { "item": "cinder_heartwood", "qty": [1, 1], "weight": 2 },
       { "item": "fire_opal", "qty": [1, 1], "weight": 2 },
       { "item": "ember_pearl", "qty": [1, 1], "weight": 1 }
+    ],
+    "6": [
+      { "item": "elderwood_plank", "qty": [2, 4], "weight": 4 },
+      { "item": "starmetal_bar", "qty": [1, 2], "weight": 3 },
+      { "item": "heart_sap", "qty": [1, 2], "weight": 3 },
+      { "item": "everbloom_bough", "qty": [1, 1], "weight": 2 },
+      { "item": "star_shard", "qty": [1, 1], "weight": 2 },
+      { "item": "dreamdew_blossom", "qty": [1, 1], "weight": 2 },
+      { "item": "moon_pearl", "qty": [1, 1], "weight": 2 },
+      { "item": "gilded_antler", "qty": [1, 1], "weight": 1 }
     ]
   }
 }

@@ -96,14 +96,21 @@ export function showAwaySummary(app, summary, { awayMs }) {
   const species = (id) => data.pets.archetypes.find((a) => a.id === id)?.species || id;
   const tm = summary.taming || {};
   const tmLines = [];
-  for (const f of tm.found || []) tmLines.push(el('p.small', {}, `You spotted a wild ${species(f.archetype)} in ${zoneName(f.zone)}.`));
+  const mythicSp = (id) => data.pets.mythics?.find((m) => m.archetype === id)?.species || species(id);
+  for (const f of tm.found || []) {
+    tmLines.push(f.mythic
+      ? el('p.away-levelup', {}, `A mythic appeared in the ${zoneName(f.zone)}!`)
+      : el('p.small', {}, `You spotted a wild ${species(f.archetype)} in ${zoneName(f.zone)}.`));
+  }
   for (const r of tm.results || []) {
-    const sp = species(r.archetype);
+    const sp = r.mythic ? mythicSp(r.archetype) : species(r.archetype);
     if (r.caught) {
       const name = getPet(state, r.pet)?.name || sp;
-      tmLines.push(el('p.away-levelup', {}, name === sp
-        ? `A wild ${sp} was caught in ${zoneName(r.zone)}!`
-        : `${name} the ${sp} was caught in ${zoneName(r.zone)}!`));
+      tmLines.push(el('p.away-levelup', {}, r.mythic
+        ? `The mythic ${sp} chose to stay with you in ${zoneName(r.zone)}!`
+        : name === sp
+          ? `A wild ${sp} was caught in ${zoneName(r.zone)}!`
+          : `${name} the ${sp} was caught in ${zoneName(r.zone)}!`));
     } else {
       tmLines.push(el('p.small', {}, `A wild ${sp} slipped out of the trap in ${zoneName(r.zone)}.`));
     }
@@ -131,6 +138,13 @@ export function showAwaySummary(app, summary, { awayMs }) {
   for (const id of summary.achievements || []) {
     const a = data.achievements.achievements.find((x) => x.id === id);
     scroll.append(el('p.away-levelup', {}, `Achievement: ${a?.name || id}`));
+  }
+  for (const [s, stars] of Object.entries(summary.mastery || {})) {
+    scroll.append(el('p.away-levelup', {}, `${skillName(s)} Mastery: ${stars} star${stars === 1 ? '' : 's'}`));
+  }
+  for (const id of summary.story || []) {
+    const entry = data.story?.entries?.find((x) => x.id === id);
+    scroll.append(el('p.away-levelup', {}, `New journal entry: ${entry?.title || id}`));
   }
   if (summary.renown?.xp > 0) scroll.append(el('p.small', {}, `+${Math.round(summary.renown.xp).toLocaleString()} Renown XP`));
   if (summary.renown?.rank) scroll.append(el('p.away-levelup', {}, `You reached Renown ${summary.renown.rank}!`));

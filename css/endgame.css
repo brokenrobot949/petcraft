@@ -1,0 +1,68 @@
+/* Phase 9: Grand Projects, project scenes, story journal, Elder Grove, retiring, mythics. */
+
+/* Three buttons in one row across the top, so the top band of the scene (the Elder Grove) stays clear. */
+.home-btns { flex-wrap: nowrap; justify-content: space-between; left: calc(env(safe-area-inset-left) + 8px); right: calc(env(safe-area-inset-right) + 8px); gap: 6px; }
+.home-btns .home-buildings-btn { flex: 1 1 0; min-width: 0; padding: 0 2px; border-width: 8px 6px; font-size: 15px; white-space: nowrap; }
+.station-top { flex-wrap: wrap; }
+
+/* ---- Grand Projects sheet ---- */
+.sa-finished { font-size: 20px; color: var(--cream); }
+.sa-need { padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, .1); }
+.sa-need.met { opacity: .75; }
+.sa-need-top { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.sa-need-top .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.sa-need .bar { margin: 4px 0; }
+.sa-need-bottom { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.sa-need-bottom .btn { min-height: var(--tap); min-width: 96px; }
+.sa-project { padding: 6px 8px; margin-bottom: 6px; background: rgba(0, 0, 0, .2); border: 1px solid rgba(255, 255, 255, .1); border-radius: 6px; }
+.sa-project.current { border-color: var(--orange); }
+.sa-project.locked { opacity: .7; }
+.sa-project p { margin: 2px 0 0; }
+.sa-project-top { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; }
+.sa-project-top b { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.sa-mark { color: var(--pale); width: 16px; text-align: center; }
+
+/* ---- Project scene overlay ---- */
+.scene-overlay {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 14px;
+  padding: calc(env(safe-area-inset-top) + 64px) max(20px, env(safe-area-inset-right)) calc(env(safe-area-inset-bottom) + 24px) max(20px, env(safe-area-inset-left));
+  background: rgba(19, 27, 27, .35);
+  text-align: center; cursor: pointer; overflow-y: auto;
+}
+.scene-title { padding: 6px 12px; border-radius: 6px; background: rgba(19, 27, 27, .82); margin: 0; color: var(--pale); font-weight: normal; font-size: 24px; max-width: 320px; overflow-wrap: anywhere; }
+.scene-lines { display: flex; flex-direction: column; gap: 12px; max-width: 320px; width: 100%; padding: 14px 12px; border-radius: 8px; background: rgba(19, 27, 27, .82); border: 2px solid var(--ink); }
+.scene-lines:empty { display: none; }
+.scene-line { margin: 0; font-size: 18px; line-height: 1.4; color: var(--cream); opacity: 0; transition: opacity 1.8s ease; overflow-wrap: anywhere; }
+.scene-line.in { opacity: 1; }
+.scene-actions { width: 100%; max-width: 320px; min-height: var(--tap); }
+.scene-skip {
+  position: absolute; top: calc(env(safe-area-inset-top) + 12px); right: calc(env(safe-area-inset-right) + 12px);
+  min-height: var(--tap); min-width: var(--tap); cursor: pointer;
+}
+@media (prefers-reduced-motion: reduce) { .scene-line { transition: none; } }
+
+/* ---- Story journal ---- */
+.story-row { position: relative; }
+.story-dot { flex: 0 0 auto; width: 12px; height: 12px; border-radius: 50%; background: var(--orange); border: 2px solid var(--ink); }
+
+/* ---- Elder Grove ---- */
+.eg-elder { padding: 8px; margin: 6px 0; background: rgba(0, 0, 0, .2); border: 1px solid rgba(255, 255, 255, .1); border-radius: 6px; }
+.eg-elder p { margin: 4px 0 0; overflow-wrap: anywhere; }
+.eg-elder-top { display: flex; align-items: center; gap: 10px; }
+.eg-elder-text { display: flex; flex-direction: column; min-width: 0; }
+.eg-bonus { color: var(--pale); }
+.eg-egg { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 8px; margin: 6px 0; background: var(--wood-dark); border: 2px solid var(--ink); border-radius: 6px; }
+.eg-egg-text { display: flex; flex-direction: column; min-width: 0; flex: 1 1 140px; }
+.eg-egg .btn { min-height: var(--tap); }
+.elder-panel .eg-elder { margin: 6px 0; }
+
+/* ---- Pet page: heirloom and retiring ---- */
+.pet-talent.heirloom { border-color: var(--pale); }
+.sheet .pet-talent-card[aria-pressed="true"] { border-color: var(--orange); }
+
+/* ---- Mythics ---- */
+.encounter.mythic { border-color: var(--orange); box-shadow: 0 0 0 2px var(--pale) inset; }
+.enc-mythic { color: var(--orange-light); font-size: 18px; }
+.mythic-note { color: var(--pale); margin: 0 0 8px; }
+.wild-result.mythic { color: var(--pale); }

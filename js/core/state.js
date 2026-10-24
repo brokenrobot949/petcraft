@@ -3,7 +3,7 @@
 // Per-skill and per-tool entries are filled from data by each system's init(), not here.
 import { newSeed, deriveSeed } from './rng.js';
 
-export const SCHEMA_VERSION = 7;
+export const SCHEMA_VERSION = 8;
 
 export function createInitialState(now) {
   const seed = newSeed();
@@ -40,13 +40,23 @@ export function createInitialState(now) {
     achievements: { done: {}, title: null },
     ...newTamingState(seed),
     bestiary: {},
+    ...newEndgameState(seed),
+  };
+}
+
+// The Grand Projects, the story journal and the Elder Grove (v8).
+export function newEndgameState(seed) {
+  return {
+    sanctuary: { project: 0, stage: 0, delivered: {}, coins: 0, done: [], scenes: [] },
+    story: { got: {}, seen: {} },
+    elders: { open: false, list: [], eggs: [], rng: deriveSeed(seed, 9000) },
   };
 }
 
 // Taming, treasure and the Nest (v6). Their stats counters are filled by each system's init.
 export function newTamingState(seed) {
   return {
-    taming: { encounters: {}, traps: {}, lure: null, results: [], seen: true, rng: deriveSeed(seed, 5000) },
+    taming: { encounters: {}, traps: {}, lure: null, results: [], seen: true, mythicMs: 0, rng: deriveSeed(seed, 5000) },
     treasure: { progress: {}, rng: deriveSeed(seed, 5100) },
     nest: { slots: [], rng: deriveSeed(seed, 5200) },
   };
@@ -158,5 +168,16 @@ export function validateState(s) {
   if (!isObj(s.crafting.assists)) return 'bad assists';
   for (const petId of Object.values(s.crafting.assists)) if (!p.list[petId]) return 'assistant is missing';
   if (!isObj(s.bestiary)) return 'bad bestiary';
+  if (s.version < 8) return null;
+  const sa = s.sanctuary;
+  if (!isObj(sa) || !Number.isInteger(sa.project) || sa.project < 0 || !Number.isInteger(sa.stage) || sa.stage < 0) return 'bad sanctuary';
+  if (!isObj(sa.delivered) || !isCount(sa.coins) || !Array.isArray(sa.done) || !Array.isArray(sa.scenes)) return 'bad sanctuary';
+  for (const v of Object.values(sa.delivered)) if (!isCount(v)) return 'bad sanctuary delivery';
+  if (!isObj(s.story) || !isObj(s.story.got) || !isObj(s.story.seen)) return 'bad story';
+  const el = s.elders;
+  if (!isObj(el) || !Array.isArray(el.list) || !Array.isArray(el.eggs) || !Number.isInteger(el.rng)) return 'bad elders';
+  for (const e of el.list) if (!isObj(e) || typeof e.archetype !== 'string' || typeof e.name !== 'string') return 'bad elder';
+  for (const e of el.eggs) if (!isObj(e) || typeof e.archetype !== 'string' || typeof e.quality !== 'string') return 'bad heir egg';
+  if (!isCount(t.mythicMs)) return 'bad mythic timer';
   return null;
 }

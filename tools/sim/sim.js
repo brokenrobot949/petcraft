@@ -5,7 +5,8 @@
 import { createGame } from '../../js/core/game.js';
 import { createInitialState } from '../../js/core/state.js';
 import { offlineCapMs } from '../../js/core/time.js';
-import { xpToNext } from '../../js/systems/skills.js';
+import { xpToNext, masteryStars } from '../../js/systems/skills.js';
+import { currentStage, sanctuaryOpen, ended } from '../../js/systems/sanctuary.js';
 import { xpToNextRank } from '../../js/systems/renown.js';
 import { tierCost, upgradeCheck } from '../../js/systems/buildings.js';
 import { parseKey } from '../../js/systems/bag.js';
@@ -23,10 +24,30 @@ export const PLAYERS = {
 
 // Design-doc pacing milestones that cannot happen yet (docs/design.md "Pacing targets").
 export const NOT_YET = [
-  ['First pet retired to the Elder Grove', 'week 6-8'],
-  ['Ending (Grand Project 5)', 'week 8-10'],
   ['Bestiary complete', 'month 4 or later'],
 ];
+
+// Endgame readings (Phase 9) used by the daily snapshots and the final summary.
+const projectDefs = (data) => data.projects?.projects || [];
+// Stages finished so far over all projects.
+export function stagesDone(state, data) {
+  const defs = projectDefs(data);
+  let n = 0;
+  for (let i = 0; i < Math.min(state.sanctuary.project, defs.length); i++) n += defs[i].stages.length;
+  if (state.sanctuary.project < defs.length) n += state.sanctuary.stage;
+  return n;
+}
+// Progress into the current stage, 0..1 (average over its needs, items and coins alike); 1 once everything is done.
+function stageFraction(state, data) {
+  const st = currentStage(state, data);
+  if (!st) return ended(state, data) ? 1 : 0;
+  const parts = st.needs.map((n) => Math.min(1, n.have / n.need));
+  return parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : 0;
+}
+export function masteryTotal(state, data) {
+  return data.skills.skills.reduce((n, s) => n + masteryStars(state, data, s.id), 0);
+}
+const mythicsHad = (state) => Object.keys(state.bestiary || {}).filter((k) => k.startsWith('mythic.')).length;
 
 // Local-time helpers. Day index 0 = 2026-10-19.
 const at = (d, h, m = 0) => new Date(2026, 9, 19 + d, h, m, 0, 0).getTime();
@@ -87,14 +108,22 @@ function milestoneList(data) {
     const t = ZONE_TARGETS[z.id];
     list.push({ id: `zone_${z.id}`, label: `${z.name} open (Renown ${rank})`, target: t?.[0], targetText: t?.[1], test: (s) => s.renown.rank >= rank });
   }
-  list.push({ id: 'grand', label: 'Grand Projects open (Renown 12)', target: 18, targetText: 'week 3', test: (s) => s.renown.rank >= 12 });
+  const projects = projectDefs(data);
+  list.push({ id: 'grand', label: `Grand Projects open (Renown ${data.balance.sanctuary.openRenown})`, target: 18, targetText: 'week 3', test: (s) => sanctuaryOpen(s, data) });
+  list.push({ id: 'stage1', label: '  First Grand Project stage delivered', test: (s) => stagesDone(s, data) >= 1 });
+  projects.forEach((p, i) => list.push({ id: `project${i + 1}`, label: i === 0 ? `First Grand Project finished (${p.name})` : `  Grand Project ${i + 1} finished (${p.name})`, test: (s) => s.sanctuary.done.length >= i + 1 }));
+  list.push({ id: 'grove', label: '  Elder Grove opened', test: (s) => !!s.elders?.open });
+  list.push({ id: 'elder1', label: 'First pet retired to the Elder Grove', target: 49, targetText: 'week 6-8', test: (s) => (s.stats.retired || 0) >= 1 });
+  list.push({ id: 'ending', label: `Ending (Grand Project ${projects.length || 5})`, target: 63, targetText: 'week 8-10', test: (s) => ended(s, data) });
+  list.push({ id: 'mythic1', label: 'First mythic tamed', test: (s) => mythicsHad(s) >= 1 });
   for (let r = 2; r <= Math.min(15, data.balance.renown.maxRank); r++) list.push({ id: `rank${r}`, label: `  Renown rank ${r}`, test: (s) => s.renown.rank >= r });
   for (const b of ['forge', 'garden']) {
     const def = data.buildings.buildings.find((x) => x.id === b);
     if (def) list.push({ id: `${b}_built`, label: `${def.name} built`, test: (s) => (s.buildings[b]?.tier || 0) >= 1 });
   }
   const tierNames = Object.fromEntries(data.tools.tiers.map((t) => [t.tier, t.name]));
-  for (let t = 3; t <= 6; t++) list.push({ id: `tier${t}`, label: `First ${tierNames[t] || `tier ${t}`} tool equipped`, test: (s) => kinds.some((k) => tier(s, k) >= t) });
+  const topTier = Math.max(...data.tools.tiers.map((t) => t.tier));
+  for (let t = 3; t <= topTier; t++) list.push({ id: `tier${t}`, label: `First ${tierNames[t] || `tier ${t}`} tool equipped`, test: (s) => kinds.some((k) => tier(s, k) >= t) });
   for (const lvl of [5, 10, 20]) {
     for (const sk of skills) list.push({ id: `${sk.id}${lvl}`, label: `${sk.name} reaches ${lvl}`, test: (s) => s.skills[sk.id].level >= lvl });
   }
@@ -196,6 +225,9 @@ export function runSim(data, opts = {}) {
       juveniles: Object.values(state.pets.list).filter((p) => p.form === 'juvenile').length, adults: Object.values(state.pets.list).filter((p) => p.form === 'adult').length,
       talentPicks: state.stats.talentPicks || 0, assistants: Object.keys(state.crafting.assists || {}).length, petGifts: state.stats.petGifts || 0, petDigs: petDigs,
       renownRank: state.renown.rank, renownXpTotal: rTotal, renownXpDay: rTotal - (prev ? prev.renownXpTotal : 0),
+      sanctOpen: sanctuaryOpen(state, data), projectsDone: state.sanctuary.done.length, stagesDone: stagesDone(state, data),
+      stageFrac: stageFraction(state, data), elders: state.elders.list.length, retired: state.stats.retired || 0,
+      masteryStars: masteryTotal(state, data), mythics: mythicsHad(state),
     });
     snapIdx++;
   };
@@ -257,6 +289,7 @@ export function runSim(data, opts = {}) {
     refusals: [...policy.refusals.entries()].sort((a, b) => b[1] - a[1]),
     mapsSold: policy.mapsSold, petsReleased: policy.petsReleased,
     evolved: policy.evolveCounts, talentPicked: policy.talentPicked, assistsPosted: policy.assistsPosted, petDigsSent: policy.petDigsSent,
+    eldersRetired: policy.eldersRetired, heirsPlaced: policy.heirsPlaced, deliveries: policy.deliveries,
     dispatches: policy.dispatches,
     petWorkMs: pets.work,
     petRestMs: pets.rest,
@@ -299,7 +332,25 @@ function finalSummary(state, data) {
   const tools = Object.fromEntries(Object.entries(state.tools).map(([k, v]) => [k, v.quality === 'normal' ? v.item : `${v.item}:${v.quality}`]));
   const pets = Object.values(state.pets.list).map((p) => ({ name: p.name, level: p.level, bond: p.bond }));
   const buildings = Object.fromEntries(Object.entries(state.buildings).map(([k, v]) => [k, v.tier]));
-  return { tools, pets, buildings, blocked: Object.fromEntries(Object.keys(state.buildings).map((k) => { const c = upgradeCheck(state, data, k); return [k, c.ok ? "ready" : (c.reason || "") + (c.missing.length ? " Missing: " + c.missing.map((m) => `${m.item} ${m.have}/${m.need}`).join(", ") : "")]; })), renown: state.renown.rank, commissions: state.stats.commissions, greats: state.stats.greats };
+  return { tools, pets, buildings, blocked: Object.fromEntries(Object.keys(state.buildings).map((k) => { const c = upgradeCheck(state, data, k); return [k, c.ok ? "ready" : (c.reason || "") + (c.missing.length ? " Missing: " + c.missing.map((m) => `${m.item} ${m.have}/${m.need}`).join(", ") : "")]; })), renown: state.renown.rank, commissions: state.stats.commissions, greats: state.stats.greats, endgame: endgameSummary(state, data) };
+}
+
+// The Endgame section of the report: where the Grand Projects stand, the elders, Mastery.
+function endgameSummary(state, data) {
+  const defs = projectDefs(data);
+  const st = currentStage(state, data);
+  return {
+    open: sanctuaryOpen(state, data), ended: ended(state, data),
+    projectsDone: state.sanctuary.done.length, projectCount: defs.length, stagesDone: stagesDone(state, data),
+    stageCount: defs.reduce((n, p) => n + p.stages.length, 0),
+    current: st ? { project: st.project.name, stage: st.stage + 1, stages: st.stages, name: st.name, needs: st.needs.map((n) => ({ item: n.item, name: n.item === 'coins' ? 'Coins' : data.items.items[n.item]?.name || n.item, have: n.have, need: n.need, bag: n.bag })) } : null,
+    relics: state.bag.sanctuary_relic || 0,
+    elders: state.elders.list.map((e) => ({ name: e.name, species: e.species, level: e.level, days: e.days })),
+    eggsWaiting: state.elders.eggs.length,
+    mastery: Object.fromEntries(data.skills.skills.map((s) => [s.name, masteryStars(state, data, s.id)]).filter(([, n]) => n > 0)),
+    masteryTotal: masteryTotal(state, data),
+    mythics: mythicsHad(state),
+  };
 }
 
 // ---- flags ----
@@ -312,6 +363,7 @@ function computeFlags(r, data) {
   // items with some use: a recipe input, food, a buff, or a tool
   const used = new Set();
   for (const rc of data.recipes.recipes) for (const i of Object.keys(rc.inputs)) used.add(i);
+  for (const p of projectDefs(data)) for (const s of p.stages) for (const i of Object.keys(s.items || {})) used.add(i);
   for (const [id, d] of Object.entries(items)) if (d.food || d.buff || d.tool || d.trap || d.bait || d.lure) used.add(id);
 
   const byBase = {}; // base id -> counts per day
@@ -349,7 +401,19 @@ function computeFlags(r, data) {
   if (lastSnap.mapsHeld > 20) flags.push({ kind: 'pile', text: `Maps still held at the end: ${lastSnap.mapsHeld}.` });
   if (lastSnap.eggsHeld >= 3) flags.push({ kind: 'pile', text: `Eggs pile up: ${lastSnap.eggsHeld} eggs in the bag or Nest at the end (${lastSnap.eggsFound} found, ${lastSnap.hatched} hatched).` });
   if (lastSnap.eggsFound > 0 && lastSnap.hatched === 0) flags.push({ kind: 'pile', text: `${lastSnap.eggsFound} eggs found but none hatched (Nest not built, or no free pet space).` });
-  if (lastSnap.relicsHeld > 0) flags.push({ kind: 'info', text: `${lastSnap.relicsHeld} Sanctuary Relics held with no use until Grand Projects (Phase 9).` });
+  if (lastSnap.relicsHeld > 0) flags.push({ kind: 'info', text: `${lastSnap.relicsHeld} Sanctuary Relics held at the end (the policy never sells them; stages ask for 1-5 each).` });
+
+  // Endgame (Phase 9)
+  const eg = r.final.endgame;
+  const openDay = snaps.findIndex((s) => s.sanctOpen);
+  flags.push({ kind: 'info', text: `Endgame after ${snaps.length} days: Grand Projects ${eg.open ? 'open' : 'not open yet'}, ${eg.projectsDone}/${eg.projectCount} projects (${eg.stagesDone}/${eg.stageCount} stages) done, ${r.deliveries} deliveries sent, ${lastSnap.elders} elders (${r.eldersRetired} retired, ${r.heirsPlaced} heir eggs placed), ${eg.mythics} mythics had, Mastery ${eg.masteryTotal} stars.` });
+  if (openDay >= 0 && !eg.ended) {
+    const sinceOpen = snaps.length - 1 - openDay;
+    if (lastSnap.stagesDone === 0 && sinceOpen >= 3) flags.push({ kind: 'pace', text: `Grand Projects opened on day ${openDay + 1} but no stage was finished in ${sinceOpen} days.${eg.current ? ' Stuck on ' + eg.current.project + ' stage ' + eg.current.stage + ': ' + eg.current.needs.filter((n) => n.have < n.need).map((n) => `${n.name} ${n.have}/${n.need}`).join(', ') + '.' : ''}` });
+    else if (snaps.length > 7 && sinceOpen >= 7 && lastSnap.stagesDone === snaps[snaps.length - 8].stagesDone) flags.push({ kind: 'pace', text: `Grand Projects made no stage progress in the last 7 days (${eg.stagesDone}/${eg.stageCount} stages).${eg.current ? ' Missing: ' + eg.current.needs.filter((n) => n.have < n.need).map((n) => `${n.name} ${n.have}/${n.need}`).join(', ') + '.' : ''}` });
+  }
+  if (eg.current && eg.current.needs.some((n) => n.item === 'sanctuary_relic' && n.have < n.need) && lastSnap.relicsFound === 0) flags.push({ kind: 'pace', text: 'The current stage needs Sanctuary Relics but no relic was found in this run (they only come from treasure digs).' });
+  if (lastSnap.adults > 0 && lastSnap.elders === 0 && snaps.length > 21) flags.push({ kind: 'pace', text: 'Adults exist but no pet retired to the Elder Grove in this run.' });
 
   // coins
   const c = r.coins;
@@ -382,7 +446,7 @@ export function buildCsv(result) {
   const keys = new Set();
   for (const s of result.snapshots) for (const k of Object.keys(s.bag)) keys.add(k);
   const bagKeys = [...keys].sort();
-  const head = ['day', ...result.skillIds.map((id) => `level_${id}`), ...result.skillIds.map((id) => `xp_${id}`), 'coins', 'renown_rank', 'renown_xp_total', 'renown_xp_day', 'taming_level', 'pets', 'tamed', 'digs', 'maps_found', 'maps_held', 'eggs_found', 'eggs_held', 'hatched', 'relics_held', 'treasure_coins', 'juveniles', 'adults', 'talent_picks', 'assistants', 'pet_gifts', 'pet_digs', ...bagKeys.map((k) => `bag_${k}`)];
+  const head = ['day', ...result.skillIds.map((id) => `level_${id}`), ...result.skillIds.map((id) => `xp_${id}`), 'coins', 'renown_rank', 'renown_xp_total', 'renown_xp_day', 'taming_level', 'pets', 'tamed', 'digs', 'maps_found', 'maps_held', 'eggs_found', 'eggs_held', 'hatched', 'relics_held', 'treasure_coins', 'juveniles', 'adults', 'talent_picks', 'assistants', 'pet_gifts', 'pet_digs', 'projects_done', 'stages_done', 'stage_progress_pct', 'elders', 'mastery_stars', 'mythics', ...bagKeys.map((k) => `bag_${k}`)];
   const rows = [head.join(',')];
   for (const s of result.snapshots) {
     rows.push([
@@ -390,6 +454,7 @@ export function buildCsv(result) {
       ...result.skillIds.map((id) => s.levels[id]),
       ...result.skillIds.map((id) => Math.round(s.xp[id])),
       s.coins, s.renownRank, Math.round(s.renownXpTotal), Math.round(s.renownXpDay), s.tamingLevel, s.pets, s.tamed, s.digs, s.mapsFound, s.mapsHeld, s.eggsFound, s.eggsHeld, s.hatched, s.relicsHeld, s.treasureCoins, s.juveniles, s.adults, s.talentPicks, s.assistants, s.petGifts, s.petDigs,
+      s.projectsDone, s.stagesDone, Math.round(s.stageFrac * 100), s.elders, s.masteryStars, s.mythics,
       ...bagKeys.map((k) => s.bag[k] || 0),
     ].join(','));
   }

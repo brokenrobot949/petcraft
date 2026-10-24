@@ -8,6 +8,9 @@ import { newDay } from './village.js';
 import { randomInt } from '../core/rng.js';
 import { rollQuality } from './taming.js';
 import { digMs } from './treasure.js';
+import { currentStage, forceStage } from './sanctuary.js';
+import { recordPet } from './bestiary.js';
+import { xpToNext } from './skills.js';
 
 export const id = 'dev';
 
@@ -66,7 +69,8 @@ export const commands = {
     devPet(state, pet).bond = Math.max(0, Math.floor(bond) || 0);
   },
   // Taming: a wild encounter in a zone right now (random archetype and quality unless given).
-  'dev/encounter': (state, { zone, archetype, quality }, ctx) => {
+  // mythic: a mythic of that archetype instead (any zone, for testing).
+  'dev/encounter': (state, { zone, archetype, quality, mythic = false }, ctx) => {
     const z = ctx.data.zones.zones.find((x) => x.id === zone);
     if (!z?.archetypes?.length) throw new Error(`No wild monsters in ${zone}`);
     if (state.taming.traps[zone]) throw new Error('A trap is set there; wait for it first');
@@ -74,7 +78,7 @@ export const commands = {
     const a = archetype || z.archetypes[randomInt(t, 0, z.archetypes.length - 1)];
     const q = quality || rollQuality(t, ctx.data);
     if (!archetypeOf(ctx.data, a) || !ctx.data.balance.pets.qualities[q]) throw new Error('No such archetype or quality');
-    t.encounters[zone] = { archetype: a, quality: q, msLeft: null };
+    t.encounters[zone] = { archetype: a, quality: q, msLeft: null, ...(mythic ? { mythic: true } : {}) };
   },
   // Every set trap, warming egg and the current dig finish on the next tick.
   'dev/finishTimers': (state, _p, ctx) => {
@@ -108,11 +112,65 @@ export const commands = {
   'dev/catalysts': (state, _p, ctx) => {
     for (const a of ctx.data.pets.archetypes) for (const br of a.branches) if (br.catalyst) addItem(state, br.catalyst, 1);
   },
+  // ---- Phase 9: endgame ----
+  // Put everything the current Grand Project stage still needs in the bag (and coins), so the
+  // delivery screen can be tried. Opens the Sanctuary if Renown is too low.
+  'dev/stageNeeds': (state, _p, ctx) => {
+    openSanctuary(state, ctx);
+    const st = currentStage(state, ctx.data);
+    if (!st) throw new Error('Every Grand Project is finished.');
+    for (const n of st.needs) {
+      const short = Math.max(0, n.need - n.have - n.bag);
+      if (n.item === 'coins') state.coins += short;
+      else addItem(state, n.item, short);
+    }
+  },
+  // Finish the current stage for free (Renown XP and rewards as usual).
+  'dev/finishStage': (state, _p, ctx) => {
+    openSanctuary(state, ctx);
+    forceStage(state, ctx);
+  },
+  // Level 30 and Bond heart 5 (a young pet first becomes an adult of its first path).
+  'dev/readyToRetire': (state, { pet }, ctx) => {
+    const { data } = ctx;
+    const p = devPet(state, pet);
+    if (p.form === 'hatchling' || p.form === 'juvenile') {
+      p.branch = p.branch || archetypeOf(data, p.archetype).branches[0].id;
+      p.form = 'adult';
+      recordPet(state, ctx, p);
+    }
+    p.level = data.balance.elders.retireLevel;
+    p.xp = 0;
+    const hearts = data.balance.pets.bond.hearts;
+    p.bond = Math.max(p.bond, hearts[data.balance.elders.retireHearts - 1]);
+    addPetXp(state, ctx, p, 0);
+  },
+  // Mastery: a skill at the max level with this many stars' worth of XP.
+  'dev/masteryStars': (state, { skill, stars }, ctx) => {
+    if (!state.skills[skill]) throw new Error(`No such skill: ${skill}`);
+    const b = ctx.data.balance;
+    const n = Math.min(b.skills.mastery.maxStars, Math.max(0, Math.floor(stars) || 0));
+    let xp = 0;
+    for (let k = 0; k < n; k++) xp += xpToNext(b.skills.maxLevel + k, b);
+    state.skills[skill] = { level: b.skills.maxLevel, xp };
+  },
+  // A Starmetal trap and Mythic Bait, for trying a mythic catch.
+  'dev/endgameKit': (state, _p, ctx) => {
+    for (const item of ['starmetal_trap', 'mythic_bait']) if (ctx.data.items.items[item]) addItem(state, item, 1);
+  },
   // Lets the daily pat be tried again today.
   'dev/clearPat': (state, { pet }) => {
     devPet(state, pet).lastPatDay = null;
   },
 };
+
+function openSanctuary(state, ctx) {
+  const rank = ctx.data.balance.sanctuary.openRenown;
+  if (state.renown.rank < rank) {
+    state.renown.rank = rank;
+    state.renown.xp = 0;
+  }
+}
 
 function devPet(state, petId) {
   const p = state.pets.list[petId];

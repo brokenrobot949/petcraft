@@ -49,6 +49,9 @@ export async function createHomeScene(host, game, options = {}) {
   const pcfg = cfg.polish;
   const defs = data.buildings.buildings;
   const decorDefs = data.buildings.decor || [];
+  const scfg = hcfg.projectScene;
+  // Mythic pets are big boss strips: drawn at render.mythicScale of the scene's pixel scale.
+  const roleK = (roleId) => (roleId.startsWith('mythic.') ? cfg.mythicScale : 1);
 
   const app = new Application();
   await app.init({
@@ -141,14 +144,27 @@ export async function createHomeScene(host, game, options = {}) {
         (p.tier === 0 ? bank.texture('prop.plot_empty') : null);
       return t || placeholderTex(p.index, p.tier);
     }
+    if (p.prop === 'sanctuary_ruins') return sanctuaryTex(p.count) || placeholderTex(p.index + 3, 1);
     return bank.texture(`prop.${p.prop}`) || placeholderTex(p.index + 3, 1);
   }
+
+  // The Old Sanctuary: prop.sanctuary.<n> for n finished projects, else the highest lower n, else the ruins.
+  function sanctuaryTex(n) {
+    for (let i = n; i >= 1; i--) {
+      const t = bank.texture(`prop.sanctuary.${i}`);
+      if (t) return t;
+    }
+    return bank.texture('prop.sanctuary_ruins');
+  }
+  const doneCount = (state) => state.sanctuary?.done?.length || 0;
 
   function makePiece(kind, def, index) {
     const p = {
       kind, index, fx: def.plot[0], fy: def.plot[1], label: def.label || def.name,
       id: def.id, prop: def.prop, tier: kind === 'building' ? buildingTier(game.getState(), def.id) : 1,
       pop: -1, marker: null, tex: null, rect: null,
+      show: def.show || null,
+      count: kind === 'decor' && def.prop === 'sanctuary_ruins' ? doneCount(game.getState()) : 0,
     };
     p.sprite = new Sprite(textureFor(p));
     p.sprite.anchor.set(0.5, 1);
@@ -156,7 +172,7 @@ export async function createHomeScene(host, game, options = {}) {
     p.sprite.eventMode = 'static';
     p.sprite.cursor = 'pointer';
     p.sprite.on('pointertap', () => {
-      if (!running || destroyed || !onTap) return;
+      if (!running || destroyed || !onTap || !p.sprite.visible) return;
       onTap(kind === 'building' ? { kind, id: p.id } : { kind, prop: p.prop, label: p.label });
     });
     world.addChild(p.sprite);
@@ -173,6 +189,9 @@ export async function createHomeScene(host, game, options = {}) {
   }
   defs.forEach((d, i) => makePiece('building', d, i));
   decorDefs.forEach((d, i) => makePiece('decor', d, i));
+  const sanctuary = pieces.find((p) => p.kind === 'decor' && p.prop === 'sanctuary_ruins') || null;
+  const grove = pieces.find((p) => p.kind === 'decor' && p.show === 'grove') || null;
+  if (grove) grove.sprite.visible = !!game.getState().elders?.open;
 
   function sizePiece(p) {
     const tex = p.sprite.texture;
@@ -193,6 +212,7 @@ export async function createHomeScene(host, game, options = {}) {
     const halfW = tex.width * scale * hcfg.footprintWidthFrac / 2;
     const pad = hcfg.keepOutPadPx * scale;
     p.rect = { x0: x - halfW - pad, x1: x + halfW + pad, y0: y - tex.height * scale - pad, y1: y + pad };
+    if (!p.sprite.visible) p.rect = null; // a hidden piece (the Elder Grove before it opens) blocks nobody
   }
 
   // ---- upgrade markers, tier changes, sparkles ----
@@ -212,6 +232,8 @@ export async function createHomeScene(host, game, options = {}) {
       }
       const ang = (i / n) * Math.PI * 2 + Math.random();
       sp.age = 0;
+      sp.shower = false;
+      sp.life = hcfg.sparkMs;
       sp.vx = Math.cos(ang);
       sp.vy = Math.sin(ang);
       sp.x0 = cx + (Math.random() - 0.5) * p.tex.width * scale * 0.5;
@@ -222,18 +244,45 @@ export async function createHomeScene(host, game, options = {}) {
       sparks.push(sp);
     }
   }
+  // One rising sparkle at the Sanctuary (the project scene's shower).
+  function spawnRiser(p) {
+    let sp = freeSparks.pop();
+    if (!sp) {
+      if (sparks.length >= hcfg.maxSparks + scfg.showerMaxSparks) return;
+      sp = { s: new Sprite(sparkTex[0]), age: 0 };
+      sp.s.anchor.set(0.5);
+      fx.addChild(sp.s);
+    }
+    sp.age = 0;
+    sp.shower = true;
+    sp.life = scfg.showerSparkMs;
+    sp.phase = Math.random() * Math.PI * 2;
+    sp.x0 = p.x + (Math.random() - 0.5) * scfg.showerSpreadPx * 2 * scale;
+    sp.y0 = p.y - Math.random() * p.tex.height * scale * 0.5;
+    sp.s.texture = sparkTex[Math.floor(Math.random() * sparkTex.length)];
+    sp.s.scale.set(scale);
+    sp.s.visible = true;
+    sparks.push(sp);
+  }
   function updateSparks(ms) {
     for (let i = sparks.length - 1; i >= 0; i--) {
       const sp = sparks[i];
       sp.age += ms;
-      const k = sp.age / hcfg.sparkMs;
+      const k = sp.age / sp.life;
       if (k >= 1) {
         sp.s.visible = false;
         sparks.splice(i, 1);
         freeSparks.push(sp);
         continue;
       }
-      const d = easeOutRise(k) * hcfg.sparkSpreadPx * scale;
+      if (sp.shower) {
+        // A rising sparkle: drifts up and sways, fades out at the top.
+        sp.s.position.set(Math.round(sp.x0 + Math.sin(sp.phase + k * Math.PI * 2) * 4 * scale),
+          Math.round(sp.y0 - easeOutRise(k) * scfg.showerRisePx * scale));
+        sp.s.alpha = k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3;
+        continue;
+      }
+      const d =easeOutRise(k) * hcfg.sparkSpreadPx * scale;
       sp.s.position.set(Math.round(sp.x0 + sp.vx * d), Math.round(sp.y0 + sp.vy * d - k * hcfg.sparkRisePx * scale));
       sp.s.alpha = 1 - k * k;
     }
@@ -339,7 +388,8 @@ export async function createHomeScene(host, game, options = {}) {
     bounds.maxY = Math.max(bounds.minY, h - m);
   }
 
-  function petAnchor() {
+  function petAnchor(agent) {
+    if (agent?.wild && sanctuary) return { x: sanctuary.x, y: sanctuary.y + scfg.gatherDropPx * scale };
     const stable = buildings.get('stable') || pieces[0];
     return { x: stable.x, y: stable.y + hcfg.petAnchorDropPx * scale };
   }
@@ -363,7 +413,7 @@ export async function createHomeScene(host, game, options = {}) {
   }
 
   function randomSpot(agent) {
-    const a = petAnchor();
+    const a = petAnchor(agent);
     const R = hcfg.petWanderRadiusPx * scale;
     for (let i = 0; i < 20; i++) {
       const x = agent.isPlayer ? rand.between(bounds.minX, bounds.maxX) : a.x + rand.between(-R, R);
@@ -397,13 +447,19 @@ export async function createHomeScene(host, game, options = {}) {
     place(agent);
   }
 
-  function addAgent(id, roleId, post = null) {
+  // Shadow width (sprite units) for a character: mythic bosses are much bigger than a pet.
+  function shadowWidth(actor, k) {
+    return k === 1 ? hcfg.shadowCharacterWidthPx : Math.max(hcfg.shadowCharacterWidthPx, actor.sprite.texture.width * k * cfg.mythicShadowFrac);
+  }
+
+  function addAgent(id, roleId, post = null, wild = false) {
     const dir = rand.pick(dirs);
     const actor = createActor(bank, roleId, { anim: 'idle', dir });
-    actor.view.scale.set(scale);
+    const k = roleK(roleId);
+    actor.view.scale.set(scale * k);
     world.addChild(actor.view);
     const agent = {
-      id, roleId, actor, post,
+      id, roleId, actor, post, k, wild, goal: null,
       workMs: 0,
       isPlayer: id === 'player',
       x: 0, y: 0,
@@ -414,7 +470,7 @@ export async function createHomeScene(host, game, options = {}) {
       sleeping: false,
       zMs: 0,
       hopMs: -1,
-      shadow: polish.addShadow(actor.view, hcfg.shadowCharacterWidthPx),
+      shadow: polish.addShadow(actor.view, shadowWidth(actor, k)),
     };
     agents.set(id, agent);
     if (bounds.maxX > 0) {
@@ -438,6 +494,7 @@ export async function createHomeScene(host, game, options = {}) {
     for (const id of [...agents.keys()]) {
       if (id === 'player') continue;
       const a = agents.get(id);
+      if (a.wild) continue; // wild visitors from the ending scene are not pets in the save
       // Rebuilt when the pet leaves, goes out working, evolves (a different sprite role) or its post changes.
       if (!pets[id] || petRole(pets[id]) !== a.roleId || a.post !== postOf(state, id) || petStatus(state, id) === 'working') removeAgent(id);
     }
@@ -451,9 +508,11 @@ export async function createHomeScene(host, game, options = {}) {
     scale = w >= hcfg.wideMinWidthPx ? hcfg.pixelScaleWide : hcfg.pixelScale; // whole numbers only
     polish.resize(w, app.screen.height, scale);
     for (const p of pieces) { sizePiece(p); layoutMarker(p); }
-    for (const a of agents.values()) a.actor.view.scale.set(scale);
+    for (const a of agents.values()) a.actor.view.scale.set(scale * a.k);
+    for (const e of elders) e.actor.view.scale.set(scale * e.k);
     computeBounds();
     drawGround();
+    placeElders();
     for (const a of agents.values()) {
       a.remaining = 0;
       if (a.post) postSpot(a); else settle(a);
@@ -475,7 +534,7 @@ export async function createHomeScene(host, game, options = {}) {
     agent.dir = rand.pick(dirs);
     if (!agent.isPlayer) {
       // Pets drift back toward the Stable when they stray too far from it.
-      const a = petAnchor();
+      const a = petAnchor(agent);
       const dx = a.x - agent.x;
       const dy = a.y - agent.y;
       if (Math.hypot(dx, dy) > hcfg.petWanderRadiusPx * scale) {
@@ -512,12 +571,12 @@ export async function createHomeScene(host, game, options = {}) {
     if (a.hopMs < 0) return;
     a.hopMs += ms;
     const t = a.hopMs / hcfg.hopMs;
-    if (t >= 1) { a.hopMs = -1; a.actor.sprite.y = 0; view.scale.set(scale); return; }
+    if (t >= 1) { a.hopMs = -1; a.actor.sprite.y = 0; view.scale.set(scale * a.k); return; }
     const air = Math.sin(Math.PI * t);
     const land = Math.sin(Math.PI * Math.min(1, Math.max(0, (t - hcfg.hopLandFrac) / (1 - hcfg.hopLandFrac))));
     const f = hcfg.hopStretch * air - hcfg.hopSquash * land;
     a.actor.sprite.y = -hcfg.hopPx * air;
-    view.scale.set(scale * (1 - f * 0.5), scale * (1 + f));
+    view.scale.set(scale * a.k * (1 - f * 0.5), scale * a.k * (1 + f));
   }
 
   // ---- floating z's for sleeping pets ----
@@ -554,6 +613,218 @@ export async function createHomeScene(host, game, options = {}) {
     }
   }
 
+  // ---- Old Sanctuary restoration look ----
+  let activeScene = null; // the running project scene (see playProjectScene), or null
+  let holdMs = 0;
+  function swapSanctuary(count, animate) {
+    if (!sanctuary) return;
+    sanctuary.count = count;
+    sanctuary.sprite.texture = textureFor(sanctuary);
+    sizePiece(sanctuary);
+    if (animate) { sanctuary.pop = 0; burst(sanctuary); }
+  }
+  // Follows state.sanctuary.done. While a scene is playing (or just waiting to be played) the new look is held
+  // back so the scene can reveal it at its climax; if nobody plays it within holdMs it swaps on its own.
+  function syncSanctuary(animate, ms = 0) {
+    if (!sanctuary) return;
+    const state = game.getState();
+    const n = doneCount(state);
+    if (n === sanctuary.count) { holdMs = 0; return; }
+    if (animate && (activeScene || (state.sanctuary?.scenes?.length && holdMs < scfg.holdMs))) { holdMs += ms; return; }
+    holdMs = 0;
+    swapSanctuary(n, animate);
+  }
+
+  // ---- Elder Grove: visible only once the Grove has opened; retired pets stand beside it ----
+  function syncGrove(animate) {
+    if (!grove) return;
+    const open = !!game.getState().elders?.open;
+    if (grove.sprite.visible === open) return;
+    grove.sprite.visible = open;
+    sizePiece(grove);
+    if (open && animate) { grove.pop = 0; burst(grove); }
+    placeElders();
+  }
+
+  const elders = []; // agent-like: { id, roleId, actor, k, shadow, x, y, hopMs, sleeping, zMs, napMs }
+  let elderSig = '';
+  function placeElders() {
+    if (!grove?.rect) return;
+    const gap = hcfg.elderGapPx * scale;
+    const spacing = hcfg.elderSpacingPx * scale;
+    elders.forEach((e, i) => {
+      const left = i % 2 === 0;
+      const x = left ? grove.rect.x0 - gap - Math.floor(i / 2) * spacing : grove.rect.x1 + gap + Math.floor(i / 2) * spacing;
+      e.x = Math.min(Math.max(x, bounds.minX), bounds.maxX);
+      e.y = Math.min(Math.max(grove.y, bounds.minY), bounds.maxY);
+      e.actor.view.position.set(Math.round(e.x), Math.round(e.y));
+      e.actor.view.zIndex = Math.round(e.y);
+    });
+  }
+  function syncElders() {
+    if (destroyed) return;
+    const state = game.getState();
+    const want = grove && state.elders?.open ? (state.elders.list || []).slice(0, hcfg.eldersShown) : [];
+    const sig = want.map((e) => `${e.id}:${petRole(e)}`).join('|');
+    if (sig === elderSig) return;
+    elderSig = sig;
+    for (const e of elders) { e.shadow.remove(); e.actor.destroy(); }
+    elders.length = 0;
+    for (const rec of want) {
+      const roleId = petRole(rec);
+      const actor = createActor(bank, roleId, { anim: 'idle', dir: 'down' });
+      const k = roleK(roleId);
+      actor.view.scale.set(scale * k);
+      world.addChild(actor.view);
+      elders.push({
+        id: rec.id, roleId, actor, k, x: 0, y: 0, hopMs: -1, sleeping: false, zMs: 0, napMs: 0,
+        shadow: polish.addShadow(actor.view, shadowWidth(actor, k)),
+      });
+    }
+    placeElders();
+  }
+  // Elders stay put: an occasional slow hop, or a nap with floating z's.
+  function updateElders(ms, ticker) {
+    for (const e of elders) {
+      if (e.napMs > 0) {
+        if (!e.sleeping) {
+          e.sleeping = true;
+          e.hopMs = -1;
+          e.actor.sprite.y = 0;
+          e.actor.view.scale.set(scale * e.k);
+          e.actor.play('idle', 'down');
+          e.actor.sprite.gotoAndStop(hcfg.restFrame);
+        }
+        e.napMs -= ms;
+        e.zMs += ms;
+        if (e.zMs >= hcfg.zIntervalMs) { e.zMs = 0; addZ(e); }
+        continue;
+      }
+      if (e.sleeping) { e.sleeping = false; e.zMs = 0; e.actor.sprite.play(); }
+      if (e.hopMs < 0) {
+        if (rand.chance(hcfg.elderNapChancePerSec * ms / 1000)) { e.napMs = hcfg.elderNapMs; continue; }
+        if (rand.chance(hcfg.elderHopChancePerSec * ms / 1000)) e.hopMs = 0;
+      }
+      updateHop(e, ms);
+      e.actor.update(ticker);
+    }
+  }
+
+  // ---- project scene: the pets gather, sparkles rise, the new look pops in, (ending) wild monsters visit ----
+  let wildSeq = 0;
+  const faceDir = (dx, dy) => (Math.abs(dx) >= Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down'));
+  const clampToBounds = (x, y) => [Math.min(Math.max(x, bounds.minX), bounds.maxX), Math.min(Math.max(y, bounds.minY), bounds.maxY)];
+
+  function moveGoal(a, ms) {
+    const g = a.goal;
+    const dx = g.x - a.x;
+    const dy = g.y - a.y;
+    const dist = Math.hypot(dx, dy);
+    const stepPx = g.speed * scale * ms / 1000;
+    if (dist <= stepPx) {
+      a.x = g.x;
+      a.y = g.y;
+      a.goal = null;
+      a.state = 'pause';
+      a.timer = rand.between(wander.minPauseMs, wander.maxPauseMs);
+      a.dir = 'up'; // faces the Sanctuary
+      a.actor.play('idle', a.dir);
+      place(a);
+      g.done?.(a);
+      return;
+    }
+    a.dir = faceDir(dx, dy);
+    a.x += (dx / dist) * stepPx;
+    a.y += (dy / dist) * stepPx;
+    a.actor.play('walk', a.dir); // a role without a walk (a mythic) just glides while it idles
+    place(a);
+  }
+
+  function climax() {
+    const n = doneCount(game.getState());
+    if (sanctuary.count !== n) swapSanctuary(n, true);
+    else { sanctuary.pop = 0; burst(sanctuary); }
+    for (const a of activeScene.gathered) if (a.hopMs < 0) a.hopMs = 0;
+  }
+
+  function spawnWild(i, n) {
+    const wilds = [...agents.values()].filter((x) => x.wild);
+    while (wilds.length >= scfg.wildMaxTotal) removeAgent(wilds.shift().id);
+    const arch = rand.pick(data.pets.archetypes).id;
+    const roleId = `pet.${arch}.hatchling`;
+    if (!bank.has(roleId)) return;
+    const entry = scfg.wildEntries[wildSeq % scfg.wildEntries.length];
+    const a = addAgent(`wild:${wildSeq++}`, roleId, null, true);
+    a.x = entry[0] * app.screen.width;
+    a.y = entry[1] * app.screen.height;
+    place(a);
+    const ang = Math.PI * (0.15 + (n > 1 ? 0.7 * i / (n - 1) : 0.35));
+    const R = scfg.wildSpotRadiusPx * scale;
+    const cx = sanctuary.x;
+    const cy = sanctuary.y + scfg.gatherDropPx * scale;
+    const [gx, gy] = clampToBounds(cx + Math.cos(ang) * R * 1.3 + rand.between(-4, 4) * scale, cy + Math.sin(ang) * R * 0.6);
+    a.goal = {
+      x: gx, y: gy, speed: scfg.wildSpeedPxPerSec,
+      done: (w) => { w.hopsLeft = scfg.wildHops; w.hopGap = 0; },
+    };
+    a.state = 'walk';
+  }
+
+  function finishScene() {
+    const s = activeScene;
+    if (!s) return;
+    activeScene = null;
+    syncSanctuary(false); // a scene cut short still shows the new look
+    for (const a of s.gathered) {
+      if (!agents.has(a.id)) continue;
+      a.goal = null;
+      a.remaining = 0;
+      startPause(a);
+    }
+    s.resolve();
+  }
+
+  function updateScene(ms) {
+    const s = activeScene;
+    if (!s) return;
+    s.t += ms;
+    const f = s.t / s.total;
+    if (f >= scfg.showerStartFrac && f <= scfg.showerEndFrac) {
+      s.acc += ms / 1000 * scfg.showerPerSec;
+      while (s.acc >= 1) { s.acc -= 1; spawnRiser(sanctuary); }
+    }
+    if (!s.climaxDone && f >= scfg.climaxFrac) { s.climaxDone = true; climax(); }
+    while (s.wildLeft > 0 && s.t >= (s.wildTotal - s.wildLeft) * scfg.wildStaggerMs) {
+      spawnWild(s.wildTotal - s.wildLeft, s.wildTotal);
+      s.wildLeft--;
+    }
+    if (s.t >= s.total && s.wildLeft === 0) finishScene();
+  }
+
+  function playProjectScene(projectId, { ending = false } = {}) {
+    if (activeScene) return activeScene.promise;
+    if (!running || destroyed || !sanctuary || bounds.maxX <= 0) return Promise.resolve();
+    const s = { projectId, ending, t: 0, total: ending ? scfg.endingMs : scfg.sceneMs, acc: 0, climaxDone: false, gathered: [],
+      wildTotal: ending ? rand.int(scfg.wildMin, scfg.wildMax) : 0, wildLeft: 0, resolve: null, promise: null };
+    s.wildLeft = s.wildTotal;
+    s.promise = new Promise((resolve) => { s.resolve = resolve; });
+    activeScene = s;
+    // Everyone who is free to walk heads for the Sanctuary's front steps.
+    const crowd = [...agents.values()].filter((a) => !a.isPlayer && !a.post && !a.sleeping && !a.goal);
+    const cx = sanctuary.x;
+    const cy = sanctuary.y + scfg.gatherDropPx * scale;
+    crowd.forEach((a, i) => {
+      const row = Math.floor(i / scfg.gatherPerRow);
+      const inRow = Math.min(scfg.gatherPerRow, crowd.length - row * scfg.gatherPerRow);
+      const col = i % scfg.gatherPerRow;
+      const [gx, gy] = clampToBounds(cx + (col - (inRow - 1) / 2) * scfg.gatherSpacingPx * scale, cy + row * scfg.gatherRowPx * scale);
+      a.goal = { x: gx, y: gy, speed: scfg.gatherSpeedPxPerSec };
+      a.state = 'walk';
+      s.gathered.push(a);
+    });
+    return s.promise;
+  }
+
   // ---- start-up ----
   addAgent('player', 'player'); // bounds are measured from its sprite
   layout();
@@ -585,14 +856,15 @@ export async function createHomeScene(host, game, options = {}) {
     markerMs += ms;
     if (markerMs >= hcfg.markerRefreshMs) { markerMs = 0; refreshMarkers(); }
     for (const a of agents.values()) {
-      const asleep = !a.isPlayer && petStatus(state, a.id) === 'resting';
+      const asleep = !a.isPlayer && !a.wild && petStatus(state, a.id) === 'resting';
       if (asleep) {
+        a.goal = null;
         if (!a.sleeping) {
           a.sleeping = true;
           a.state = 'pause';
           a.hopMs = -1;
           a.actor.sprite.y = 0;
-          a.actor.view.scale.set(scale);
+          a.actor.view.scale.set(scale * a.k);
           a.actor.play('idle', a.dir);
           a.actor.sprite.gotoAndStop(hcfg.restFrame);
         }
@@ -606,16 +878,27 @@ export async function createHomeScene(host, game, options = {}) {
         a.actor.sprite.play();
         startPause(a);
       }
-      if (a.post) {
+      if (a.goal) {
+        moveGoal(a, ms); // project scene: walking to a spot beside the Sanctuary
+      } else if (a.post) {
         // Working at its station: stays put, hops now and then.
         a.workMs += ms;
         if (a.hopMs < 0 && a.workMs >= hcfg.assistHopEveryMs) { a.workMs = 0; a.hopMs = 0; }
       } else {
         step(a, ms);
       }
+      if (a.hopsLeft > 0 && a.hopMs < 0) { // a wild visitor's greeting hops
+        a.hopGap -= ms;
+        if (a.hopGap <= 0) { a.hopMs = 0; a.hopsLeft--; a.hopGap = scfg.wildHopGapMs; }
+      }
       updateHop(a, ms);
       a.actor.update(ticker);
     }
+    syncSanctuary(true, ms);
+    syncGrove(true);
+    syncElders();
+    updateElders(ms, ticker);
+    updateScene(ms);
     updatePieces(ms, clock);
     updateSparks(ms);
     updateZs(ms);
@@ -623,10 +906,18 @@ export async function createHomeScene(host, game, options = {}) {
   });
 
   return {
-    start: () => { running = true; syncAgents(); syncTiers(false); refreshMarkers(); app.start(); },
-    stop: () => { running = false; app.stop(); },
+    start: () => {
+      running = true;
+      syncAgents(); syncTiers(false); syncSanctuary(false); syncGrove(false); syncElders(); refreshMarkers();
+      app.start();
+    },
+    stop: () => { finishScene(); running = false; app.stop(); },
+    // Plays the restoration scene for a finished project; resolves when it ends (at once if the scene is
+    // stopped; a second call while one plays returns the same promise). options.ending = the long finale.
+    playProjectScene,
     destroy() {
       if (destroyed) return;
+      finishScene();
       destroyed = true;
       running = false;
       unsubscribe();

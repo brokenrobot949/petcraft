@@ -7,7 +7,7 @@
 // (pets: render.zone.pets) and the zone's scene data. Render-only randomness uses Math.random.
 // createZoneScene(host, game, zoneId) -> { start(), stop(), destroy() }. It is created and destroyed
 // each time the zone page opens and closes, so destroy() must release everything.
-import { Application, Container, Graphics, Rectangle, Sprite, Text, TextureSource } from '../../lib/pixi.mjs';
+import { Application, Container, Graphics, Rectangle, Sprite, Text, Texture, TextureSource } from '../../lib/pixi.mjs';
 import { loadSprites, createActor } from './sprites.js';
 import { actionMs, workerTask, isHarvestTask } from '../systems/harvest.js';
 import { mapCount } from '../systems/treasure.js';
@@ -32,7 +32,10 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
   const pcfg = cfg.pets;
   const tcfg = cfg.taming; // Phase 7: tracking, digging, waiting encounters and traps
   const zone = data.zones.zones.find((z) => z.id === zoneId);
-  const scene = zone?.scene || { spots: {}, decor: [], idle: [0.5, 0.9] };
+  // Any zone with a scene draws generically; a zone without one yet (or with a partial one) gets a bare field.
+  const scene = { spots: {}, decor: [], idle: [0.5, 0.9], ...(zone?.scene || {}) };
+  // Mythic boss strips are drawn at this share of the pixel scale.
+  const roleK = (role) => (role.startsWith('mythic.') ? data.balance.render.mythicScale : 1);
   const colorOf = (v) => Number(v); // balance.json stores colors as "0xrrggbb" strings
 
   const app = new Application();
@@ -121,10 +124,11 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
 
   function addWorker(id, role, index) {
     const actor = createActor(bank, role, { anim: 'idle', dir: 'down' });
-    actor.view.scale.set(scale);
+    const k = roleK(role);
+    actor.view.scale.set(scale * k);
     world.addChild(actor.view);
     const w = {
-      id, role, isPlayer: id === 'player', actor, index,
+      id, role, k, isPlayer: id === 'player', actor, index,
       x: 0, y: 0, mode: 'idle', dir: 'down', target: null, spot: null,
       bounceMs: Infinity, placed: false, standIdx: -1,
       wanderMs: lerp(pcfg.wanderMinPauseMs, pcfg.wanderMaxPauseMs, Math.random()),
@@ -140,10 +144,16 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     const home = homeOf(w);
     w.x = home.x; w.y = home.y;
     w.placed = true;
-    w.shadow = polish.addShadow(actor.view, data.balance.render.home.shadowCharacterWidthPx);
+    w.shadow = polish.addShadow(actor.view, shadowWidth(actor, k));
     workers.set(id, w);
     placeView(w);
     return w;
+  }
+
+  // Shadow width (sprite units): mythic bosses are much bigger than a pet.
+  function shadowWidth(actor, k) {
+    const base = data.balance.render.home.shadowCharacterWidthPx;
+    return k === 1 ? base : Math.max(base, actor.sprite.texture.width * k * data.balance.render.mythicShadowFrac);
   }
 
   // Keep the set of workers equal to the player plus the pets in the active slots.
@@ -178,7 +188,8 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
   }
   function spotFor(task) {
     if (!task || task.zone !== zoneId) return null;
-    return scene.spots?.[tcfg.spotKeys[task.skill] || task.skill] || null;
+    const spot = scene.spots?.[tcfg.spotKeys[task.skill] || task.skill];
+    return spot && spot.stand ? spot : null;
   }
 
   function drawGround() {
@@ -210,7 +221,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     }
     const state = game.getState();
     for (const m of workers.values()) {
-      m.actor.view.scale.set(scale);
+      m.actor.view.scale.set(scale * m.k);
       // Re-aim at the (rescaled) place.
       if (m.mode === 'walk' && m.target) {
         const s = spotFor(workerTask(state, m.id));
@@ -457,8 +468,61 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
   let trapShadow = null;
   let trapAgeMs = 0;
   function encounterPlace() { return scene.encounter || tcfg.defaultEncounter; }
+  // A mythic encounter glows and throws off sparkles so it reads as special.
+  const mcfg = tcfg.mythic;
+  let glowTex = null;
+  function makeMythicFx() {
+    if (!glowTex) {
+      const c = document.createElement('canvas');
+      c.width = 32; c.height = 32;
+      const g = c.getContext('2d');
+      const grad = g.createRadialGradient(16, 16, 0, 16, 16, 16);
+      grad.addColorStop(0, 'rgba(255,255,255,1)');
+      grad.addColorStop(0.4, 'rgba(255,255,255,0.5)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = grad;
+      g.fillRect(0, 0, 32, 32);
+      glowTex = Texture.from(c);
+      glowTex.source.scaleMode = 'linear';
+    }
+    const glow = new Sprite(glowTex);
+    glow.anchor.set(0.5);
+    glow.tint = colorOf(mcfg.glowColor);
+    glow.blendMode = 'add';
+    world.addChild(glow);
+    const sparkles = [];
+    for (let i = 0; i < mcfg.sparkles; i++) {
+      const g = new Graphics();
+      g.rect(-1, -3, 2, 6).fill(colorOf(mcfg.sparkleColor));
+      g.rect(-3, -1, 6, 2).fill(colorOf(mcfg.sparkleColor));
+      fx.addChild(g);
+      sparkles.push({ g, phase: i / mcfg.sparkles, sway: Math.random() * Math.PI * 2 });
+    }
+    return { glow, sparkles };
+  }
+  function updateMythicFx(e, ex, ey) {
+    const m = e.mythicFx;
+    const fade = clamp01(e.ageMs / tcfg.encounterFadeMs);
+    const pulse = 1 + mcfg.glowPulseAmp * Math.sin(e.ageMs / mcfg.glowPulseMs * Math.PI * 2);
+    const cy = ey - mcfg.glowDropPx * scale;
+    m.glow.position.set(Math.round(ex), Math.round(cy));
+    m.glow.scale.set(mcfg.glowRadiusPx * 2 * scale * pulse / glowTex.width);
+    m.glow.alpha = mcfg.glowAlpha * fade;
+    m.glow.zIndex = ey - 1;
+    for (const s of m.sparkles) {
+      const t = ((e.ageMs / mcfg.sparkleMs) + s.phase) % 1;
+      s.g.scale.set(scale * 0.5);
+      s.g.position.set(Math.round(ex + Math.sin(s.sway + t * Math.PI * 2) * mcfg.sparkleSpreadPx * scale),
+        Math.round(cy - t * mcfg.sparkleRisePx * scale));
+      s.g.alpha = Math.sin(Math.PI * t) * fade;
+    }
+  }
   function removeEncounter() {
     if (!enc) return;
+    if (enc.mythicFx) {
+      enc.mythicFx.glow.destroy();
+      for (const s of enc.mythicFx.sparkles) s.g.destroy();
+    }
     enc.shadow?.remove();
     enc.actor.destroy();
     enc = null;
@@ -473,13 +537,16 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     const place = encounterPlace();
     const [ex, ey] = px(place.x, place.y);
     const e = state.taming?.encounters?.[zoneId] || null;
-    const role = e ? `pet.${e.archetype}.hatchling` : null;
+    let role = e ? (e.mythic ? `mythic.${e.archetype}` : `pet.${e.archetype}.hatchling`) : null;
+    if (e?.mythic && !bank.has(role)) role = `pet.${e.archetype}.hatchling`; // mythic art not packed yet: a glowing hatchling
     if (enc && (!e || enc.role !== role)) removeEncounter();
     if (e && !enc && bank.has(role)) {
       const actor = createActor(bank, role, { anim: 'idle', dir: place.face });
-      actor.view.scale.set(scale);
+      const k = roleK(role);
+      actor.view.scale.set(scale * k);
       world.addChild(actor.view);
-      enc = { role, actor, shadow: polish.addShadow(actor.view, data.balance.render.home.shadowCharacterWidthPx),
+      enc = { role, k, actor, shadow: polish.addShadow(actor.view, shadowWidth(actor, k)),
+        mythicFx: e.mythic ? makeMythicFx() : null,
         ageMs: 0, hopMs: Infinity, nextHopMs: lerp(tcfg.encounterHopMinMs, tcfg.encounterHopMaxMs, Math.random()) };
       actor.view.alpha = 0;
     }
@@ -496,13 +563,14 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
       const f = tcfg.encounterStretch * air;
       const shy = Math.sin(enc.ageMs / tcfg.encounterShyMs * Math.PI * 2) * tcfg.encounterShyPx * scale;
       const view = enc.actor.view;
-      view.scale.set(scale * (1 - f * 0.5), scale * (1 + f));
+      view.scale.set(scale * enc.k * (1 - f * 0.5), scale * enc.k * (1 + f));
       view.position.set(Math.round(ex + shy), Math.round(ey - tcfg.encounterHopPx * scale * air));
       view.zIndex = ey;
       view.alpha = tcfg.encounterAlpha * clamp01(enc.ageMs / tcfg.encounterFadeMs);
       enc.actor.play('idle', place.face);
       enc.actor.update(ticker);
       if (enc.shadow) enc.shadow.groundY = ey;
+      if (enc.mythicFx) updateMythicFx(enc, ex, ey);
     }
     // The trap sits beside the monster (its own picture if the encounter has gone but the trap is still set).
     const trap = state.taming?.traps?.[zoneId] || null;
@@ -543,7 +611,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     if (m.mode === 'walk') stepWalk(m, ms);
     else if (m.isPlayer) stepTracking(m, task, ms);
     const { bob, sx, sy } = m.isPlayer ? renderPlayer(m, state, task, ticker, ms) : renderPet(m, state, ms, ticker);
-    view.scale.set(sx, sy);
+    view.scale.set(sx * m.k, sy * m.k);
     view.position.set(Math.round(m.x), Math.round(m.y + bob));
     view.zIndex = workerZ(m);
     if (m.shadow) m.shadow.groundY = m.y; // the shadow stays on the ground while the body hops
@@ -696,6 +764,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
       app.renderer.off('resize', layout);
       polish.destroy();
       app.destroy(true, { children: true });
+      glowTex?.destroy(true);
     },
   };
 }
