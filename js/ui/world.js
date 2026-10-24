@@ -3,9 +3,13 @@ import { el, toast, sheetWithClose } from './dom.js';
 import { getPref, setPref } from './device.js';
 import { itemIcon, faceIcon } from './icons.js';
 import { skillProgress } from '../systems/skills.js';
-import { zoneUnlocked, nodeCheck, actionMs, workerTask, toolFor } from '../systems/harvest.js';
+import { zoneUnlocked, nodeCheck, actionMs, workerTask, toolFor, isHarvestTask } from '../systems/harvest.js';
 import { getPet, needsStarter, petStatus } from '../systems/pets.js';
-import { petRole, petMaxEnergy, petRestPerHour } from '../systems/petstats.js';
+import { petRole, petMaxEnergy, petRestPerHour, archetypeOf } from '../systems/petstats.js';
+import {
+  trackMs, revealChance, catchChance, encounterInfo, trapOptions, baitOptions, trapCheck, lureInfo, lureList, tamingNotice,
+} from '../systems/taming.js';
+import { mapItemFor, mapCount, digInfo } from '../systems/treasure.js';
 
 export const id = 'world';
 export const label = 'World';
@@ -20,7 +24,8 @@ let sceneToken = 0;
 let lastKey = '';
 let bars = new Map(); // workerId -> { fill, text, pet, eFill, eText, status } for the worker cards
 let raf = 0;
-let progs = new Map(); // workerId -> { value, at } for smooth progress
+let progs = new Map(); // key -> { value, at } for smooth progress
+let live = []; // per-frame updaters for the numbers on the zone page (countdowns, bars)
 
 export function mount(container, a) {
   app = a;
@@ -30,6 +35,9 @@ export function mount(container, a) {
     if (!tabVisible) return;
     refresh();
     tickBar(); // also runs at the game tick rate if animation frames are throttled
+  });
+  app.game.onEvents((events) => {
+    if (tabVisible) eventToasts(events);
   });
   const saved = getPref('worldZone', null);
   if (saved && app.game.data.zones.zones.some((z) => z.id === saved)) zoneId = saved;
@@ -99,8 +107,19 @@ function refresh() {
     if (zoneId) renderZone();
     else renderMap();
   }
-  if (zoneId) updateXpBars();
+  if (zoneId) {
+    updateXpBars();
+    // Looking at a zone page counts as seeing the trap results (clears the World badge).
+    if (tamingNotice(state()) && !seenQueued) {
+      seenQueued = true;
+      setTimeout(() => {
+        seenQueued = false;
+        if (tabVisible && zoneId && tamingNotice(state())) send('taming/seen');
+      }, 0);
+    }
+  }
 }
+let seenQueued = false;
 
 // skill id -> { fill, text, toolName } for the XP bars on the zone page
 let xpBars = new Map();
@@ -136,12 +155,54 @@ function keyFor() {
   const ws = workerList(s);
   const who = ws.map((w) => `${w.id}:${w.name}:${w.pet?.form || ''}:${taskKey(s.workers[w.id].task)}:${w.pet ? petStatus(s, w.id) : ''}`).join(',');
   const base = `${who}|${selectedWorker(s)}|${s.renown.rank}|${needsStarter(s) ? 'starter' : ''}`;
-  if (!zoneId) return base;
+  if (!zoneId) return `${base}|${data().zones.zones.map((z) => zoneMarkKey(s, z.id)).join(',')}`;
   // Levels only: XP changes every action and is updated in place (rebuilding the buttons that
   // often could swallow a tap).
   const sk = Object.entries(s.skills).map(([k, v]) => `${k}${v.level}`).join(',');
   const tools = Object.values(s.tools).map((x) => x.item + x.quality).join(',');
-  return `${base}|${sk}|${tools}`;
+  const d = data();
+  const tm = s.taming;
+  const mine = tm.results.map((r) => `${r.zone}${r.caught ? 1 : 0}${r.pet || ''}${r.trapKept ? 1 : 0}`).join(';');
+  const lure = lureInfo(s, d);
+  const stock = [...trapOptions(s, d, zoneId), ...lureList(s, d)].map((x) => `${x.key}${x.count}`).join(',');
+  const wild = `${zoneMarkKey(s, zoneId)}|${tm.encounters[zoneId]?.msLeft === null ? 'w' : 'e'}|${trapCheck(s, d, zoneId).reason}|${lure ? lure.item : ''}|${mine}|${stock}`;
+  return `${base}|${sk}|${tools}|${wild}`;
+}
+
+// What shows on the map for a zone: waiting monster, set trap, number of maps.
+function zoneMarkKey(s, zid) {
+  const e = s.taming.encounters[zid];
+  return `${zid}:${e ? `${e.archetype}${e.quality}` : ''}${s.taming.traps[zid] ? 't' : ''}${mapCount(s, data(), zid)}`;
+}
+
+// ---------- small formatters ----------
+const pct = (x) => `${Math.round(x * 1000) / 10}%`;
+const signed = (x) => `${x < 0 ? '-' : '+'}${pct(Math.abs(x))}`;
+function fmtTime(ms) {
+  const sec = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (h > 0) return `${h} h ${m} min`;
+  return `${m}:${String(sec % 60).padStart(2, '0')}`;
+}
+const itemName = (key) => data().items.items[key.split(':')[0]]?.name || key;
+
+// Toasts for live taming and treasure events (only while the World tab is open).
+function eventToasts(events) {
+  const d = data();
+  for (const e of events) {
+    if (e.type === 'encounter') {
+      toast(`You found a wild ${archetypeOf(d, e.archetype)?.species || 'monster'}!`, 3000);
+    } else if (e.type === 'trapDone') {
+      const sp = archetypeOf(d, e.archetype)?.species || 'monster';
+      toast(e.caught ? `${sp} was caught! Say hi in the Pets tab.` : `The ${sp} slipped away.`, 3000);
+    } else if (e.type === 'dig') {
+      const best = e.items?.[d.treasure.relicItem] ? d.treasure.relicItem
+        : e.items?.[d.treasure.eggItem] ? d.treasure.eggItem
+          : Object.entries(e.items || {}).sort((a, b) => b[1] - a[1])[0]?.[0];
+      toast(`Dug up ${e.coins} coins${best ? ` and ${e.items[best]} x ${itemName(best)}` : ''}!`, 3000);
+    }
+  }
 }
 
 // ---------- map ----------
@@ -151,6 +212,7 @@ function renderMap() {
   const s = state();
   const d = data();
   const ws = workerList(s);
+  mapTraps = new Map();
   const starter = needsStarter(s)
     ? el('div.panel.starter-panel', {}, el('p', {}, 'Your first pet is waiting: open the Pets tab to choose an egg.'))
     : null;
@@ -169,8 +231,20 @@ function renderMap() {
         const task = s.workers[w.id].task;
         if (!task || task.zone !== z.id) continue;
         const node = z.harvest[task.skill]?.find((n) => n.id === task.node);
-        working.push(`${w.name}: ${skillName(task.skill)} - ${node ? node.name : task.node}`);
+        working.push(`${w.name}: ${taskLabel(d, task, node)}`);
       }
+    }
+    const marks = [];
+    if (open) {
+      const enc = s.taming.encounters[z.id];
+      if (enc && !s.taming.traps[z.id]) marks.push(el('span.zone-mark.alert', {}, '! Monster waiting'));
+      if (s.taming.traps[z.id]) {
+        const t = el('span');
+        mapTraps.set(z.id, t);
+        marks.push(el('span.zone-mark', {}, 'Trap set: ', t));
+      }
+      const maps = mapCount(s, d, z.id);
+      if (maps > 0) marks.push(el('span.zone-mark', {}, itemIcon(mapItemFor(d, z.id), 18, 'Map'), `Maps: ${maps}`));
     }
     return el(`button.zone-card.panel${open ? '' : '.locked'}`, {
       type: 'button',
@@ -179,8 +253,19 @@ function renderMap() {
       el('div.zone-head', {}, el('b', {}, z.name), el('span.tier', {}, `Tier ${z.tier}`)),
       el('p.small.muted', {}, z.blurb),
       note && el('p.small.zone-note', {}, note),
-      ...working.map((line) => el('p.small.zone-working', {}, line)));
+      ...working.map((line) => el('p.small.zone-working', {}, line)),
+      marks.length ? el('div.zone-marks', {}, ...marks) : null);
   }));
+  tickBar();
+}
+
+let mapTraps = new Map(); // zone id -> span for the trap countdown on the map
+
+// "Skill: node" for a harvest task, or the plain words for tracking and digging.
+function taskLabel(d, task, node) {
+  if (task.skill === 'taming') return 'Tracking';
+  if (task.skill === 'treasure') return 'Digging for treasure';
+  return `${skillName(task.skill)}: ${node ? node.name : task.node}`;
 }
 
 // ---------- zone page ----------
@@ -293,11 +378,11 @@ function renderZone() {
       w.id === sel ? el('span.small.muted', {}, ' (picking jobs)') : null)];
     if (task) {
       const tz = d.zones.zones.find((x) => x.id === task.zone);
-      const node = tz?.harvest[task.skill]?.find((n) => n.id === task.node);
+      const node = tz?.harvest?.[task.skill]?.find((n) => n.id === task.node);
       const where = task.zone !== z.id && tz ? ` in ${tz.name}` : '';
       rec.fill = el('div.fill');
       rec.text = el('span.small.muted');
-      parts.push(el('p', {}, `${skillName(task.skill)}: ${node ? node.name : task.node}${where}`),
+      parts.push(el('p', {}, `${taskLabel(d, task, node)}${where}`),
         el('div.bar.big', {}, rec.fill), rec.text);
     } else {
       parts.push(el('p', {}, w.pet ? 'Not working yet.' : "You're resting. Pick something to do below."));
@@ -347,10 +432,222 @@ function renderZone() {
           el('span.node-lv', {}, `Lv ${n.level || 1}`));
       })));
   }
-  if (!sections.length) sections.push(el('div.panel', {}, el('p', {}, 'Nothing to do here yet.')));
-  body.replaceChildren(chooser, ...cards, ...sections);
+  live = [];
+  const extra = [];
+  if (z.archetypes?.length) extra.push(wildCard(s, d, z));
+  if (mapItemFor(d, z.id)) extra.push(treasureCard(s, d, z));
+  if (!sections.length && !extra.length) sections.push(el('div.panel', {}, el('p', {}, 'Nothing to do here yet.')));
+  body.replaceChildren(chooser, ...cards, ...sections, ...extra);
   updateXpBars();
   tickBar();
+}
+
+// ---------- wild monsters ----------
+function wildCard(s, d, z) {
+  const b = d.balance.taming;
+  const info = encounterInfo(s, d, z.id);
+  const task = workerTask(s, 'player');
+  const tracking = task?.skill === 'taming' && task.zone === z.id;
+  const p = skillProgress(s, d, 'taming');
+  const xpFill = el('div.fill');
+  const xpText = el('p.small.muted');
+  xpBars.set('taming', { fill: xpFill, text: xpText, toolName: null });
+  const parts = [
+    el('h2', {}, 'Wild monsters ', el('span.muted', {}, `Taming ${p.level}`)),
+    el('div.bar', {}, xpFill),
+    xpText,
+    el('p.small', {}, `Each try takes ${(trackMs(s, d, z.id) / 1000).toFixed(1)} s and has a ${pct(revealChance(s, d))} chance to find a monster. Once you find one, you go back to what you were harvesting.`),
+    el(`button.btn.wide${tracking ? '.on' : ''}`, {
+      type: 'button',
+      'aria-pressed': tracking ? 'true' : 'false',
+      onclick: () => send('taming/track', { zone: z.id }),
+    }, tracking ? 'Tracking...' : 'Track wild monsters'),
+  ];
+  if (info) parts.push(encounterBlock(s, d, z, info, b));
+  const results = s.taming.results.filter((r) => r.zone === z.id).reverse();
+  if (results.length) {
+    parts.push(el('h3.wild-sub', {}, 'Recent results'),
+      ...results.map((r) => {
+        const sp = archetypeOf(d, r.archetype)?.species || 'monster';
+        const pet = r.pet ? s.pets.list[r.pet] : null;
+        const text = r.caught
+          ? `${sp} was caught! Say hi${pet && pet.name !== sp ? ` to ${pet.name}` : ''} in the Pets tab.`
+          : `The ${sp} slipped away. ${r.trapKept ? 'Your trap came back safe.' : 'The trap broke.'}`;
+        return el(`p.small.wild-result${r.caught ? '.good' : ''}`, {},
+          faceIcon(`pet.${r.archetype}.hatchling`, 24, sp), el('span', {}, text));
+      }));
+  }
+  // Lure
+  const lure = lureInfo(s, d);
+  const lures = lureList(s, d);
+  parts.push(el('h3.wild-sub', {}, 'Lures'));
+  if (lure) {
+    const t = el('b');
+    live.push((st, dd, now) => {
+      const l = lureInfo(st, dd);
+      if (l) t.textContent = fmtTime(smooth('lure', l.msLeft, -1, true, now));
+    });
+    parts.push(el('p.small', {}, `${lure.def?.name || 'A lure'} is working: `, t, ' left.'));
+  }
+  parts.push(el('p.small.muted', {}, 'Monsters you find while a lure works are one quality higher.'));
+  if (lures.length) {
+    parts.push(...lures.map((l) => el('button.node-btn', {
+      type: 'button',
+      onclick: () => send('taming/useLure', { item: l.key }),
+    }, itemIcon(l.key, 28, l.item.name), el('span.node-name', {}, `Use a ${l.item.name}`),
+    el('span.node-lv', {}, `x${l.count} - ${l.minutes} min`))));
+  } else if (!lure) {
+    parts.push(el('p.small.muted', {}, 'You have no lures. Brew one at the Alchemy Lab.'));
+  }
+  return el('div.panel.wild-card', {}, ...parts);
+}
+
+function encounterBlock(s, d, z, info, b) {
+  const box = el('div.encounter');
+  box.append(el('div.enc-head', {},
+    faceIcon(`pet.${info.archetype}.hatchling`, 56, info.species),
+    el('div.enc-text', {},
+      el('b', {}, `A wild ${info.species}`),
+      el(`span.enc-hint${info.special ? '.special' : ''}`, {}, info.hint))));
+  const trap = info.trap;
+  if (trap) {
+    const fill = el('div.fill');
+    const t = el('span.small');
+    box.append(
+      el('p.small', {}, `${itemName(trap.item)} is set${trap.bait ? ` with ${itemName(trap.bait)}` : ''}. Catch chance ${pct(trap.chance)}.`),
+      el('div.bar.big', {}, fill), t);
+    const total = b.trapMinutes * 60000;
+    live.push((st, dd, now) => {
+      const tr = st.taming.traps[z.id];
+      if (!tr) return;
+      const left = Math.max(0, smooth(`trap${z.id}`, tr.msLeft, -1, true, now));
+      fill.style.width = `${(1 - left / total) * 100}%`;
+      t.textContent = `Ready in ${fmtTime(left)}`;
+    });
+    return box;
+  }
+  if (info.msLeft !== null) {
+    const t = el('p.small.muted');
+    box.append(t);
+    live.push((st, dd, now) => {
+      const e = st.taming.encounters[z.id];
+      if (e && e.msLeft !== null) t.textContent = `It got away once. It will wander off in ${fmtTime(smooth(`enc${z.id}`, e.msLeft, -1, true, now))}.`;
+    });
+  }
+  const check = trapCheck(s, d, z.id);
+  const hasTraps = trapOptions(s, d, z.id).length > 0;
+  box.append(
+    el('div.row', {},
+      el('button.btn', {
+        type: 'button',
+        onclick: () => (check.ok ? openTrapSheet(z.id) : toast(check.reason)),
+      }, 'Set a trap'),
+      el('button.btn.small-btn', { type: 'button', onclick: () => send('taming/letGo', { zone: z.id }) }, 'Let it go')));
+  if (!check.ok) box.append(el('p.small.muted', {}, check.reason));
+  else if (!hasTraps) box.append(el('p.small.muted', {}, 'You have no traps. Traps are made at the Workbench (a frame and a spring). The first one can be bought in Mossbrook.'));
+  return box;
+}
+
+function openTrapSheet(zid) {
+  const s0 = state();
+  const d = data();
+  const info = encounterInfo(s0, d, zid);
+  if (!info) return;
+  const traps = trapOptions(s0, d, zid);
+  const baits = baitOptions(s0, d, zid);
+  let trap = traps.find((t) => t.ok)?.key || null;
+  let bait = null;
+  const trapBox = el('div');
+  const baitBox = el('div');
+  const chanceBox = el('div.catch-box');
+  const go = el('button.btn.wide', { type: 'button' }, 'Set trap');
+  let close = () => {};
+  const draw = () => {
+    const s = state();
+    const check = trapCheck(s, d, zid);
+    trapBox.replaceChildren(el('h3.wild-sub', {}, 'Trap'),
+      ...(traps.length ? traps.map((t) => el(`button.node-btn${t.key === trap ? '.active' : ''}${t.ok ? '' : '.blocked'}`, {
+        type: 'button',
+        'aria-pressed': t.key === trap ? 'true' : 'false',
+        onclick: () => {
+          if (!t.ok) return toast(t.reason);
+          trap = t.key;
+          draw();
+        },
+      }, itemIcon(t.key, 28, t.item.name),
+      el('span.node-name', {}, t.item.name, t.ok ? null : el('span.small.muted.block', {}, t.reason)),
+      el('span.node-lv', {}, `x${t.count}`)))
+        : [el('p.small.muted', {}, 'You have no traps. Traps are made at the Workbench (a frame and a spring). The first one can be bought in Mossbrook.')]));
+    baitBox.replaceChildren(el('h3.wild-sub', {}, 'Bait (optional)'),
+      el(`button.node-btn${bait === null ? '.active' : ''}`, {
+        type: 'button',
+        'aria-pressed': bait === null ? 'true' : 'false',
+        onclick: () => {
+          bait = null;
+          draw();
+        },
+      }, el('span.node-name', {}, 'No bait')),
+      ...baits.map((bt) => el(`button.node-btn${bt.key === bait ? '.active' : ''}`, {
+        type: 'button',
+        'aria-pressed': bt.key === bait ? 'true' : 'false',
+        onclick: () => {
+          bait = bt.key;
+          draw();
+        },
+      }, itemIcon(bt.key, 28, bt.item.name),
+      el('span.node-name', {}, bt.item.name, bt.match ? el('span.small.loves.block', {}, `${info.species} loves this!`) : null),
+      el('span.node-lv', {}, `x${bt.count}`))));
+    if (trap) {
+      const c = catchChance(s, d, zid, trap, bait);
+      const rows = [['Base', c.base]];
+      if (c.trap) rows.push(['Better trap', c.trap]);
+      rows.push(['Bait', c.bait], ['Your Taming level', c.level]);
+      chanceBox.replaceChildren(
+        el('p.catch-total', {}, 'Catch chance ', el('b', {}, pct(c.chance))),
+        ...rows.map(([name, v]) => el('p.small.muted.catch-row', {}, el('span', {}, name), el('span', {}, name === 'Base' ? pct(v) : signed(v)))),
+        ...(c.capped ? [el('p.small.muted', {}, 'This is the most it can be.')] : []),
+        el('p.small.muted', {}, `The trap takes ${d.balance.taming.trapMinutes} minutes.`));
+    } else {
+      chanceBox.replaceChildren(el('p.small.muted', {}, 'Pick a trap to see the chance.'));
+    }
+    go.disabled = !trap || !check.ok;
+    if (!check.ok) chanceBox.append(el('p.small.warn', {}, check.reason));
+  };
+  go.addEventListener('click', () => {
+    send('taming/setTrap', { zone: zid, trap, bait });
+    close();
+  });
+  close = sheetWithClose('Cancel', `Trap the ${info.species}`, trapBox, baitBox, chanceBox, go);
+  draw();
+}
+
+// ---------- treasure ----------
+function treasureCard(s, d, z) {
+  const info = digInfo(s, d, z.id);
+  const mapItem = mapItemFor(d, z.id);
+  const fill = el('div.fill');
+  const t = el('p.small.muted');
+  live.push((st, dd, now) => {
+    const i = digInfo(st, dd, z.id);
+    const shown = Math.max(0, Math.min(i.total, smooth(`dig${z.id}`, i.ms, 1, i.digging, now)));
+    fill.style.width = `${(shown / i.total) * 100}%`;
+    t.textContent = i.digging || i.ms > 0 ? `${fmtTime(i.total - shown)} left on this map` : `Each map takes about ${fmtTime(i.total)} to dig.`;
+  });
+  const none = info.maps <= 0;
+  return el('div.panel.treasure-card', {},
+    el('h2', {}, 'Treasure'),
+    el('div.map-line', {}, itemIcon(mapItem, 32, 'Map'),
+      el('span', {}, el('b', {}, `${info.maps} ${info.maps === 1 ? 'map' : 'maps'}`), ` for ${z.name}`)),
+    el('p.small.muted', {}, 'Maps turn up while harvesting, most often while fishing. You dig them up one after another, then go back to what you were doing.'),
+    el(`button.btn.wide${info.digging ? '.on' : ''}`, {
+      type: 'button',
+      'aria-pressed': info.digging ? 'true' : 'false',
+      disabled: none && !info.digging,
+      onclick: () => send('treasure/dig', { zone: z.id }),
+    }, info.digging ? 'Digging...' : 'Dig for treasure'),
+    none ? el('p.small.warn', {}, 'No maps to dig yet.') : null,
+    el('div.bar.big', {}, fill),
+    t);
 }
 
 // ---------- smooth progress bar ----------
@@ -365,26 +662,48 @@ function startLoop() {
   raf = requestAnimationFrame(frame);
 }
 
+// A number that changes once per game tick, smoothed between ticks. dir +1 counts up, -1 down.
+function smooth(key, value, dir, moving, now) {
+  let p = progs.get(key);
+  if (!p || value !== p.value) {
+    p = { value, at: now };
+    progs.set(key, p);
+  }
+  return value + (moving ? dir * (now - p.at) : 0);
+}
+
 function tickBar() {
-  if (!bars.size || !zoneId) return;
   const s = state();
   const d = data();
   const now = performance.now();
+  if (!zoneId) {
+    for (const [zid, span] of mapTraps) {
+      const tr = s.taming.traps[zid];
+      if (tr) span.textContent = fmtTime(smooth(`mapTrap${zid}`, tr.msLeft, -1, true, now));
+    }
+    return;
+  }
+  for (const fn of live) fn(s, d, now);
   for (const [wid, rec] of bars) {
     const w = s.workers[wid];
     const task = w?.task;
     if (rec.fill && task) {
-      const dur = actionMs(s, d, wid, task);
-      let p = progs.get(wid);
-      if (!p || w.progressMs !== p.value) {
-        p = { value: w.progressMs, at: now };
-        progs.set(wid, p);
+      let dur;
+      let value = w.progressMs;
+      if (isHarvestTask(d, task)) {
+        dur = actionMs(s, d, wid, task);
+      } else if (task.skill === 'taming') {
+        dur = trackMs(s, d, task.zone);
+      } else {
+        dur = digInfo(s, d, task.zone).total;
+        value = s.treasure.progress[task.zone] || 0;
       }
       // A resting pet is not making progress, so only a working one is smoothed forward.
       const moving = !rec.pet || petStatus(s, wid) === 'working';
-      const shown = Math.min(dur, w.progressMs + (moving ? now - p.at : 0));
+      const shown = Math.max(0, Math.min(dur, smooth(wid, value, 1, moving, now)));
       rec.fill.style.width = `${(shown / dur) * 100}%`;
-      rec.text.textContent = `${(dur / 1000).toFixed(1)} s per action`;
+      rec.text.textContent = task.skill === 'treasure' ? `${fmtTime(dur - shown)} left on this map`
+        : `${(dur / 1000).toFixed(1)} s per ${task.skill === 'taming' ? 'try' : 'action'}`;
     }
     if (rec.pet) {
       const pet = getPet(s, wid);

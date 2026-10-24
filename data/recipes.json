@@ -122,6 +122,26 @@
     { "id": "marsh_tonic", "station": "alchemyLab", "level": 30, "seconds": 8, "inputs": { "bog_lily": 2, "willow_sap": 1, "feathers": 2 }, "output": "marsh_tonic", "qty": 1 },
     { "id": "mist_draught", "station": "alchemyLab", "level": 34, "seconds": 9, "inputs": { "bog_lily": 2, "marsh_reed": 2, "willow_sap": 1 }, "output": "mist_draught", "qty": 1, "scroll": true },
     { "id": "ember_tonic", "station": "alchemyLab", "level": 40, "seconds": 9, "inputs": { "fire_bloom": 2, "ember_resin": 1, "ram_horn": 1 }, "output": "ember_tonic", "qty": 1 },
-    { "id": "emberlight_elixir", "station": "alchemyLab", "level": 46, "seconds": 10, "inputs": { "fire_bloom": 2, "ember_resin": 1, "ram_horn": 1, "marsh_reed": 1 }, "output": "emberlight_elixir", "qty": 1, "scroll": true }
+    { "id": "emberlight_elixir", "station": "alchemyLab", "level": 46, "seconds": 10, "inputs": { "fire_bloom": 2, "ember_resin": 1, "ram_horn": 1, "marsh_reed": 1 }, "output": "emberlight_elixir", "qty": 1, "scroll": true },
+    { "id": "pine_trap_frame", "station": "workbench", "level": 2, "seconds": 6, "inputs": { "pine_plank": 2, "fiber_string": 1 }, "output": "pine_trap_frame", "qty": 1 },
+    { "id": "oak_trap_frame", "station": "workbench", "level": 12, "seconds": 8, "inputs": { "oak_plank": 2, "fiber_string": 1 }, "output": "oak_trap_frame", "qty": 1 },
+    { "id": "cedar_trap_frame", "station": "workbench", "level": 22, "seconds": 10, "inputs": { "cedar_plank": 2, "fiber_string": 1 }, "output": "cedar_trap_frame", "qty": 1 },
+    { "id": "willow_trap_frame", "station": "workbench", "level": 32, "seconds": 12, "inputs": { "willow_plank": 2, "fiber_string": 1 }, "output": "willow_trap_frame", "qty": 1 },
+    { "id": "ashwood_trap_frame", "station": "workbench", "level": 42, "seconds": 14, "inputs": { "ashwood_plank": 2, "fiber_string": 1 }, "output": "ashwood_trap_frame", "qty": 1 },
+    { "id": "copper_trap_spring", "station": "forge", "level": 2, "seconds": 6, "inputs": { "copper_bar": 1 }, "output": "copper_trap_spring", "qty": 1 },
+    { "id": "iron_trap_spring", "station": "forge", "level": 12, "seconds": 8, "inputs": { "iron_bar": 1 }, "output": "iron_trap_spring", "qty": 1 },
+    { "id": "steel_trap_spring", "station": "forge", "level": 22, "seconds": 10, "inputs": { "steel_bar": 1 }, "output": "steel_trap_spring", "qty": 1 },
+    { "id": "mythril_trap_spring", "station": "forge", "level": 32, "seconds": 12, "inputs": { "mythril_bar": 1 }, "output": "mythril_trap_spring", "qty": 1 },
+    { "id": "emberite_trap_spring", "station": "forge", "level": 42, "seconds": 14, "inputs": { "emberite_bar": 1 }, "output": "emberite_trap_spring", "qty": 1 },
+    { "id": "pine_trap", "station": "workbench", "level": 4, "seconds": 8, "inputs": { "pine_trap_frame": 1, "copper_trap_spring": 1, "sinew_string": 1 }, "output": "pine_trap", "qty": 1, "needs": { "smithing": 2 } },
+    { "id": "oak_trap", "station": "workbench", "level": 13, "seconds": 10, "inputs": { "oak_trap_frame": 1, "iron_trap_spring": 1, "deer_hide": 1 }, "output": "oak_trap", "qty": 1, "needs": { "smithing": 12 } },
+    { "id": "cedar_trap", "station": "workbench", "level": 23, "seconds": 12, "inputs": { "cedar_trap_frame": 1, "steel_trap_spring": 1, "bone": 1 }, "output": "cedar_trap", "qty": 1, "needs": { "smithing": 22 } },
+    { "id": "willow_trap", "station": "workbench", "level": 33, "seconds": 14, "inputs": { "willow_trap_frame": 1, "mythril_trap_spring": 1, "feathers": 1 }, "output": "willow_trap", "qty": 1, "needs": { "smithing": 32 } },
+    { "id": "ashwood_trap", "station": "workbench", "level": 43, "seconds": 16, "inputs": { "ashwood_trap_frame": 1, "emberite_trap_spring": 1, "ram_horn": 1 }, "output": "ashwood_trap", "qty": 1, "needs": { "smithing": 42 } },
+    { "id": "berry_bait", "station": "kitchen", "level": 2, "seconds": 4, "inputs": { "berries": 2 }, "output": "berry_bait", "qty": 2 },
+    { "id": "nut_bait", "station": "kitchen", "level": 3, "seconds": 4, "inputs": { "hazelnut": 2 }, "output": "nut_bait", "qty": 2 },
+    { "id": "fish_bait", "station": "kitchen", "level": 4, "seconds": 4, "inputs": { "minnow": 2 }, "output": "fish_bait", "qty": 2 },
+    { "id": "meat_bait", "station": "kitchen", "level": 5, "seconds": 4, "inputs": { "rabbit_meat": 2 }, "output": "meat_bait", "qty": 2 },
+    { "id": "wild_lure", "station": "alchemyLab", "level": 8, "seconds": 8, "inputs": { "meadow_herb": 2, "pine_sap": 1, "honeycomb": 1 }, "output": "wild_lure", "qty": 1 }
   ]
 }

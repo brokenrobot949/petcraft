@@ -1,0 +1,59 @@
+{
+  "eggItem": "treasure_egg",
+  "relicItem": "sanctuary_relic",
+  "loot": {
+    "1": [
+      { "item": "pine_plank", "qty": [2, 4], "weight": 5 },
+      { "item": "copper_bar", "qty": [1, 2], "weight": 4 },
+      { "item": "copper_fittings", "qty": [2, 4], "weight": 4 },
+      { "item": "amber_chunk", "qty": [1, 2], "weight": 3 },
+      { "item": "small_quartz", "qty": [1, 2], "weight": 3 },
+      { "item": "four_leaf_clover", "qty": [1, 1], "weight": 3 },
+      { "item": "lucky_rabbit_foot", "qty": [1, 1], "weight": 2 },
+      { "item": "small_pearl", "qty": [1, 1], "weight": 2 }
+    ],
+    "2": [
+      { "item": "oak_plank", "qty": [2, 4], "weight": 5 },
+      { "item": "iron_bar", "qty": [1, 2], "weight": 4 },
+      { "item": "amber_chunk", "qty": [1, 3], "weight": 3 },
+      { "item": "golden_acorn", "qty": [1, 1], "weight": 3 },
+      { "item": "glowcap_spore", "qty": [1, 2], "weight": 3 },
+      { "item": "deer_antler", "qty": [1, 1], "weight": 3 },
+      { "item": "moss_agate", "qty": [1, 1], "weight": 2 },
+      { "item": "brook_pearl", "qty": [1, 1], "weight": 2 }
+    ],
+    "3": [
+      { "item": "cedar_plank", "qty": [2, 4], "weight": 5 },
+      { "item": "steel_bar", "qty": [1, 2], "weight": 3 },
+      { "item": "rough_gem", "qty": [1, 3], "weight": 4 },
+      { "item": "moss_agate", "qty": [1, 2], "weight": 3 },
+      { "item": "silver_sprig", "qty": [1, 1], "weight": 3 },
+      { "item": "bone_whistle", "qty": [1, 1], "weight": 2 },
+      { "item": "fossil_resin", "qty": [1, 1], "weight": 2 },
+      { "item": "river_opal", "qty": [1, 1], "weight": 2 },
+      { "item": "garnet", "qty": [1, 1], "weight": 2 }
+    ],
+    "4": [
+      { "item": "willow_plank", "qty": [2, 4], "weight": 4 },
+      { "item": "mythril_bar", "qty": [1, 2], "weight": 3 },
+      { "item": "garnet", "qty": [1, 2], "weight": 3 },
+      { "item": "river_opal", "qty": [1, 2], "weight": 3 },
+      { "item": "heron_plume", "qty": [1, 1], "weight": 2 },
+      { "item": "wisp_lantern", "qty": [1, 1], "weight": 2 },
+      { "item": "ghost_orchid", "qty": [1, 1], "weight": 2 },
+      { "item": "moonstone", "qty": [1, 1], "weight": 2 },
+      { "item": "mist_pearl", "qty": [1, 1], "weight": 2 }
+    ],
+    "5": [
+      { "item": "ashwood_plank", "qty": [2, 4], "weight": 4 },
+      { "item": "emberite_bar", "qty": [1, 2], "weight": 3 },
+      { "item": "moonstone", "qty": [1, 2], "weight": 3 },
+      { "item": "mist_pearl", "qty": [1, 2], "weight": 3 },
+      { "item": "sunpetal", "qty": [1, 1], "weight": 2 },
+      { "item": "golden_fleece", "qty": [1, 1], "weight": 2 },
+      { "item": "cinder_heartwood", "qty": [1, 1], "weight": 2 },
+      { "item": "fire_opal", "qty": [1, 1], "weight": 2 },
+      { "item": "ember_pearl", "qty": [1, 1], "weight": 1 }
+    ]
+  }
+}

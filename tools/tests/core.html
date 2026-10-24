@@ -13,7 +13,7 @@
 // Dev-only checks of the simulation core: pets, energy, feeding, Bond, saves.
 // Open http://localhost:<port>/tools/tests/core.html. Not shipped.
 import { loadData } from '../../js/core/data.js';
-import { createInitialState, validateState } from '../../js/core/state.js';
+import { createInitialState, validateState, newTamingState } from '../../js/core/state.js';
 import { createGame } from '../../js/core/game.js';
 import { parseSave } from '../../js/core/save.js';
 import { petMaxEnergy, petDrainPerHour } from '../../js/systems/petstats.js';
@@ -29,6 +29,9 @@ import { weekOf, sellPrice } from '../../js/systems/village.js';
 import { growMs, seedDef } from '../../js/systems/garden.js';
 import { achievementList, wornTitle } from '../../js/systems/achievements.js';
 import { localDay } from '../../js/core/time.js';
+import { catchChance, freePetSpaces, encounterInfo, tamingNotice, rollQuality } from '../../js/systems/taming.js';
+import { digMs, mapItemFor } from '../../js/systems/treasure.js';
+import { eggSlots, hatchMs, nestNotice } from '../../js/systems/nest.js';
 
 const out = document.getElementById('out');
 const lines = [];
@@ -55,6 +58,7 @@ function freshGame(seed = 12345, { stations = true } = {}) {
   const s = createInitialState(clockNow);
   s.rng = seed;
   s.workers.player.rng = seed + 1;
+  Object.assign(s, newTamingState(seed));
   if (stations) Object.assign(s.buildings, { forge: { tier: 1 }, alchemyLab: { tier: 1 } });
   return createGame(data, JSON.parse(JSON.stringify(s)), { clock });
 }
@@ -73,7 +77,7 @@ try {
     workers: { player: { task: { zone: 'meadowfold', skill: 'chopping', node: 'pine' }, progressMs: 100 } }, stats: { actions: { chopping: 50 } },
   };
   const mig = parseSave(JSON.stringify(v2));
-  check('v2 save migrates to the current version and validates', !!mig.state && mig.state.version === 5, mig.error || '');
+  check('v2 save migrates to the current version and validates', !!mig.state && mig.state.version === 6, mig.error || '');
   check('migration keeps progress', mig.state?.bag.pine_log === 40 && mig.state?.skills.chopping.level === 4 && mig.state?.workers.player.task?.node === 'pine');
   const g0 = createGame(data, mig.state, { clock });
   check('migrated save needs a starter egg', g0.getState().pets.active.length === 2 && !g0.getState().pets.starter);
@@ -230,7 +234,7 @@ try {
   const v3 = JSON.parse(JSON.stringify(so));
   v3.version = 3; delete v3.crafting; delete v3.buffs; delete v3.stats.crafts;
   const m3 = parseSave(JSON.stringify(v3));
-  check('v3 save migrates to v5 and keeps pets', !!m3.state && m3.state.version === 5 && Object.keys(m3.state.pets.list).length === Object.keys(so.pets.list).length, m3.error || '');
+  check('v3 save migrates to v6 and keeps pets', !!m3.state && m3.state.version === 6 && Object.keys(m3.state.pets.list).length === Object.keys(so.pets.list).length, m3.error || '');
   const gc = freshGame(777);
   const sc = gc.getState();
   const refused = (type, payload) => { try { gc.dispatch(type, payload); return false; } catch { return true; } };
@@ -376,7 +380,7 @@ try {
   v4.crafting.stations.kitchen.queue = [{ recipe: 'berry_compote', qty: 2, done: 0, focus: null, inputs: { berries: 3 }, made: {} }];
   v4.crafting.stations.forge.queue = [{ recipe: 'copper_bar', qty: 2, done: 0, focus: null, inputs: { copper_ore: 2 }, made: {} }];
   const m4 = parseSave(JSON.stringify(v4));
-  check('v4 save migrates to v5 and validates', !!m4.state && m4.state.version === 5, m4.error || '');
+  check('v4 save migrates to v6 and validates', !!m4.state && m4.state.version === 6, m4.error || '');
   check('migration: the first busy station keeps working, the other pauses', JSON.stringify(m4.state?.crafting.working) === '["forge"]', JSON.stringify(m4.state?.crafting.working));
   const g4 = createGame(data, m4.state, { clock });
   const s4 = g4.getState();
@@ -449,11 +453,11 @@ try {
   gv.dispatch('village/newDay');
   check('same day: the board stays', JSON.stringify(sv.village.board) === board0);
   const great0 = JSON.stringify(sv.village.great);
-  const merchant0 = JSON.stringify(sv.village.merchant);
+  sv.village.merchant[0].left = 0; // sold out before midnight (the stock itself may repeat: few items at Renown 1)
   clockNow += 20 * 60000; // 00:10 the next day
   gv.dispatch('village/newDay');
   check('commissions reset at local midnight', sv.village.day === day0 + 1 && JSON.stringify(sv.village.board) !== board0);
-  check('the merchant restocks at local midnight', sv.village.merchant.length === data.balance.village.merchant.slots && JSON.stringify(sv.village.merchant) !== merchant0, JSON.stringify(sv.village.merchant));
+  check('the merchant restocks at local midnight', sv.village.merchant.length === data.balance.village.merchant.slots && sv.village.merchant.every((m) => m.left > 0), JSON.stringify(sv.village.merchant));
   check('the Great Commission stays for the week', JSON.stringify(sv.village.great) === great0);
   clockNow = new Date(2026, 9, 26, 0, 5).getTime(); // the next Monday
   const week0 = sv.village.week;
@@ -524,6 +528,211 @@ try {
   for (const s of [...data.market.shop, ...data.market.merchant]) if (!data.items.items[s.item]) missing.push(s.item);
   for (const s of data.market.scrolls) if (!data.recipes.recipes.find((r) => r.id === s.recipe && r.scroll)) missing.push(s.recipe);
   check('commission, market and scroll ids all exist', !missing.length, missing.join(', '));
+
+  // ---------- Phase 7: taming and treasure ----------
+  {
+  const v5 = createInitialState(clockNow);
+  delete v5.taming; delete v5.treasure; delete v5.nest;
+  v5.version = 5;
+  const m5 = parseSave(JSON.stringify(v5));
+  check('v5 save migrates to v6 and validates', m5.state?.version === 6 && validateState(m5.state) === null && !!m5.state.taming && Array.isArray(m5.state.nest.slots), m5.error || validateState(m5.state || {}) || '');
+
+  // Catch-chance math (design: 35% base, +10% per trap tier above the zone, +20% matching bait, +0.5% per Taming level, cap 95%).
+  const gT = freshGame(71);
+  const st = gT.getState();
+  const refusedT = (type, p) => { try { gT.dispatch(type, p); return false; } catch { return true; } };
+  gT.dispatch('pets/hatchStarter', { archetype: 'sprout', name: 'Pip' });
+  gT.dispatch('dev/setLevel', { skill: 'taming', level: 10 });
+  gT.dispatch('dev/encounter', { zone: 'meadowfold', archetype: 'sprout', quality: 'common' });
+  const cc = (trap, bait) => catchChance(st, data, 'meadowfold', trap, bait).chance;
+  check('catch chance: base + Taming level', near(cc('pine_trap', null), 0.35 + 0.05, 1e-9), cc('pine_trap', null));
+  check('catch chance: matching bait adds 20%', near(cc('pine_trap', 'berry_bait'), 0.6, 1e-9), cc('pine_trap', 'berry_bait'));
+  check('catch chance: other bait adds nothing', near(cc('pine_trap', 'meat_bait'), 0.4, 1e-9));
+  check('catch chance: +10% per trap tier above the zone', near(cc('oak_trap', null), 0.5, 1e-9) && near(cc('cedar_trap', 'berry_bait'), 0.8, 1e-9));
+  check('catch chance: capped at 95%', cc('ashwood_trap', 'berry_bait') === 0.95 && catchChance(st, data, 'meadowfold', 'ashwood_trap', 'berry_bait').capped);
+  gT.dispatch('dev/setRenown', { rank: 3 });
+  gT.dispatch('dev/encounter', { zone: 'whisperwood', archetype: 'tide', quality: 'common' });
+  gT.dispatch('dev/grant', { item: 'pine_trap', qty: 3 });
+  check('a trap below the zone tier is refused', refusedT('taming/setTrap', { zone: 'whisperwood', trap: 'pine_trap' }));
+  check('a trap without an encounter is refused', (() => { gT.dispatch('taming/letGo', { zone: 'whisperwood' }); return refusedT('taming/setTrap', { zone: 'whisperwood', trap: 'oak_trap' }); })());
+
+  // Measured catch rate over many traps matches the chance.
+  gT.dispatch('dev/setLevel', { skill: 'taming', level: 1 });
+  gT.dispatch('dev/grant', { item: 'pine_trap', qty: 500 });
+  gT.dispatch('dev/grant', { item: 'berry_bait', qty: 500 });
+  let caughtN = 0;
+  const N = 400;
+  for (let i = 0; i < N; i++) {
+    gT.dispatch('dev/setLevel', { skill: 'taming', level: 1 });
+    gT.dispatch('dev/encounter', { zone: 'meadowfold', archetype: 'sprout', quality: 'common' });
+    gT.dispatch('taming/setTrap', { zone: 'meadowfold', trap: 'pine_trap', bait: 'berry_bait' });
+    gT.advance(data.balance.taming.trapMinutes * 60000);
+    const r = st.taming.results[st.taming.results.length - 1];
+    if (r.caught) { caughtN++; gT.dispatch('pets/release', { pet: r.pet }); }
+  }
+  const pExp = 0.35 + 0.2 + 0.005;
+  check('catch rate over 400 traps matches the chance (55.5%)', Math.abs(caughtN / N - pExp) < 0.075, `${caughtN}/${N}`);
+  check('caught pets count as tamed; released ones leave materials', st.stats.tamed === caughtN && st.stats.released === caughtN && st.bag.plant_fiber >= caughtN * 4);
+  check('the last pet cannot be released', refusedT('pets/release', { pet: Object.keys(st.pets.list)[0] }));
+  check('the World badge is up after a trap finishes', tamingNotice(st) && (gT.dispatch('taming/seen'), !tamingNotice(st)));
+
+  // Stable space: a set trap holds a space.
+  const gS = freshGame(72);
+  const ss = gS.getState();
+  gS.dispatch('pets/hatchStarter', { archetype: 'wild', name: 'Rex' });
+  gS.dispatch('dev/addPet', { archetype: 'sprout' });
+  gS.dispatch('dev/addPet', { archetype: 'sprout' });
+  gS.dispatch('dev/grant', { item: 'pine_trap', qty: 2 });
+  gS.dispatch('dev/encounter', { zone: 'meadowfold' });
+  check('one space left: a trap can be set', freePetSpaces(ss, data) === 1 && (gS.dispatch('taming/setTrap', { zone: 'meadowfold', trap: 'pine_trap' }), !!ss.taming.traps.meadowfold));
+  check('the trap holds the last space', freePetSpaces(ss, data) === 0);
+
+  // Escape: the encounter stays 6 hours, then leaves; the trap survives about half the time.
+  const gE = freshGame(73);
+  const se = gE.getState();
+  gE.dispatch('pets/hatchStarter', { archetype: 'wild', name: 'Rex' });
+  let escapes = 0, kept = 0, stayed = true, left = true;
+  gE.dispatch('dev/grant', { item: 'pine_trap', qty: 400 });
+  for (let i = 0; i < 300 && escapes < 120; i++) {
+    gE.dispatch('dev/encounter', { zone: 'meadowfold' });
+    const trapsBefore = se.bag.pine_trap;
+    gE.dispatch('taming/setTrap', { zone: 'meadowfold', trap: 'pine_trap' });
+    gE.advance(data.balance.taming.trapMinutes * 60000);
+    const r = se.taming.results[se.taming.results.length - 1];
+    if (r.caught) { gE.dispatch('pets/release', { pet: r.pet }); continue; }
+    escapes++;
+    if (se.bag.pine_trap === trapsBefore) kept++;
+    if (escapes === 1) {
+      gE.advance(5.9 * H);
+      stayed = !!se.taming.encounters.meadowfold;
+      gE.advance(0.2 * H);
+      left = !se.taming.encounters.meadowfold;
+    }
+    gE.dispatch('taming/letGo', { zone: 'meadowfold' });
+  }
+  check('an escaped monster stays 6 hours, then wanders off', stayed && left);
+  check('an escaped trap survives about half the time', escapes >= 100 && Math.abs(kept / escapes - 0.5) < 0.15, `${kept}/${escapes}`);
+
+  // Tracking: finds an encounter, gives Taming XP, then the player goes back to chopping.
+  const trackSetup = (gx) => {
+    gx.dispatch('pets/hatchStarter', { archetype: 'sprout', name: 'Pip' });
+    gx.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'chopping', node: 'pine' });
+    gx.dispatch('harvest/assign', { worker: 'pet1', zone: 'meadowfold', skill: 'foraging', node: data.zones.zones[0].harvest.foraging[0].id });
+    gx.dispatch('taming/track', { zone: 'meadowfold' });
+  };
+  const gK = freshGame(74); trackSetup(gK);
+  const sk = gK.getState();
+  gK.advance(10 * 60000);
+  gK.advance(1000);
+  check('tracking reveals an encounter and earns Taming XP', !!sk.taming.encounters.meadowfold && (sk.skills.taming.xp > 0 || sk.skills.taming.level > 1));
+  check('after the find, the player goes back to chopping', sk.workers.player.task?.skill === 'chopping' && sk.stats.actions.chopping > 0);
+  const info = encounterInfo(sk, data, 'meadowfold');
+  check('below Taming 30 only a hint shows', info.quality === null && /ordinary|special/i.test(info.hint));
+
+  // A full catch offline equals live play (track, trap with bait, catch, the new pet starts resting).
+  const fullCatch = (gx) => {
+    trackSetup(gx);
+    gx.dispatch('dev/setLevel', { skill: 'taming', level: 60 });
+    gx.dispatch('dev/grant', { item: 'ashwood_trap', qty: 1 });
+    gx.dispatch('dev/grant', { item: 'berry_bait', qty: 1 });
+    gx.advance(10 * 60000);
+    const enc = gx.getState().taming.encounters.meadowfold;
+    gx.dispatch('taming/setTrap', { zone: 'meadowfold', trap: 'ashwood_trap', bait: enc && data.pets.archetypes.find((a) => a.id === enc.archetype).dish === 'fruit' ? 'berry_bait' : null });
+  };
+  const fL = freshGame(75); fullCatch(fL); runChunks(fL, 2 * H, 250);
+  const fO = freshGame(75); fullCatch(fO); const sumC = fO.catchUp(2 * H);
+  const pl = fL.getState(), po = fO.getState();
+  check('a full catch works offline: the pet arrives', po.stats.tamed === 1 && Object.keys(po.pets.list).length === 2 && sumC.taming.results.length === 1 && sumC.taming.results[0].caught, JSON.stringify(sumC.taming));
+  check('the caught pet takes the free active slot', po.pets.active.includes(sumC.taming.results[0]?.pet));
+  check('full catch: live ticks and catch-up agree', sortedJson(pl.bag) === sortedJson(po.bag) && JSON.stringify(pl.pets.list.pet2) === JSON.stringify(po.pets.list.pet2) && near(pl.pets.list.pet1.energy, po.pets.list.pet1.energy, 1e-6),
+    `${sortedJson(pl.bag)} vs ${sortedJson(po.bag)}`);
+  check('Taming level 30+: the encounter shows its quality', (() => { fO.dispatch('dev/encounter', { zone: 'meadowfold', quality: 'epic' }); return encounterInfo(po, data, 'meadowfold').quality === 'epic'; })());
+
+  // Quality rolls: a lure moves results one band up (never Common); Taming luck shifts the odds up.
+  const rs = { rng: 99 };
+  const rolls = Array.from({ length: 2000 }, () => rollQuality(rs, data, { bands: 1 }));
+  check('a lure never rolls Common', !rolls.includes('common') && rolls.includes('uncommon'));
+  const rareShare = (luck) => { const s = { rng: 7 }; let n = 0; for (let i = 0; i < 4000; i++) if (!['common', 'uncommon'].includes(rollQuality(s, data, { luck }))) n++; return n / 4000; };
+  check('base odds: about 12% Rare or better', Math.abs(rareShare(0) - 0.12) < 0.025, rareShare(0));
+  check('Taming luck raises the odds', rareShare(0.6) > rareShare(0) + 0.03);
+  const gL = freshGame(76);
+  gL.dispatch('dev/grant', { item: 'wild_lure', qty: 2 });
+  gL.dispatch('taming/useLure', { item: 'wild_lure' });
+  gL.dispatch('taming/useLure', { item: 'wild_lure' });
+  check('lures stack their time', near(gL.getState().taming.lure.msLeft, 2 * data.items.items.wild_lure.lure.minutes * 60000, 1));
+  gL.advance(2.01 * H);
+  check('the lure wears off', gL.getState().taming.lure === null);
+
+  // Maps drop while harvesting; digging uses them, pays out and goes back to harvesting.
+  const gM = freshGame(77);
+  const sm = gM.getState();
+  gM.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'fishing', node: data.zones.zones[0].harvest.fishing[0].id });
+  gM.catchUp(48 * H);
+  // Rare event: count over four 48-hour runs so one unlucky seed can't fail the check.
+  let mapsN = sm.stats.maps, fishActs = sm.stats.actions.fishing;
+  for (const seed of [81, 82, 83]) {
+    const gx = freshGame(seed);
+    gx.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'fishing', node: data.zones.zones[0].harvest.fishing[0].id });
+    gx.catchUp(48 * H);
+    mapsN += gx.getState().stats.maps;
+    fishActs += gx.getState().stats.actions.fishing;
+  }
+  const pMap = data.balance.treasure.mapChance.fishing;
+  check(`maps drop while fishing (about ${pMap * 100}% of actions)`, sm.stats.maps > 0 && sm.bag.map_meadowfold === sm.stats.maps && Math.abs(mapsN / fishActs - pMap) < pMap * 0.3, `${mapsN} maps / ${fishActs}`);
+  const digSetup = (gx) => {
+    gx.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'chopping', node: 'pine' });
+    gx.dispatch('dev/grant', { item: 'map_meadowfold', qty: 2 });
+    gx.dispatch('treasure/dig', { zone: 'meadowfold' });
+  };
+  const dL = freshGame(78); digSetup(dL); runChunks(dL, H, 250);
+  const dO = freshGame(78); digSetup(dO); const sumD = dO.catchUp(H);
+  const so = dO.getState();
+  check('two maps dug in 40 minutes, then back to chopping', so.stats.digs === 2 && !so.bag.map_meadowfold && so.workers.player.task?.skill === 'chopping' && so.stats.actions.chopping > 0 && sumD.treasure.digs === 2, `${so.stats.digs} digs, task ${JSON.stringify(so.workers.player.task)}`);
+  check('treasure pays coins', so.coins >= 2 * data.balance.treasure.byTier.coins[0][0] && sumD.treasure.coins === so.coins);
+  check('digging: live ticks and catch-up agree', sortedJson(dL.getState().bag) === sortedJson(so.bag) && dL.getState().coins === so.coins, `${sortedJson(dL.getState().bag)} vs ${sortedJson(so.bag)}`);
+  check('a better shovel digs faster', (() => { const t1 = digMs(so, data); so.tools.shovel = { item: 'iron_shovel', quality: 'normal' }; return near(digMs(so, data), t1 / 1.3, 1); })());
+  const gD = freshGame(79);
+  check('digging without a map is refused', (() => { try { gD.dispatch('treasure/dig', { zone: 'meadowfold' }); return false; } catch { return true; } })());
+  // Over many digs: an egg about 5% of the time.
+  const sD = gD.getState();
+  gD.dispatch('dev/grant', { item: 'map_meadowfold', qty: 600 });
+  gD.dispatch('treasure/dig', { zone: 'meadowfold' });
+  gD.catchUp(600 * 20 * 60000 + 60000);
+  check('600 digs: eggs about 5% of the time, relics now and then', sD.stats.digs === 600 && Math.abs((sD.bag.treasure_egg || 0) / 600 - 0.05) < 0.025 && sD.bag.sanctuary_relic > 0, `${sD.bag.treasure_egg} eggs, ${sD.bag.sanctuary_relic} relics`);
+
+  // The Nest: eggs warm for 4 hours (less at higher tiers), then hatch with a name.
+  const gN = freshGame(80);
+  const sn = gN.getState();
+  const refusedN = (type, p) => { try { gN.dispatch(type, p); return false; } catch { return true; } };
+  gN.dispatch('pets/hatchStarter', { archetype: 'stone', name: 'Rocky' });
+  gN.dispatch('dev/grant', { item: 'treasure_egg', qty: 2 });
+  check('no Nest: eggs wait in the bag', refusedN('nest/place', { item: 'treasure_egg' }));
+  gN.dispatch('dev/setBuilding', { building: 'nest', tier: 1 });
+  gN.dispatch('nest/place', { item: 'treasure_egg' });
+  check('the egg goes in the Nest', !!sn.nest.slots[0] && sn.bag.treasure_egg === 1 && eggSlots(sn, data) === 1);
+  check('one slot at Nest tier 1', refusedN('nest/place', { item: 'treasure_egg' }));
+  check('a treasure egg is never Common', sn.nest.slots[0].quality !== 'common');
+  gN.advance(3.9 * H);
+  check('not ready before 4 hours', !nestNotice(sn) && refusedN('nest/hatch', { slot: 0, name: 'Egbert' }));
+  const sumN = gN.catchUp(0.2 * H);
+  check('ready after 4 hours (offline too)', nestNotice(sn) && sumN.nest.ready === 1);
+  const arch = sn.nest.slots[0].archetype;
+  gN.dispatch('nest/hatch', { slot: 0, name: 'Egbert' });
+  const hatched = Object.values(sn.pets.list).find((p) => p.name === 'Egbert');
+  check('the egg hatches into a named pet of its archetype', !!hatched && hatched.archetype === arch && sn.stats.hatched === 1 && sn.nest.slots[0] === null);
+  gN.dispatch('dev/setBuilding', { building: 'nest', tier: 3 });
+  check('Nest tier 3: 2 slots, hatches 20% faster', eggSlots(sn, data) === 2 && near(hatchMs(sn, data), 4 * H * 0.8, 1));
+  gN.dispatch('dev/grant', { item: 'rare_egg', qty: 1 });
+  gN.dispatch('nest/place', { item: 'rare_egg' });
+  check('a rare egg is Rare or better', ['rare', 'epic', 'legendary'].includes(sn.nest.slots.find(Boolean)?.quality));
+  check('achievements for taming, digging and hatching', st.achievements.done.first_catch && so.achievements.done.first_dig && sn.achievements.done.first_hatch);
+  check('Phase 7 state is valid', [st, ss, se, sk, po, so, sD, sn].every((x) => validateState(x) === null), [st, ss, se, sk, po, so, sD, sn].map(validateState).filter(Boolean).join(', '));
+  const missing7 = [];
+  for (const list of Object.values(data.treasure.loot)) for (const e of list) if (!data.items.items[e.item]) missing7.push(e.item);
+  for (const a of data.pets.archetypes) for (const id of Object.keys(a.release || {})) if (!data.items.items[id]) missing7.push(id);
+  for (const z of data.zones.zones) if (Object.keys(z.harvest || {}).length && !mapItemFor(data, z.id)) missing7.push(`map for ${z.id}`);
+  check('treasure, release and map ids all exist', !missing7.length, missing7.join(', '));
+  }
 } catch (err) {
   failed++;
   lines.push(`FAIL  crashed: ${err.stack || err}`);

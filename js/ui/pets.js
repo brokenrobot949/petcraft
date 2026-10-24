@@ -2,7 +2,11 @@
 // The UI only reads state and sends commands with game.dispatch. The screen is rebuilt only when a
 // "structural key" changes (who/what is shown); bars and numbers are updated in place on every
 // change so taps are never swallowed by a rebuild.
-import { el, toast, sheet } from './dom.js';
+import { el, toast, sheet, sheetWithClose } from './dom.js';
+import { buildingTier, petCapacity } from '../systems/buildings.js';
+import { freePetSpaces } from '../systems/taming.js';
+import { nestList, eggList } from '../systems/nest.js';
+import { itemLabel } from '../systems/bag.js';
 import { itemIcon, faceIcon } from './icons.js';
 import { localDay } from '../core/time.js';
 import {
@@ -226,7 +230,10 @@ function structKey(st, day) {
   if (ui.page && !getPet(st, ui.page)) ui.page = null;
   const pantry = foodList(st, d).map((e) => e.id + (e.on ? '+' : '-')).join(',');
   const pets = petList(st).map((p) => petKey(st, p, day)).join('|');
-  return `${ui.page ? `pet:${ui.page}` : 'roster'}#${st.pets.active.join(',')}#${pantry}#${pets}`;
+  const nest = nestList(st, d).map((n) => `${n.slot}:${n.archetype || '-'}:${n.ready ? 1 : 0}`).join(',');
+  const eggs = eggList(st, d).map((e) => `${e.key}x${e.count}`).join(',');
+  const room = `${petCapacity(st, d)}/${freePetSpaces(st, d)}/${Object.keys(st.taming.traps).length}/${buildingTier(st, 'nest')}`;
+  return `${ui.page ? `pet:${ui.page}` : 'roster'}#${st.pets.active.join(',')}#${pantry}#${pets}#${nest}#${eggs}#${room}`;
 }
 
 function render() {
@@ -339,20 +346,151 @@ function buildHatch() {
 
 function buildRoster(st, day) {
   const d = gdata();
-  const out = [el('h1', {}, 'Pets'), el('h2', {}, 'Active')];
+  const cap = petCapacity(st, d);
+  const held = Object.keys(st.taming.traps).length;
+  const free = freePetSpaces(st, d);
+  const out = [el('h1', {}, 'Pets')];
+  out.push(el('p.pet-capacity', {},
+    el('b', {}, `Pets ${petList(st).length} / ${cap} spaces`),
+    held > 0 && el('span.small.muted', {}, ` - ${held} held by a trap`)));
+  if (free <= 0) out.push(el('p.small.muted.pet-capacity-note', {}, 'Every space is taken. Upgrade the Stable or release a pet to make room.'));
+  out.push(el('h2', {}, 'Active'));
   st.pets.active.forEach((pid, i) => {
     const pet = pid && getPet(st, pid);
     out.push(pet ? petCard(st, pet, day) : el('div.panel.pet-empty', {},
       el('b', {}, `Slot ${i + 1} is free`),
-      el('p.small.muted', {}, 'More pets can be tamed in a later update.')));
+      el('p.small.muted', {}, 'Tame a wild monster on the World tab, or hatch an egg in the Nest.')));
   });
   const stabled = petList(st).filter((p) => !st.pets.active.includes(p.id));
   if (stabled.length) {
     out.push(el('h2', {}, 'Stable'));
     for (const p of stabled) out.push(petCard(st, p, day));
   }
+  out.push(buildNest(st, d));
   out.push(buildPantry(st, d));
   return out;
+}
+
+// ---- the Nest ----
+
+function fmtLeft(ms) {
+  const min = Math.ceil(Math.max(0, ms) / 60000);
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  return min % 60 ? `${h} h ${min % 60} min` : `${h} h`;
+}
+
+function buildNest(st, d) {
+  const eggs = eggList(st, d);
+  const waiting = eggs.map((e) => el('p.small.nest-waiting', {}, `${e.count} ${e.item.name}${e.count === 1 ? '' : 's'} waiting`));
+  const panel = el('div.panel.nest-panel', {}, el('h2', {}, 'Nest'));
+  if (buildingTier(st, 'nest') < 1) {
+    panel.append(el('p.small.muted', {}, 'The Nest opens at Renown 8 - eggs you find wait in your bag'), ...waiting);
+    return panel;
+  }
+  panel.append(el('p.small.muted', {}, 'Eggs warm in the Nest, even while you are away. What is inside stays a surprise until it hatches.'));
+  for (const n of nestList(st, d)) {
+    if (!n.egg) {
+      const row = el('div.nest-slot.empty', {}, el('b', {}, `Slot ${n.slot + 1} is empty`));
+      if (eggs.length) {
+        for (const e of eggs) {
+          row.append(el('button.btn.wide', { type: 'button', onclick: () => act('nest/place', { item: e.key, slot: n.slot }) }, `Place ${e.item.name}`));
+        }
+      } else row.append(el('p.small.muted', {}, 'No eggs in your bag. Dig up treasure to find one.'));
+      panel.append(row);
+      continue;
+    }
+    const arch = archetypeOf(d, n.archetype);
+    if (n.ready) {
+      panel.append(el('div.nest-slot.ready', {},
+        eggPicture(arch, 'egg-wobble-loop'),
+        el('div.nest-body', {},
+          el('b', {}, 'Ready to hatch!'),
+          el('button.btn.wide', { type: 'button', onclick: () => hatchSheet(n.slot) }, 'Hatch'))));
+    } else {
+      const fill = el('div.fill', {});
+      const txt = el('span.small', {});
+      const slot = n.slot;
+      live((s) => {
+        const e = s.nest.slots[slot];
+        if (!e) return;
+        fill.style.width = `${Math.max(0, Math.min(100, (1 - e.msLeft / n.total) * 100))}%`;
+        txt.textContent = `${fmtLeft(e.msLeft)} left`;
+      });
+      panel.append(el('div.nest-slot', {},
+        eggPicture(arch, ''),
+        el('div.nest-body', {}, el('b', {}, `${n.egg.name} is warming`), el('div.bar.big', { 'aria-hidden': 'true' }, fill), txt)));
+    }
+  }
+  panel.append(...waiting);
+  return panel;
+}
+
+function hatchSheet(slot) {
+  const d = gdata();
+  const e = gstate().nest.slots[slot];
+  if (!e) return;
+  const arch = archetypeOf(d, e.archetype);
+  const names = d.pets.suggestedNames;
+  const body = el('div.hatch-stage.nest-hatch', {});
+  let closeSheet = () => {};
+  const nameStep = () => {
+    let idx = Math.floor(Math.random() * names.length);
+    const input = el('input.field.pet-name-input', {
+      type: 'text', maxLength: d.balance.pets.nameMaxLength, autocomplete: 'off', enterKeyHint: 'done', value: names[idx], 'aria-label': 'Pet name',
+    });
+    const problem = el('p.small.nest-problem', { 'aria-live': 'polite' });
+    const submit = () => {
+      const before = new Set(petList(gstate()).map((p) => p.id));
+      try {
+        app.game.dispatch('nest/hatch', { slot, name: input.value });
+      } catch (err) {
+        // The sheet covers the toast, so the reason is shown inside the sheet.
+        problem.textContent = err.message;
+        return;
+      }
+      closeSheet();
+      const born = petList(gstate()).find((p) => !before.has(p.id));
+      toast(`Welcome home, ${born ? born.name : input.value.trim()}!`);
+    };
+    input.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') { ev.preventDefault(); submit(); } });
+    body.replaceChildren(
+      faceIcon(petRole({ archetype: e.archetype, form: 'hatchling' }), 96, arch.species),
+      el('p', {}, d.pets.lines.hatch),
+      el('h3', {}, arch.species),
+      el('p.small.muted', {}, arch.blurb),
+      el('label.small.muted', { for: 'nest-name-field' }, 'What will you call it?'),
+      input,
+      problem,
+      el('button.btn.wide', { type: 'button', onclick: () => { idx = (idx + 1) % names.length; input.value = names[idx]; } }, 'Suggest a name'),
+      el('button.btn.wide', { type: 'button', onclick: submit }, 'Name it'));
+    input.id = 'nest-name-field';
+    input.focus();
+    input.select();
+  };
+  body.append(eggPicture(arch, reducedMotion() ? 'big' : 'egg-wobble big'), el('p.muted', { 'aria-live': 'polite' }, 'Something is stirring inside...'));
+  closeSheet = sheetWithClose('Not yet', 'Hatch the egg', body);
+  if (reducedMotion()) nameStep();
+  else setTimeout(() => { if (body.isConnected) nameStep(); }, HATCH_MS);
+}
+
+function releaseSheet(pet) {
+  const d = gdata();
+  const arch = archetypeOf(d, pet.archetype);
+  const items = Object.entries(arch?.release || {}).map(([k, n]) => `${n} ${itemLabel(d, k)}`);
+  let close = () => {};
+  const go = () => {
+    if (!act('pets/release', { pet: pet.id })) return;
+    close();
+    ui.page = null;
+    container.scrollTop = 0;
+    toast(`${pet.name} went back to the wild.`);
+    render();
+  };
+  close = sheetWithClose('Keep them', `Release ${pet.name}?`,
+    el('p', {}, "This can't be undone."),
+    items.length ? el('p.small', {}, `They leave behind: ${items.join(', ')}`) : null,
+    el('button.btn.wide.btn-danger', { type: 'button', onclick: go }, `Release ${pet.name}`));
 }
 
 function petCard(st, pet, day) {
@@ -627,5 +765,9 @@ function buildPage(st, day, pet) {
     });
   }
   out.push(panelOf(active ? 'Active' : 'In the Stable', place));
+  if (petList(st).length > 1) {
+    out.push(el('div.pet-release', {},
+      el('button.btn.btn-danger', { type: 'button', onclick: () => releaseSheet(pet) }, 'Release to the wild')));
+  }
   return out;
 }

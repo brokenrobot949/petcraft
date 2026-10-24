@@ -5,6 +5,9 @@ import { createPet } from './pets.js';
 import { archetypeOf, petMaxEnergy, petLevelCap } from './petstats.js';
 import { addRenownXp } from './renown.js';
 import { newDay } from './village.js';
+import { randomInt } from '../core/rng.js';
+import { rollQuality } from './taming.js';
+import { digMs } from './treasure.js';
 
 export const id = 'dev';
 
@@ -60,6 +63,24 @@ export const commands = {
   },
   'dev/petBond': (state, { pet, bond }) => {
     devPet(state, pet).bond = Math.max(0, Math.floor(bond) || 0);
+  },
+  // Taming: a wild encounter in a zone right now (random archetype and quality unless given).
+  'dev/encounter': (state, { zone, archetype, quality }, ctx) => {
+    const z = ctx.data.zones.zones.find((x) => x.id === zone);
+    if (!z?.archetypes?.length) throw new Error(`No wild monsters in ${zone}`);
+    if (state.taming.traps[zone]) throw new Error('A trap is set there; wait for it first');
+    const t = state.taming;
+    const a = archetype || z.archetypes[randomInt(t, 0, z.archetypes.length - 1)];
+    const q = quality || rollQuality(t, ctx.data);
+    if (!archetypeOf(ctx.data, a) || !ctx.data.balance.pets.qualities[q]) throw new Error('No such archetype or quality');
+    t.encounters[zone] = { archetype: a, quality: q, msLeft: null };
+  },
+  // Every set trap, warming egg and the current dig finish on the next tick.
+  'dev/finishTimers': (state, _p, ctx) => {
+    for (const tr of Object.values(state.taming.traps)) tr.msLeft = Math.min(tr.msLeft, 1);
+    for (const e of state.nest.slots) if (e && e.msLeft > 0) e.msLeft = Math.min(e.msLeft, 1);
+    const task = state.workers.player.task;
+    if (task?.skill === 'treasure') state.treasure.progress[task.zone] = Math.max(0, digMs(state, ctx.data) - 1);
   },
   // Lets the daily pat be tried again today.
   'dev/clearPat': (state, { pet }) => {

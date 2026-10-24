@@ -21,6 +21,9 @@ import { localDay } from '../../js/core/time.js';
 import { buildingList, upgradeCheck } from '../../js/systems/buildings.js';
 import { boardList, greatCommission, rerollInfo, shopList, scrollList, merchantList, sellPrice } from '../../js/systems/village.js';
 import { plotList, seedList, seedDef } from '../../js/systems/garden.js';
+import { freePetSpaces, trapOptions, baitOptions, lureList, lureInfo, encounterInfo } from '../../js/systems/taming.js';
+import { mapList, digMs } from '../../js/systems/treasure.js';
+import { eggList, nestList } from '../../js/systems/nest.js';
 
 // Policy knobs (how the simulated player behaves; these are not game numbers).
 const FOOD_TARGET = 40;     // keep about this many cooked meals (what auto-feed eats) in the bag: a night for 2 pets
@@ -31,7 +34,13 @@ const POTION_RESERVE = 10;  // and this many buff potions
 const SOON_LEVELS = 8;      // "can meet soon": a skill level within this many of the player's
 const COIN_FLOOR = 300;     // sell surplus whenever coins are under this, even with nothing to buy
 const SEEDS_PER_PLOT = 10;  // seeds bought per plot when the bag runs out
-const NOT_BUILT = new Set(['nest']); // the Nest does nothing yet
+const NOT_BUILT = new Set();
+const TRAP_STOCK = 2;       // traps kept in the bag (made at the stations)
+const BAIT_STOCK = 2;       // matching bait kept per archetype of the target zone
+const BUY_TRAP_MARGIN = 50; // buy a Pine Trap / bait in Mossbrook when coins cover it plus this much
+const DIG_BUDGET_MS = 10 * 3600000; // digging happens at the last check-in of the day (overnight); maps beyond what 10 h can dig are sold
+const DIG_FROM_HOUR = 0;            // dig at every check-in (maps no longer outpace digging)
+const NO_USE_CATEGORIES = new Set(['map', 'egg', 'relic', 'trap', 'bait', 'lure']); // never sold as plain surplus
 const STARTER = { archetype: 'sprout', name: 'Sim' };
 
 export function createPolicy(data) {
@@ -300,7 +309,7 @@ export function createPolicy(data) {
     for (const [key, count] of Object.entries(state.bag)) {
       const { id } = parseKey(key);
       const def = items[id];
-      if (!def || def.tool || def.seed || def.category === 'blueprint' || canAutoFeed(data, key)) continue;
+      if (!def || def.tool || def.seed || def.category === 'blueprint' || NO_USE_CATEGORIES.has(def.category) || canAutoFeed(data, key)) continue;
       const price = sellPrice(data, key);
       if (!price) continue;
       const g = byId.get(id) || { id, total: 0, keys: [] };
@@ -339,6 +348,143 @@ export function createPolicy(data) {
     }
   }
 
+  // ---- taming, treasure, Nest ----
+  const trapByTier = {};   // trap tier -> item id
+  const baitByDish = {};   // dish -> bait item id
+  for (const [id, d] of Object.entries(items)) {
+    if (d.trap) trapByTier[d.trap.tier] = id;
+    if (d.bait) baitByDish[d.bait.dish] = id;
+  }
+  const archetypeDish = Object.fromEntries(data.pets.archetypes.map((a) => [a.id, a.dish]));
+  const qualityIdx = Object.fromEntries(data.pets.qualities.map((q, i) => [q.id, i]));
+  const wildZones = data.zones.zones.filter((z) => z.archetypes?.length).sort((a, b) => b.tier - a.tier);
+  const openWild = (state) => wildZones.filter((z) => zoneUnlocked(state, data, z.id));
+  let petNames = 0;
+  let mapsSold = 0;
+  let petsReleased = 0;
+
+  // The best open zone for which the trap (made or bought) is within reach: tracking goes there.
+  function tameZone(state) {
+    return openWild(state).find((z) => trapByTier[z.tier] && (itemCount(state, trapByTier[z.tier]) > 0 || reachable(state, trapByTier[z.tier]))) || null;
+  }
+  // Items the stations should make for taming: a few traps and the matching baits for the target zone.
+  function tameWants(state) {
+    if (!canTame(state)) return [];
+    const z = tameZone(state);
+    if (!z) return [];
+    const list = [[trapByTier[z.tier], TRAP_STOCK]];
+    for (const a of z.archetypes) {
+      const bait = baitByDish[archetypeDish[a]];
+      if (bait && reachable(state, bait)) list.push([bait, BAIT_STOCK]);
+    }
+    return list;
+  }
+  const usableTrap = (state, zone) => trapOptions(state, data, zone.id).find((o) => o.ok) || null;
+
+  // Pets with the best quality (then level) hold the active slots.
+  function arrangePets(game) {
+    const state = game.getState();
+    const slots = state.pets.active.length;
+    const ranked = petList(state).sort((a, b) => (qualityIdx[b.quality] - qualityIdx[a.quality]) || (b.level - a.level) || a.bornAt - b.bornAt);
+    ranked.slice(0, slots).forEach((p, i) => {
+      if (!game.getState().pets.active.includes(p.id)) {
+        const free = game.getState().pets.active.indexOf(null);
+        const worse = game.getState().pets.active.map((id, s) => ({ id, s })).filter((x) => x.id && !ranked.slice(0, slots).some((r) => r.id === x.id))[0];
+        act(game, 'pets/setActive', { pet: p.id, slot: free >= 0 ? free : worse ? worse.s : i });
+      }
+    });
+  }
+
+  // Hatch what is ready, place eggs from the bag. With the Stable full a ready egg makes room by
+  // releasing the lowest-ranked pet that is not holding an active slot.
+  function tendNest(game) {
+    for (const n of nestList(game.getState(), data)) {
+      if (!n.ready) continue;
+      if (freePetSpaces(game.getState(), data) <= 0) {
+        const st = game.getState();
+        const ranked = petList(st).sort((a, b) => (qualityIdx[b.quality] - qualityIdx[a.quality]) || (b.level - a.level) || a.bornAt - b.bornAt);
+        const worst = ranked.filter((p) => !st.pets.active.includes(p.id)).pop();
+        if (worst && act(game, 'pets/release', { pet: worst.id })) petsReleased++;
+      }
+      if (freePetSpaces(game.getState(), data) > 0) act(game, 'nest/hatch', { slot: n.slot, name: data.pets.suggestedNames[petNames++ % data.pets.suggestedNames.length] });
+    }
+    for (const e of eggList(game.getState(), data)) {
+      for (let i = 0; i < e.count && nestList(game.getState(), data).some((n) => !n.egg); i++) if (!act(game, 'nest/place', { item: e.key })) break;
+    }
+  }
+
+  // Taming and digging. Tracking starts a check-in's player task and the game returns the player to
+  // the harvest task by itself once an encounter shows up, so it is issued at the END of the policy run
+  // (after planHarvest). The second run of a check-in (after 3 minutes of play) sets the trap on whatever
+  // was found, then sends the player to dig or tracks again.
+  // The lowest-ranked pet not holding an active slot (the one released to make room), or null.
+  function worstStabled(state) {
+    const ranked = petList(state).sort((a, b) => (qualityIdx[b.quality] - qualityIdx[a.quality]) || (b.level - a.level) || a.bornAt - b.bornAt);
+    return ranked.filter((p) => !state.pets.active.includes(p.id)).pop() || null;
+  }
+  // Room for a catch: a free space, or a stabled pet that could be released for a better one.
+  const canTame = (state) => freePetSpaces(state, data) > 0 || (() => { const w = worstStabled(state); return !!w && qualityIdx[w.quality] < 3; })();
+  function tame(game, info) {
+    let state = game.getState();
+    // 1. traps on every encounter worth a space; with the Stable full, release the worst stabled pet only
+    //    when the encounter is likely better ("Something special", or a readable quality above that pet's)
+    for (const z of openWild(state)) {
+      state = game.getState();
+      if (!state.taming.encounters[z.id] || state.taming.traps[z.id]) continue;
+      if (!usableTrap(state, z) && !buyTrap(game, z)) continue;
+      if (freePetSpaces(game.getState(), data) <= 0) {
+        const enc = encounterInfo(game.getState(), data, z.id);
+        const worst = worstStabled(game.getState());
+        const better = worst && enc && (enc.quality ? qualityIdx[enc.quality] > qualityIdx[worst.quality] : enc.special);
+        if (better && act(game, 'pets/release', { pet: worst.id })) petsReleased++;
+        else { act(game, 'taming/letGo', { zone: z.id }); continue; }
+      }
+      state = game.getState();
+      const trap = usableTrap(state, z);
+      if (!trap) continue;
+      let bait = baitOptions(state, data, z.id).find((b) => b.match);
+      if (!bait) { buyBait(game, z); bait = baitOptions(game.getState(), data, z.id).find((b) => b.match); }
+      act(game, 'taming/setTrap', { zone: z.id, trap: trap.key, bait: bait ? bait.key : null });
+    }
+    // 2. nothing to trap and room (or a pet to swap out): track in the target zone (lure first)
+    state = game.getState();
+    const target = canTame(state) ? tameZone(state) : null;
+    if (target && !state.taming.encounters[target.id] && (usableTrap(state, target) || buyTrap(game, target))) {
+      if (!lureInfo(game.getState(), data) && lureList(game.getState(), data).length) act(game, 'taming/useLure', { item: lureList(game.getState(), data)[0].key });
+      act(game, 'taming/track', { zone: target.id });
+      return;
+    }
+    // 3. maps: dig them (one after another; the player goes back to harvesting by itself)
+    state = game.getState();
+    const maps = mapList(state, data).filter((m) => zoneUnlocked(state, data, m.zone)).sort((a, b) => b.count - a.count)[0];
+    if (maps && new Date(info.now).getHours() >= DIG_FROM_HOUR) act(game, 'treasure/dig', { zone: maps.zone });
+  }
+  // Buy a Pine Trap / bait in Mossbrook when no trap can be made yet and coins allow.
+  function buyTrap(game, zone) {
+    const state = game.getState();
+    const id = trapByTier[zone.tier];
+    const s = id && shopList(state, data).find((x) => x.item === id && !x.locked);
+    if (!s || state.coins < s.price + BUY_TRAP_MARGIN) return false;
+    return act(game, 'market/buy', { item: id, qty: 1 }) && !!usableTrap(game.getState(), zone);
+  }
+  function buyBait(game, zone) {
+    const state = game.getState();
+    const enc = state.taming.encounters[zone.id];
+    const id = enc && baitByDish[archetypeDish[enc.archetype]];
+    const s = id && shopList(state, data).find((x) => x.item === id && !x.locked);
+    if (s && state.coins >= s.price + BUY_TRAP_MARGIN) act(game, 'market/buy', { item: id, qty: 1 });
+  }
+  // Keep only the maps one check-in's dig budget covers (best zones first); sell the rest.
+  function sellExtraMaps(game) {
+    let keep = Math.max(1, Math.floor(DIG_BUDGET_MS / digMs(game.getState(), data)));
+    for (const m of mapList(game.getState(), data).reverse()) {
+      const kept = Math.min(m.count, keep);
+      keep -= kept;
+      const extra = m.count - kept;
+      if (extra > 0 && sellPrice(data, m.item) && act(game, 'market/sell', { item: m.item, qty: extra })) mapsSold += extra;
+    }
+  }
+
   // ---- wants ----
   function analyse(state) {
     const goals = [];
@@ -363,6 +509,7 @@ export function createPolicy(data) {
       { c: 2, set: otherSet, list: building ? Object.entries(building.cost.items) : [] },
       { c: 0, set: toolSet, list: goals.map((id) => [id, 1]) },
       { c: 2, set: otherSet, list: commission ? Object.entries(commission.items) : [] },
+      { c: 2, set: otherSet, list: tameWants(state) },
     ];
     for (const g of groups) {
       for (const [id, n] of g.list) {
@@ -647,15 +794,21 @@ export function createPolicy(data) {
 
     const plan = analyse(game.getState());
     planCrafts(game, plan, info.horizonMs);
+    tendNest(game);
+    arrangePets(game);
+    sellExtraMaps(game);
     const plan2 = analyse(game.getState());
     const playerTask = planHarvest(game, plan2);
     eat(game, playerTask?.skill || game.getState().workers.player.task?.skill);
     chooseStations(game, plan2);
+    tame(game, info);
   }
 
   return {
     run,
     refusals,
     get dispatches() { return dispatches; },
+    get mapsSold() { return mapsSold; },
+    get petsReleased() { return petsReleased; },
   };
 }

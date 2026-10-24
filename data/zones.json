@@ -6,12 +6,15 @@
       "blurb": "Rolling green fields around your homestead, full of berries, rabbits and gentle breezes.",
       "scene": {
         "idle": [0.46, 0.9],
+        "encounter": { "x": 0.92, "y": 0.55, "face": "left" },
         "spots": {
           "chopping": { "prop": "prop.tree", "x": 0.11, "y": 0.6, "stand": [0.22, 0.72], "face": "left" },
           "mining": { "prop": "prop.rock", "x": 0.36, "y": 0.52, "stand": [0.36, 0.66], "face": "up" },
           "foraging": { "prop": "prop.bush", "x": 0.54, "y": 0.6, "stand": [0.54, 0.82], "face": "up" },
           "hunting": { "prop": "prop.burrow", "x": 0.69, "y": 0.58, "stand": [0.69, 0.82], "face": "up" },
-          "fishing": { "prop": "prop.pond", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" }
+          "fishing": { "prop": "prop.pond", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" },
+          "taming": { "x": 0.46, "y": 0.46, "stand": [0.46, 0.46], "face": "down" },
+          "dig": { "prop": "prop.dig_site", "x": 0.31, "y": 0.84, "stand": [0.22, 0.86], "face": "right" }
         },
         "decor": [
           { "prop": "prop.flower_yellow", "x": 0.05, "y": 0.92 },
@@ -76,13 +79,16 @@
       "blurb": "A hushed forest where mushrooms glow softly and the brooks murmur secrets.",
       "scene": {
         "idle": [0.46, 0.9],
+        "encounter": { "x": 0.92, "y": 0.55, "face": "left" },
         "ground": "0x2f5a35", "speck": "0x264a2c",
         "spots": {
           "chopping": { "prop": "prop.oak_tree", "x": 0.12, "y": 0.62, "stand": [0.24, 0.74], "face": "left" },
           "mining": { "prop": "prop.iron_rock", "x": 0.37, "y": 0.52, "stand": [0.37, 0.66], "face": "up" },
           "foraging": { "prop": "prop.mushroom_ring", "x": 0.55, "y": 0.62, "stand": [0.55, 0.82], "face": "up" },
           "hunting": { "prop": "prop.deer_trail", "x": 0.7, "y": 0.6, "stand": [0.7, 0.82], "face": "up" },
-          "fishing": { "prop": "prop.brook", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" }
+          "fishing": { "prop": "prop.brook", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" },
+          "taming": { "x": 0.46, "y": 0.46, "stand": [0.46, 0.46], "face": "down" },
+          "dig": { "prop": "prop.dig_site", "x": 0.31, "y": 0.84, "stand": [0.22, 0.86], "face": "right" }
         },
         "decor": [
           { "prop": "prop.mushroom_ring", "x": 0.05, "y": 0.92 },
@@ -154,13 +160,16 @@
       "blurb": "Sunny hills of warm rock, mountain sage and sleepy boars.",
       "scene": {
         "idle": [0.46, 0.9],
+        "encounter": { "x": 0.92, "y": 0.55, "face": "left" },
         "ground": "0xa8977a", "speck": "0x968766",
         "spots": {
           "chopping": { "prop": "prop.cedar_tree", "x": 0.11, "y": 0.62, "stand": [0.23, 0.74], "face": "left" },
           "mining": { "prop": "prop.coal_rock", "x": 0.36, "y": 0.52, "stand": [0.36, 0.66], "face": "up" },
           "foraging": { "prop": "prop.sage_bush", "x": 0.54, "y": 0.62, "stand": [0.54, 0.82], "face": "up" },
           "hunting": { "prop": "prop.boar_den", "x": 0.69, "y": 0.6, "stand": [0.69, 0.82], "face": "up" },
-          "fishing": { "prop": "prop.rock_pool", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" }
+          "fishing": { "prop": "prop.rock_pool", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" },
+          "taming": { "x": 0.46, "y": 0.46, "stand": [0.46, 0.46], "face": "down" },
+          "dig": { "prop": "prop.dig_site", "x": 0.31, "y": 0.84, "stand": [0.22, 0.86], "face": "right" }
         },
         "decor": [
           { "prop": "prop.bone_bit", "x": 0.05, "y": 0.92 },
@@ -232,13 +241,16 @@
       "blurb": "A misty marsh of bog lilies, lazy eels and drifting fireflies.",
       "scene": {
         "idle": [0.46, 0.9],
+        "encounter": { "x": 0.92, "y": 0.55, "face": "left" },
         "ground": "0x3d6558", "speck": "0x335a4d",
         "spots": {
           "chopping": { "prop": "prop.willow_tree", "x": 0.11, "y": 0.62, "stand": [0.23, 0.74], "face": "left" },
           "mining": { "prop": "prop.mythril_rock", "x": 0.36, "y": 0.54, "stand": [0.36, 0.68], "face": "up" },
           "foraging": { "prop": "prop.reeds", "x": 0.54, "y": 0.62, "stand": [0.54, 0.82], "face": "up" },
           "hunting": { "prop": "prop.fowl_nest", "x": 0.69, "y": 0.58, "stand": [0.69, 0.8], "face": "up" },
-          "fishing": { "prop": "prop.marsh_pool", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" }
+          "fishing": { "prop": "prop.marsh_pool", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" },
+          "taming": { "x": 0.46, "y": 0.46, "stand": [0.46, 0.46], "face": "down" },
+          "dig": { "prop": "prop.dig_site", "x": 0.31, "y": 0.84, "stand": [0.22, 0.86], "face": "right" }
         },
         "decor": [
           { "prop": "prop.bog_lily", "x": 0.06, "y": 0.9 },
@@ -310,13 +322,16 @@
       "blurb": "A warm volcanic bowl where fire blooms flicker and the ground hums.",
       "scene": {
         "idle": [0.46, 0.9],
+        "encounter": { "x": 0.92, "y": 0.55, "face": "left" },
         "ground": "0x3a2a26", "speck": "0x4d3631",
         "spots": {
           "chopping": { "prop": "prop.ashwood_tree", "x": 0.11, "y": 0.62, "stand": [0.23, 0.74], "face": "left" },
           "mining": { "prop": "prop.ember_rock", "x": 0.36, "y": 0.54, "stand": [0.36, 0.68], "face": "up" },
           "foraging": { "prop": "prop.fire_bloom", "x": 0.54, "y": 0.6, "stand": [0.54, 0.82], "face": "up" },
           "hunting": { "prop": "prop.bone_pile", "x": 0.69, "y": 0.58, "stand": [0.69, 0.82], "face": "up" },
-          "fishing": { "prop": "prop.lava_pool", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" }
+          "fishing": { "prop": "prop.lava_pool", "x": 0.89, "y": 0.88, "stand": [0.775, 0.8], "face": "right" },
+          "taming": { "x": 0.46, "y": 0.46, "stand": [0.46, 0.46], "face": "down" },
+          "dig": { "prop": "prop.dig_site", "x": 0.31, "y": 0.84, "stand": [0.22, 0.86], "face": "right" }
         },
         "decor": [
           { "prop": "prop.ember_sparks", "x": 0.05, "y": 0.92 },

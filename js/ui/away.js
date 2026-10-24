@@ -64,7 +64,7 @@ export function showAwaySummary(app, summary, { awayMs }) {
     }
     scroll.append(el('div.away-worker', {},
       el('h3', {}, pet ? faceIcon(petRole(pet), 24, name) : null, el('span', {}, name)),
-      w.actions > 0 ? el('p.small.muted', {}, `${w.actions.toLocaleString()} action${w.actions === 1 ? '' : 's'}`) : null,
+      w.actions > 0 ? el('p.small.muted', {}, `${w.actions.toLocaleString()} ${isPlayer && w.xp?.taming > 0 && !Object.keys(w.items || {}).length ? 'tracking step' : 'action'}${w.actions === 1 ? '' : 's'}`) : null,
       ...rows, ...xp, ...extra));
   }
   // Crafting stations: what each queue made.
@@ -85,6 +85,42 @@ export function showAwaySummary(app, summary, { awayMs }) {
       el('h3', {}, el('span', {}, 'Garden')),
       ...gardenRows.map(([key, n]) =>
         el('div.away-item', {}, itemIcon24(key, itemName(key)), el('span.grow', {}, itemName(key)), el('b', {}, `+${n.toLocaleString()}`)))));
+  }
+  // Taming, treasure and eggs (Phase 7).
+  const zoneName = (id) => data.zones.zones.find((z) => z.id === id)?.name || id;
+  const species = (id) => data.pets.archetypes.find((a) => a.id === id)?.species || id;
+  const tm = summary.taming || {};
+  const tmLines = [];
+  for (const f of tm.found || []) tmLines.push(el('p.small', {}, `You spotted a wild ${species(f.archetype)} in ${zoneName(f.zone)}.`));
+  for (const r of tm.results || []) {
+    const sp = species(r.archetype);
+    if (r.caught) {
+      const name = getPet(state, r.pet)?.name || sp;
+      tmLines.push(el('p.away-levelup', {}, name === sp
+        ? `A wild ${sp} was caught in ${zoneName(r.zone)}!`
+        : `${name} the ${sp} was caught in ${zoneName(r.zone)}!`));
+    } else {
+      tmLines.push(el('p.small', {}, `A wild ${sp} slipped out of the trap in ${zoneName(r.zone)}.`));
+    }
+  }
+  if (tm.lureEnded) tmLines.push(el('p.small.muted', {}, 'Your lure burned out.'));
+  if (tmLines.length) {
+    anyWork = true;
+    scroll.append(el('div.away-worker', {}, el('h3', {}, el('span', {}, 'Taming')), ...tmLines));
+  }
+  const tr = summary.treasure;
+  if (tr && tr.digs > 0) {
+    anyWork = true;
+    const rows = Object.entries(tr.items || {}).map(([key, n]) =>
+      el('div.away-item', {}, itemIcon24(key, itemName(key)), el('span.grow', {}, itemName(key)), el('b', {}, `+${n.toLocaleString()}`)));
+    scroll.append(el('div.away-worker', {},
+      el('h3', {}, el('span', {}, 'Treasure')),
+      el('p.small.muted', {}, `${tr.digs.toLocaleString()} dig${tr.digs === 1 ? '' : 's'}`),
+      tr.coins > 0 ? el('p.small', {}, `+${tr.coins.toLocaleString()} coins`) : null,
+      ...rows));
+  }
+  if (summary.nest?.ready > 0) {
+    scroll.append(el('p.away-levelup', {}, summary.nest.ready === 1 ? 'An egg is ready to hatch' : `${summary.nest.ready} eggs are ready to hatch`));
   }
   for (const id of summary.achievements || []) {
     const a = data.achievements.achievements.find((x) => x.id === id);

@@ -7,6 +7,8 @@ import { needsStarter, petList, canPatToday } from '../systems/pets.js';
 import { craftNotice } from '../systems/crafting.js';
 import { canUpgradeAny } from '../systems/buildings.js';
 import { villageNotice } from '../systems/village.js';
+import { tamingNotice } from '../systems/taming.js';
+import { nestNotice } from '../systems/nest.js';
 import { rankInfo, rankTitle } from '../systems/renown.js';
 import * as home from './home.js';
 import * as world from './world.js';
@@ -84,10 +86,10 @@ export function mountShell(app) {
     const e = entries.find((x) => x.tab.id === id);
     if (e) e.badge.hidden = !on;
   };
-  // Pets badge: an egg is waiting, or a pet hasn't had today's pat.
+  // Pets badge: the starter egg is waiting, an egg in the Nest is ready, or a pet hasn't had today's pat.
   const petsBadge = (state) => {
     const today = localDay(Date.now());
-    setBadge('pets', needsStarter(state) || petList(state).some((p) => canPatToday(state, p.id, today)));
+    setBadge('pets', needsStarter(state) || nestNotice(state) || petList(state).some((p) => canPatToday(state, p.id, today)));
   };
   app.game.subscribe(petsBadge);
   petsBadge(app.game.getState());
@@ -99,6 +101,10 @@ export function mountShell(app) {
   const homeBadge = (state) => setBadge('home', canUpgradeAny(state, app.game.data) || villageNotice(state, app.game.data));
   app.game.subscribe(homeBadge);
   homeBadge(app.game.getState());
+  // World badge: a trap finished since the player last looked (cleared by taming/seen on the zone page).
+  const worldBadge = (state) => setBadge('world', tamingNotice(state));
+  app.game.subscribe(worldBadge);
+  worldBadge(app.game.getState());
 
   return { select, setBadge };
 }

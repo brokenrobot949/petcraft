@@ -70,6 +70,15 @@ export function createDevPanel(app) {
     rain: rainSel.value === '' ? null : rainSel.value === '1',
   });
 
+  // ---- taming and treasure ----
+  const encZone = el('select.field', { 'aria-label': 'Zone' },
+    data.zones.zones.filter((z) => z.archetypes?.length).map((z) => el('option', { value: z.id }, z.name)));
+  const encArch = el('select.field', { 'aria-label': 'Encounter archetype' },
+    el('option', { value: '' }, 'Random species'), data.pets.archetypes.map((a) => el('option', { value: a.id }, a.name)));
+  const encQual = el('select.field', { 'aria-label': 'Encounter quality' },
+    el('option', { value: '' }, 'Random quality'), data.pets.qualities.map((q) => el('option', { value: q.id }, q.name)));
+  const grantAll = (list) => () => { for (const [item, n] of list) run('dev/grant', { item, qty: n }); };
+
   return el('div.panel.dev-panel', {},
     el('h2', {}, 'Test mode'),
     el('p.small.muted', {}, 'For testing. Removed before release.'),
@@ -114,6 +123,14 @@ export function createDevPanel(app) {
     el('div.row', {}, bondIn,
       el('button.btn', { type: 'button', onclick: petCmd('dev/petBond', () => ({ bond: Number(bondIn.value) })) }, 'Set Bond')),
     el('button.btn.wide', { type: 'button', onclick: petCmd('dev/clearPat', () => ({})) }, 'Allow another pat today'),
+    el('h3', {}, 'Taming and treasure'),
+    el('div.row', {}, encZone),
+    el('div.row', {}, encArch, encQual),
+    el('button.btn.wide', { type: 'button', onclick: () => run('dev/encounter', { zone: encZone.value, archetype: encArch.value || undefined, quality: encQual.value || undefined }) }, 'Make an encounter'),
+    el('button.btn.wide', { type: 'button', onclick: () => run('dev/finishTimers') }, 'Finish traps, eggs and dig'),
+    el('button.btn.wide', { type: 'button', onclick: grantAll([['pine_trap', 1], ['berry_bait', 1], ['nut_bait', 1], ['fish_bait', 1]]) }, 'Pine trap + 3 baits'),
+    el('button.btn.wide', { type: 'button', onclick: grantAll([['map_meadowfold', 2]]) }, '2 Meadowfold maps'),
+    el('button.btn.wide', { type: 'button', onclick: grantAll([['treasure_egg', 1]]) }, 'Treasure egg'),
     el('h3', {}, 'Pretend I was away'),
     el('div.row', {}, away('10 min', 600000), away('1 h', H), away('8 h', 8 * H), away('20 h', 20 * H)),
     el('h3', {}, 'Start over'),

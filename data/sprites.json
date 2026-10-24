@@ -3148,6 +3148,268 @@
         { "src": "Backgrounds/Tilesets/TilesetHole.png", "x": 2, "y": 2, "w": 44, "h": 44, "dx": 0, "dy": 0 },
         { "src": "Backgrounds/Tilesets/TilesetFloor.png", "x": 186, "y": 348, "w": 28, "h": 28, "dx": 8, "dy": 8 }
       ]
+    },
+    "item.pine_trap_frame": {
+      "group": "items",
+      "label": "Pine Trap Frame",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 48,
+      "y": 112,
+      "frameWidth": 16,
+      "frameHeight": 14
+    },
+    "item.oak_trap_frame": {
+      "group": "items",
+      "label": "Oak Trap Frame",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 64,
+      "y": 80,
+      "frameWidth": 16,
+      "frameHeight": 16
+    },
+    "item.cedar_trap_frame": {
+      "group": "items",
+      "label": "Cedar Trap Frame",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 0,
+      "y": 112,
+      "frameWidth": 16,
+      "frameHeight": 14
+    },
+    "item.willow_trap_frame": {
+      "group": "items",
+      "label": "Willow Trap Frame",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "x": 160,
+      "y": 32
+    },
+    "item.ashwood_trap_frame": {
+      "group": "items",
+      "label": "Ashwood Trap Frame",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "x": 144,
+      "y": 32
+    },
+    "item.copper_trap_spring": {
+      "group": "items",
+      "label": "Copper Trap Spring",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 160,
+      "y": 112,
+      "frameWidth": 16,
+      "frameHeight": 16
+    },
+    "item.iron_trap_spring": {
+      "group": "items",
+      "label": "Iron Trap Spring",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 160,
+      "y": 112,
+      "frameWidth": 16,
+      "frameHeight": 16
+    },
+    "item.steel_trap_spring": {
+      "group": "items",
+      "label": "Steel Trap Spring",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 160,
+      "y": 112,
+      "frameWidth": 16,
+      "frameHeight": 16
+    },
+    "item.mythril_trap_spring": {
+      "group": "items",
+      "label": "Mythril Trap Spring",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 160,
+      "y": 112,
+      "frameWidth": 16,
+      "frameHeight": 16
+    },
+    "item.emberite_trap_spring": {
+      "group": "items",
+      "label": "Emberite Trap Spring",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/tileset_camp.png",
+      "x": 160,
+      "y": 112,
+      "frameWidth": 16,
+      "frameHeight": 16
+    },
+    "item.pine_trap": {
+      "group": "items",
+      "label": "Pine Trap",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "x": 0,
+      "y": 0
+    },
+    "item.oak_trap": {
+      "group": "items",
+      "label": "Oak Trap",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "x": 96,
+      "y": 32
+    },
+    "item.cedar_trap": {
+      "group": "items",
+      "label": "Cedar Trap",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "x": 112,
+      "y": 32
+    },
+    "item.willow_trap": {
+      "group": "items",
+      "label": "Willow Trap",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "x": 48,
+      "y": 16
+    },
+    "item.ashwood_trap": {
+      "group": "items",
+      "label": "Ashwood Trap",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "x": 64,
+      "y": 16
+    },
+    "item.berry_bait": {
+      "group": "items",
+      "label": "Berry Bait",
+      "layout": "icon",
+      "src": "Items/Object/MoneyBag.png",
+      "frameWidth": 14,
+      "frameHeight": 15
+    },
+    "item.nut_bait": {
+      "group": "items",
+      "label": "Nut Bait",
+      "layout": "icon",
+      "src": "Items/Object/Bag.png"
+    },
+    "item.fish_bait": {
+      "group": "items",
+      "label": "Fish Bait",
+      "layout": "icon",
+      "src": "Items/Food/Shrimp.png"
+    },
+    "item.meat_bait": {
+      "group": "items",
+      "label": "Meat Bait",
+      "layout": "icon",
+      "src": "Items/Food/Beaf.png"
+    },
+    "item.wild_lure": {
+      "group": "items",
+      "label": "Wild Lure",
+      "layout": "icon",
+      "src": "Items/Potion/Heart.png",
+      "frameWidth": 9,
+      "frameHeight": 8
+    },
+    "item.strong_lure": {
+      "group": "items",
+      "label": "Strong Lure",
+      "layout": "icon",
+      "src": "Items/Potion/Medipack.png",
+      "frameWidth": 10,
+      "frameHeight": 10
+    },
+    "item.treasure_egg": {
+      "group": "items",
+      "label": "Treasure Egg",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "x": 96,
+      "y": 32
+    },
+    "item.rare_egg": {
+      "group": "items",
+      "label": "Rare Egg",
+      "layout": "icon",
+      "src": "Backgrounds/Tilesets/TilesetDungeon.png",
+      "x": 48,
+      "y": 32
+    },
+    "item.sanctuary_relic": {
+      "group": "items",
+      "label": "Sanctuary Relic",
+      "layout": "icon",
+      "src": "Items/Treasure/GoldCup.png",
+      "frameWidth": 9,
+      "frameHeight": 11
+    },
+    "item.map_meadowfold": {
+      "group": "items",
+      "label": "Meadowfold Map",
+      "layout": "icon",
+      "src": "Items/Scroll/ScrollPlant.png"
+    },
+    "item.map_whisperwood": {
+      "group": "items",
+      "label": "Whisperwood Map",
+      "layout": "icon",
+      "src": "Items/Scroll/ScrollIce.png"
+    },
+    "item.map_stonecrag": {
+      "group": "items",
+      "label": "Stonecrag Map",
+      "layout": "icon",
+      "src": "Items/Scroll/ScrollRock.png"
+    },
+    "item.map_mistfen": {
+      "group": "items",
+      "label": "Mistfen Map",
+      "layout": "icon",
+      "src": "Items/Scroll/ScrollThunder.png"
+    },
+    "item.map_emberfall": {
+      "group": "items",
+      "label": "Emberfall Map",
+      "layout": "icon",
+      "src": "Items/Scroll/ScrollFire.png"
+    },
+    "held.shovel": {
+      "group": "held",
+      "label": "Held shovel",
+      "layout": "held",
+      "src": "Items/Tool/Shovel.png",
+      "anchor": [
+        0.12,
+        0.88
+      ]
+    },
+    "prop.trap": {
+      "group": "props",
+      "label": "Set trap (taming)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetElement.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 96,
+      "y": 32
+    },
+    "prop.dig_site": {
+      "group": "props",
+      "label": "Dig site (crossed twigs on the ground)",
+      "layout": "prop",
+      "src": "Backgrounds/Tilesets/TilesetFloorDetail.png",
+      "frameWidth": 16,
+      "frameHeight": 16,
+      "x": 0,
+      "y": 0
     }
   }
 }

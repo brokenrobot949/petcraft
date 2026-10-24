@@ -20,13 +20,10 @@ export function init(state, ctx) {
     if (s.type === 'harvest' && !(s.id in state.stats.actions)) state.stats.actions[s.id] = 0;
   }
   if (!state.workers.player) state.workers.player = { task: null, progressMs: 0, rng: deriveSeed(state.rng, 1) };
-  // Drop a task whose zone or node no longer exists in the data.
-  for (const w of Object.values(state.workers)) {
-    if (w.task && !findNode(data, w.task)) {
-      w.task = null;
-      w.progressMs = 0;
-    }
-  }
+  // Drop a harvest task whose zone or node no longer exists in the data (tracking and digging
+  // tasks are checked by the taming and treasure systems).
+  for (const w of Object.values(state.workers)) dropStaleTask(data, w);
+  if (state.workers.player.resume && !findNode(data, state.workers.player.resume)) state.workers.player.resume = null;
 }
 
 // ---- lookups ----
@@ -41,6 +38,23 @@ function skillById(data, skillId) {
 
 function findNode(data, { zone, skill, node }) {
   return zoneById(data, zone)?.harvest?.[skill]?.find((n) => n.id === node) || null;
+}
+
+// Is this a harvesting task (not tracking or digging)?
+export function isHarvestTask(data, task) {
+  return !!task && skillById(data, task.skill)?.type === 'harvest';
+}
+
+// The map item that marks dig sites in a zone (items.json `map.zone`), or null.
+const mapCache = new WeakMap();
+export function mapItemFor(data, zoneId) {
+  let byZone = mapCache.get(data.items);
+  if (!byZone) {
+    byZone = {};
+    for (const [itemId, def] of Object.entries(data.items.items)) if (def.map?.zone) byZone[def.map.zone] = itemId;
+    mapCache.set(data.items, byZone);
+  }
+  return byZone[zoneId] || null;
 }
 
 // ---- selectors (the UI may call these) ----
@@ -114,6 +128,16 @@ function rareChance(state, data, workerId, task) {
   return workerId === 'player' ? p * b.playerRareMult : p;
 }
 
+// Chance per action of finding a treasure map (fishing finds more). A pet's Luck multiplies it: its
+// rare-find bonus measured in base rare chances, times petLuckMapMult.
+function mapChance(state, data, workerId, task) {
+  const b = data.balance.treasure;
+  const p = b.mapChance[task.skill] ?? b.mapChance.other;
+  if (!isPet(state, workerId)) return p;
+  const luck = petRareBonus(data, state.pets.list[workerId]) / data.balance.harvest.rareFindBase;
+  return p * (1 + luck * b.petLuckMapMult);
+}
+
 function pickWeighted(stream, list) {
   const total = list.reduce((sum, e) => sum + (e.weight || 1), 0);
   let r = random(stream) * total;
@@ -146,6 +170,11 @@ export function completeAction(state, ctx, workerId) {
     items[pick.item] = (items[pick.item] || 0) + 1;
     rare = true;
   }
+  const mapItem = mapItemFor(data, task.zone);
+  if (mapItem && chance(w, mapChance(state, data, workerId, task))) {
+    items[mapItem] = (items[mapItem] || 0) + 1;
+    state.stats.maps = (state.stats.maps || 0) + 1;
+  }
   for (const [itemId, qty] of Object.entries(items)) addItem(state, itemId, qty);
   const xp = actionXp(data, task, node);
   state.stats.actions[task.skill] = (state.stats.actions[task.skill] || 0) + 1;
@@ -155,9 +184,9 @@ export function completeAction(state, ctx, workerId) {
   return { xp: petXp };
 }
 
-// Clears a worker's task if its zone or node vanished from the data. Returns true if it did.
+// Clears a worker's harvest task if its zone or node vanished from the data (or its skill did). Returns true if it did.
 export function dropStaleTask(data, w) {
-  if (w.task && !findNode(data, w.task)) {
+  if (w.task && isHarvestTask(data, w.task) && !findNode(data, w.task)) {
     w.task = null;
     w.progressMs = 0;
     return true;
@@ -167,7 +196,7 @@ export function dropStaleTask(data, w) {
 
 export function advance(state, ms, ctx) {
   for (const [workerId, w] of Object.entries(state.workers)) {
-    if (!w.task || isPet(state, workerId)) continue;
+    if (!w.task || isPet(state, workerId) || !isHarvestTask(ctx.data, w.task)) continue;
     if (dropStaleTask(ctx.data, w)) continue;
     w.progressMs += ms;
     // Re-read the duration after each action: a level-up can change it.
@@ -190,11 +219,13 @@ export const commands = {
     if (t && t.zone === zone && t.skill === skill && t.node === node) return;
     w.task = { zone, skill, node };
     w.progressMs = 0;
+    w.resume = null;
   },
   'harvest/stop': (state, { worker = 'player' }) => {
     const w = state.workers[worker];
     if (!w) return;
     w.task = null;
     w.progressMs = 0;
+    w.resume = null;
   },
 };

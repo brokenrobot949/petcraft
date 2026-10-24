@@ -22,8 +22,12 @@ import * as buffs from './buffs.js';
 import * as renown from './renown.js';
 import * as village from './village.js';
 import * as garden from './garden.js';
+import * as taming from './taming.js';
+import * as treasure from './treasure.js';
+import * as nest from './nest.js';
 import * as achievements from './achievements.js';
 import * as dev from './dev.js';
 
+// taming and treasure follow pets: a caught pet or a resumed harvest starts in the next span.
 // Achievements come after everything they watch. renown and village have no advance().
-export const SYSTEMS = [meta, settings, skills, bag, buildings, tools, harvest, pets, crafting, garden, buffs, renown, village, achievements, dev];
+export const SYSTEMS = [meta, settings, skills, bag, buildings, tools, harvest, pets, taming, treasure, nest, crafting, garden, buffs, renown, village, achievements, dev];

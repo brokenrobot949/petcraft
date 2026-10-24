@@ -3,7 +3,7 @@
 // Per-skill and per-tool entries are filled from data by each system's init(), not here.
 import { newSeed, deriveSeed } from './rng.js';
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 export function createInitialState(now) {
   const seed = newSeed();
@@ -38,6 +38,16 @@ export function createInitialState(now) {
     village: newVillage(seed),
     garden: { plots: [], rng: deriveSeed(seed, 3000) },
     achievements: { done: {}, title: null },
+    ...newTamingState(seed),
+  };
+}
+
+// Taming, treasure and the Nest (v6). Their stats counters are filled by each system's init.
+export function newTamingState(seed) {
+  return {
+    taming: { encounters: {}, traps: {}, lure: null, results: [], seen: true, rng: deriveSeed(seed, 5000) },
+    treasure: { progress: {}, rng: deriveSeed(seed, 5100) },
+    nest: { slots: [], rng: deriveSeed(seed, 5200) },
   };
 }
 
@@ -117,5 +127,22 @@ export function validateState(s) {
   if (!isObj(g) || !Array.isArray(g.plots) || !Number.isInteger(g.rng)) return 'bad garden';
   for (const p of g.plots) if (!isObj(p) || !isCount(p.ms) || (p.seed !== null && typeof p.seed !== 'string')) return 'bad garden plot';
   if (!isObj(s.achievements) || !isObj(s.achievements.done)) return 'bad achievements';
+  if (s.version < 6) return null;
+  const t = s.taming;
+  if (!isObj(t) || !isObj(t.encounters) || !isObj(t.traps) || !Array.isArray(t.results) || !Number.isInteger(t.rng)) return 'bad taming';
+  for (const e of Object.values(t.encounters)) {
+    if (!isObj(e) || typeof e.archetype !== 'string' || typeof e.quality !== 'string' || (e.msLeft !== null && !isCount(e.msLeft))) return 'bad encounter';
+  }
+  for (const [zone, tr] of Object.entries(t.traps)) {
+    if (!isObj(tr) || typeof tr.trap !== 'string' || !isCount(tr.msLeft) || !Number.isFinite(tr.chance) || !Number.isInteger(tr.rng)) return 'bad trap';
+    if (!t.encounters[zone]) return 'trap without an encounter';
+  }
+  if (t.lure !== null && !(isObj(t.lure) && isCount(t.lure.msLeft) && Number.isInteger(t.lure.bands))) return 'bad lure';
+  if (!isObj(s.treasure) || !isObj(s.treasure.progress) || !Number.isInteger(s.treasure.rng)) return 'bad treasure';
+  for (const v of Object.values(s.treasure.progress)) if (!isCount(v)) return 'bad dig progress';
+  if (!isObj(s.nest) || !Array.isArray(s.nest.slots) || !Number.isInteger(s.nest.rng)) return 'bad nest';
+  for (const e of s.nest.slots) {
+    if (e !== null && !(isObj(e) && typeof e.archetype === 'string' && typeof e.quality === 'string' && isCount(e.msLeft))) return 'bad nest egg';
+  }
   return null;
 }

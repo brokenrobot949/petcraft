@@ -1,0 +1,26 @@
+/* World tab: tracking, traps, lures and treasure digging on the zone page (Phase 7). */
+.wild-sub { margin: 12px 0 4px; font-size: 16px; font-weight: normal; color: var(--pale); }
+.btn.on { filter: brightness(0.7); }
+.wild-card .btn.wide, .treasure-card .btn.wide { margin-top: 8px; }
+.encounter { margin-top: 12px; padding: 10px; background: var(--wood-dark); border: 3px solid var(--ink); border-radius: 6px; }
+.enc-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.enc-text { display: flex; flex-direction: column; min-width: 0; }
+.enc-hint { color: var(--muted); font-size: 14px; }
+.enc-hint.special { color: var(--pale); }
+.encounter .row .btn { min-width: 0; }
+.encounter .row .small-btn { flex: 0 0 auto; padding: 0 12px; font-size: 14px; }
+.encounter .bar.big { margin: 8px 0 4px; }
+.wild-result { display: flex; align-items: center; gap: 8px; margin: 6px 0; }
+.wild-result span { min-width: 0; }
+.wild-result.good { color: var(--cream); }
+.block { display: block; }
+.loves { color: var(--pale); }
+.warn { color: var(--orange-light); }
+.catch-box { margin: 12px 0; padding: 10px; background: var(--wood-dark); border: 3px solid var(--ink); border-radius: 6px; }
+.catch-total { font-size: 18px; margin: 0 0 6px; }
+.catch-total b { color: var(--pale); font-weight: normal; }
+.catch-row { display: flex; justify-content: space-between; gap: 8px; margin: 2px 0; }
+.map-line { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.zone-marks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.zone-mark { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; font-size: 14px; background: var(--wood-dark); border: 2px solid var(--ink); border-radius: 6px; color: var(--cream); }
+.zone-mark.alert { color: var(--pale); border-color: var(--orange); }

@@ -113,6 +113,7 @@ function render(r) {
   html += lineChart('Skill levels by day', xs, r.skillIds.map((id, i) => ({ name: r.skillNames[id], color: COLORS[i % COLORS.length], values: snaps.map((s) => s.levels[id]) })));
   html += lineChart('Renown rank by day', xs, [{ name: 'Renown rank', color: COLORS[0], values: snaps.map((s) => s.renownRank) }, { name: 'Coins / 100', color: COLORS[1], values: snaps.map((s) => Math.round(s.coins / 100)) }]);
   html += lineChart('Renown XP gained per day', xs, [{ name: 'Renown XP that day', color: COLORS[2], values: snaps.map((s) => Math.round(s.renownXpDay)) }]);
+  html += lineChart('Taming and treasure by day', xs, [{ name: 'Pets owned', color: COLORS[0], values: snaps.map((s) => s.pets) }, { name: 'Tamed (total)', color: COLORS[1], values: snaps.map((s) => s.tamed) }, { name: 'Digs (total)', color: COLORS[2], values: snaps.map((s) => s.digs) }, { name: 'Maps held', color: COLORS[3], values: snaps.map((s) => s.mapsHeld) }, { name: 'Eggs found (total)', color: COLORS[4], values: snaps.map((s) => s.eggsFound) }, { name: 'Relics held', color: COLORS[5], values: snaps.map((s) => s.relicsHeld) }, { name: 'Taming level', color: COLORS[6], values: snaps.map((s) => s.tamingLevel) }]);
   const peak = {};
   for (const s of snaps) for (const [k, c] of Object.entries(s.bag)) peak[k] = Math.max(peak[k] || 0, c);
   const top = Object.entries(peak).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([k]) => k);
@@ -120,8 +121,8 @@ function render(r) {
 
   // (d) daily table
   html += '<h3>Daily table (23:59)</h3>';
-  const head = ['Day', ...r.skillIds.map((id) => r.skillNames[id].slice(0, 5)), 'Renown', 'Renown XP', 'Coins', 'Top stockpiles'];
-  html += table(head, snaps.map((s) => [s.day, ...r.skillIds.map((id) => s.levels[id]), s.renownRank, Math.round(s.renownXpDay), s.coins,
+  const head = ['Day', ...r.skillIds.map((id) => r.skillNames[id].slice(0, 5)), 'Renown', 'Renown XP', 'Coins', 'Pets', 'Tamed', 'Digs', 'Maps', 'Eggs', 'Relics', 'Treas. coins', 'Top stockpiles'];
+  html += table(head, snaps.map((s) => [s.day, ...r.skillIds.map((id) => s.levels[id]), s.renownRank, Math.round(s.renownXpDay), s.coins, s.pets, s.tamed, s.digs, s.mapsHeld, s.eggsFound, s.relicsHeld, s.treasureCoins,
     Object.entries(s.bag).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([k, c]) => `${itemName(k)} ${c}`).join(', ')]), 1);
 
   // refusals

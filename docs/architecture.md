@@ -512,3 +512,128 @@ Commission), `dev/setRenown` now also clears the rank's XP.
 rerollCost, tierSpread, weekStartOffset, sellQualityMult, daily { renown, coinMult, minCoins, bonusChance },
 great { renown, coinMult, minCoins }, merchant { slots }, dayCheckSeconds }`, `garden { growSpeed }`. New water props join
 `render.polish.shadow.skipProps`. Zone scenes now follow their host size with a ResizeObserver (like Home).
+
+## Phase 7: taming and treasure
+
+### Save schema v6 (migration 5 -> 6)
+
+```js
+taming: {
+  encounters: { zoneId: { archetype, quality, msLeft: null | ms } },  // one per zone; msLeft null = waits until trapped or let go
+  traps: { zoneId: { trap: itemKey, bait: itemKey | null, chance, msLeft, rng } },  // one per zone, on that zone's encounter
+  lure: null | { item, msLeft, bands },
+  results: [TrapResult],     // newest last, at most balance.taming.maxResults
+  seen: true,                // false = a trap finished since the player last looked (World tab badge)
+  rng,
+},
+treasure: { progress: { zoneId: ms }, rng },     // dig progress per zone (kept when the player switches task)
+nest: { slots: [NestEgg | null], rng },           // incubating eggs; length follows the Nest tier
+stats: + tamed, digs, hatched, maps, released
+// TrapResult: { zone, archetype, quality, caught, pet: petId | null, trap: itemKey, trapKept }
+// NestEgg: { item, archetype, quality, msLeft }   (quality hidden in the UI until hatched)
+workers.player.task: { zone, skill: 'taming', node: 'track' }   // tracking
+                     { zone, skill: 'treasure', node: 'dig' }   // digging (progress in treasure.progress[zone])
+workers.player.resume: null | harvest task                      // taken up again when digging runs out of maps
+                                                                // or tracking finds an encounter
+```
+
+### Rules
+
+- **Tracking** (js/systems/taming.js): a player task. Each action takes `taming.trackSeconds x
+  harvest.tierDurationMult[zone tier - 1]` (faster with a 'taming' buff), gives Taming XP
+  (`xpPerTrackSecond` per base second), and while the zone has no encounter reveals one with chance
+  `revealBase + revealPerLevel x Taming level`: a hatchling of one of the zone's `archetypes`, quality
+  from `rollQuality` (odds `balance.pets.qualities.*.odds`; Taming luck multiplies every band above
+  the first by `1 + qualityLuckPerLevel x level`; a running lure moves the result `bands` higher).
+  On a reveal the player takes up `resume` if set, else keeps tracking (XP only).
+- **Hint:** below Taming `qualityRevealLevel` the UI shows only "Looks ordinary" (quality below
+  `specialFrom`) or "Something special"; at or above it, the quality name.
+- **Traps:** `taming/setTrap` needs the zone's encounter, no trap there yet, a trap item of tier >= zone
+  tier, and a free pet space (pets + traps set < `petCapacity`). Trap and bait leave the bag. Chance =
+  `catchChance` (below), fixed when set. `trapMinutes` later (game time, offline too): caught -> a new
+  pet (first free active slot, else the Stable; named after its species), the trap comes back with
+  chance `trapKeptOnCatch`, `catchXp x zone tier` Taming XP; escaped -> the trap comes back with chance
+  `trapKeptOnEscape` and the encounter stays `escapeStayHours` (then wanders off). Bait is always used up.
+- **Catch chance:** `min(cap, base + perTrapTier x (trap tier - zone tier) + (bait dish == archetype dish ?
+  bait : 0) + perLevel x Taming level)`. Spec: 35% + 10%/tier + 20% + 0.5%/level, cap 95%.
+- **Lures:** `taming/useLure` adds the lure's `minutes` to the running lure (bands = the larger).
+  Lure time runs in game time.
+- **Maps** (harvest.completeAction): every harvest action rolls `treasure.mapChance[skill]`
+  (else `.other`); for pets x `(1 + petLuckMapMult x petRareBonus / harvest.rareFindBase)`; a hit adds the zone's map item
+  (items.json `map.zone`) to the action's `items`. Maps are bag items.
+- **Digging** (js/systems/treasure.js): `treasure/dig { zone }` needs a map for that zone. The dig
+  takes `digMinutes / (1 + shovelSpeedPerTier x (shovel tier - 1) + harvest.toolQualitySpeed[quality])`.
+  When it finishes the map is used up and the reward rolled: coins in `byTier.coins[tier-1]`,
+  `byTier.rolls[tier-1]` weighted picks from `data/treasure.json` `loot[tier]`, a relic with chance
+  `byTier.relic[tier-1]`, an egg item (`treasure.json eggItem`) with chance `eggChance`.
+  More maps for the zone: the next dig starts with the leftover time; none: the player takes up
+  `resume` (or stops).
+- **Nest** (js/systems/nest.js): egg slots = `nestEggSlotsByTier[tier - 1]` (0 while unbuilt).
+  `nest/place { item, slot }` takes an egg item from the bag and rolls its archetype (any of the four)
+  and quality (`rollQuality` with the egg's `egg.bands`, at least `egg.min`). It hatches after
+  `nest.hatchHours x (1 - nestHatchCutPerTier x (tier - 1))`; then `nest/hatch { slot, name }` makes
+  the pet (needs a free pet space). Eggs wait in the bag until there is a slot; ready eggs wait in the Nest.
+- **Release:** `pets/release { pet }` (not the last pet) gives the archetype's `release` items.
+- **Boundaries:** taming and treasure export `nextBoundaryMs` (a trap finishing, an escaped encounter
+  leaving, the current dig finishing) so a caught pet or a resumed harvest starts at the same moment
+  live and offline.
+
+### Events (Phase 7)
+
+```js
+{ type: 'tracked', zone, xp }                       // one tracking action (folded into workers.player)
+{ type: 'encounter', zone, archetype, quality }     { type: 'encounterGone', zone }
+{ type: 'trapSet', zone, chance }                   { type: 'trapDone', ...TrapResult }
+{ type: 'lureStarted', item, msLeft }               { type: 'lureEnded' }
+{ type: 'dig', zone, coins, items: { key: n } }     // items include any relic or egg
+{ type: 'eggPlaced', slot, archetype }              { type: 'eggReady', slot }
+{ type: 'petReleased', pet, name, items }
+```
+Summary additions: `taming: { found: [{ zone, archetype }], results: [TrapResult], lureEnded }`,
+`treasure: { digs, coins, items: { key: n } }`, `nest: { ready: n }`. Tracking actions count in
+`workers.player` (`actions`, `xp.taming`).
+
+### Commands (Phase 7)
+
+`taming/track { zone }`, `taming/setTrap { zone, trap: key, bait: key | null }`, `taming/letGo { zone }`
+(drops an encounter with no trap), `taming/useLure { item }`, `taming/seen`, `treasure/dig { zone }`,
+`nest/place { item, slot }`, `nest/hatch { slot, name }`, `pets/release { pet }`.
+`harvest/stop { worker: 'player' }` also stops tracking or digging. Test mode: `dev/encounter { zone,
+archetype?, quality? }`, `dev/finishTimers` (every trap, egg and the current dig finish on the next tick).
+
+### Selectors (Phase 7)
+
+- taming.js: `isHarvestTask(data, task)`, `trackMs(state, data, zone)`, `revealChance(state, data)`,
+  `catchChance(state, data, zone, trapKey, baitKey) -> { chance, base, trap, bait, level, capped }`,
+  `encounterInfo(state, data, zone) -> null | { archetype, species, quality | null, hint, special, msLeft, trap: null | { item, bait, chance, msLeft } }`,
+  `trapOptions(state, data, zone) -> [{ key, item, tier, count, ok, reason }]`,
+  `baitOptions(state, data, zone) -> [{ key, item, count, match }]`,
+  `trapCheck(state, data, zone) -> { ok, reason }`, `freePetSpaces(state, data)`,
+  `lureInfo(state, data) -> null | { item, def, msLeft, bands }`, `lureList(state, data)`, `tamingNotice(state)`,
+  `rollQuality(stream, data, { bands, luck, min })`.
+- treasure.js: `mapItemFor(data, zone)`, `mapCount(state, data, zone)`, `digMs(state, data)`,
+  `digInfo(state, data, zone) -> { maps, ms, total, digging }`, `mapList(state, data) -> [{ zone, item, count }]`.
+- nest.js: `eggSlots(state, data)`, `hatchMs(state, data)`,
+  `nestList(state, data) -> [{ slot, egg | null, archetype, msLeft, total, ready }]`,
+  `eggList(state, data) -> [{ key, item, count }]`, `nestNotice(state)` (an egg is ready).
+
+### Data (Phase 7)
+
+- items.json categories `trap`, `bait`, `lure`, `egg`, `map`, `relic`. Item fields: `trap { tier }`,
+  `bait { dish }` (fruit | nut | fish | meat), `lure { minutes, bands }`, `egg { bands, min? }`,
+  `map { zone }`. Items: trap frames (Workbench), trap springs (Forge), traps tiers 1-5 assembled at the
+  Workbench (pine / oak / cedar / willow / ashwood frames with copper / iron / steel / mythril / emberite
+  springs), four baits (Kitchen), the wild lure (Alchemy), the strong lure and rare egg (merchant),
+  `treasure_egg`, `sanctuary_relic`, one map per zone with harvesting.
+- data/treasure.json: `{ "eggItem": "treasure_egg", "relicItem": "sanctuary_relic",
+  "loot": { "1": [{ "item", "qty": [min, max], "weight" }], ... "5": [...] } }`.
+- pets.json archetypes gain `release: { itemId: n }`.
+- achievements.json `when.kind` gains `tamed { n }`, `digs { n }`, `hatched { n }`.
+
+### balance.json additions (Phase 7)
+
+`taming { trackSeconds, xpPerTrackSecond, revealBase, revealPerLevel, qualityRevealLevel, specialFrom,
+qualityLuckPerLevel, trapMinutes, catch { base, perTrapTier, bait, perLevel, cap }, trapKeptOnCatch,
+trapKeptOnEscape, escapeStayHours, catchXp, maxResults }`, `treasure { mapChance { fishing, other },
+petLuckMapMult, digMinutes, shovelSpeedPerTier, eggChance, byTier { coins, rolls, relic } }`,
+`nest { hatchHours }`.

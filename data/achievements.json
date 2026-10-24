@@ -59,6 +59,14 @@
     { "id": "pearl_diver", "name": "Pearl Diver", "desc": "Find a Small Pearl.", "group": "collection", "renown": 30, "title": null, "when": { "kind": "foundItem", "item": "small_pearl" } },
     { "id": "gem_hunter", "name": "Gem Hunter", "desc": "Find a Garnet.", "group": "collection", "renown": 60, "title": null, "when": { "kind": "foundItem", "item": "garnet" } },
     { "id": "moonlit_treasure", "name": "Moonlit Treasure", "desc": "Find a Moonstone.", "group": "collection", "renown": 100, "title": null, "when": { "kind": "foundItem", "item": "moonstone" } },
-    { "id": "ember_treasure", "name": "Ember Treasure", "desc": "Find an Ember Pearl.", "group": "collection", "renown": 150, "title": null, "when": { "kind": "foundItem", "item": "ember_pearl" } }
+    { "id": "ember_treasure", "name": "Ember Treasure", "desc": "Find an Ember Pearl.", "group": "collection", "renown": 150, "title": null, "when": { "kind": "foundItem", "item": "ember_pearl" } },
+    { "id": "first_catch", "name": "First Catch", "desc": "Tame your first wild pet in a trap.", "group": "pets", "renown": 25, "title": null, "when": { "kind": "tamed", "n": 1 } },
+    { "id": "gentle_trapper", "name": "Gentle Trapper", "desc": "Tame 3 wild pets.", "group": "pets", "renown": 50, "title": null, "when": { "kind": "tamed", "n": 3 } },
+    { "id": "master_tracker", "name": "Master Tracker", "desc": "Tame 10 wild pets.", "group": "pets", "renown": 120, "title": "Tracker", "when": { "kind": "tamed", "n": 10 } },
+    { "id": "first_hatch", "name": "Something Hatched", "desc": "Hatch your first egg in the Nest.", "group": "pets", "renown": 30, "title": null, "when": { "kind": "hatched", "n": 1 } },
+    { "id": "egg_keeper", "name": "Egg Keeper", "desc": "Hatch 5 eggs.", "group": "pets", "renown": 70, "title": null, "when": { "kind": "hatched", "n": 5 } },
+    { "id": "first_dig", "name": "X Marks the Spot", "desc": "Dig up your first treasure.", "group": "collection", "renown": 25, "title": null, "when": { "kind": "digs", "n": 1 } },
+    { "id": "treasure_trove", "name": "Treasure Trove", "desc": "Dig up 10 treasures.", "group": "collection", "renown": 60, "title": null, "when": { "kind": "digs", "n": 10 } },
+    { "id": "treasure_hunter", "name": "Treasure Hunter", "desc": "Dig up 50 treasures.", "group": "collection", "renown": 150, "title": "Treasure Hunter", "when": { "kind": "digs", "n": 50 } }
   ]
 }

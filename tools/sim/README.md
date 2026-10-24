@@ -57,24 +57,50 @@ Each check-in, in this order (the policy only sends commands and reads selectors
    then meals when food is short, then XP crafts. Then the player works the queued station that matters most
    (`crafting/work`): tools, then food when the pets' food in the bag is low, then buildings and commissions,
    then XP. With 2 work slots the best two are worked.
-9. Eat a buff meal for the skill being harvested.
+9. Eat a buff meal for the skill being harvested (order in the code: the Nest, pet slots and map selling run before step 7, taming last).
+10. **Taming, treasure, Nest (Phase 7)**, in this order inside the run (all through commands and the exported selectors):
+    - `nest/hatch` ready eggs (a generated name from `pets.json suggestedNames`; if the Stable is full, the lowest-ranked
+      pet that holds no active slot is released first via `pets/release`), then `nest/place` every egg in the bag while a
+      slot is free. The Nest is built like any other building (it is no longer skipped).
+    - Pets: the best quality (then level) hold the 2 active slots (`pets/setActive`); new pets go to work through the
+      normal harvest assignment.
+    - Maps: keep what a 10 h overnight dig can use (`floor(10 h / digMs)`, best zones first) and sell the rest
+      (`market/sell`; counted and flagged as "maps pile up").
+    - At the END of the run (after harvest and stations are set): for every open wild zone with an encounter and no trap and
+      a free space (`freePetSpaces`), `taming/setTrap` with the best usable trap in the bag (`trapOptions`) and the matching
+      bait (`baitOptions`, else a Mossbrook `market/buy` of the matching bait when coins cover it plus 50). If a Pine Trap is
+      not in the bag the policy buys one in Mossbrook the same way (150 coins) when it has the coins; otherwise the wants
+      (step 7) include 2 traps of the target zone's tier and 2 matching baits per archetype of that zone, so the stations
+      make them (frame at the Workbench, spring at the Forge, bait at the Kitchen).
+    - With a free pet space, no encounter in the target zone (the highest open wild zone whose trap is in the bag or
+      reachable) and a usable trap: use a lure if one is owned (`taming/useLure`), then `taming/track` there. The player
+      tracks until an encounter shows up and the game then returns it to the harvest task by itself. Tracking is issued at the
+      end of the run, so the 3 minutes of live play are harvesting; the second run of the check-in sees whatever the tracking
+      found and sets the trap. The trap then works while the player is away (30 min of game time).
+    - Full Stable: the policy keeps tracking while a stabled pet below Epic exists. When an encounter is found with no free
+      space, it releases the worst stabled pet (`pets/release`) only if the encounter is likely better ("Something special" at
+      Taming under 30, or at Taming 30+ a quality above that pet's); otherwise it lets the encounter go (`taming/letGo`) so
+      tracking can look for another.
+    - Digging: every check-in sends the player to `treasure/dig` in the open zone it holds the most maps for (the next
+      check-in's harvest assignment ends the dig). `DIG_FROM_HOUR` in policy.js can restrict digging to late check-ins
+      (20 = overnight only). With the old map rates this stalled every harvest skill; with pet Luck multiplying the map
+      chance (about 17 maps a day) it does not. Keeps `floor(10 h / digMs)` maps and sells the rest.
 
 ## What the page shows
 
-Milestones with the design-doc target (middle of a range, in days since the start) and a status
+Milestones (now incl. "Second pet tamed", first dig, "First egg hatched", Nest built) with the design-doc target (middle of a range, in days since the start) and a status
 (on time within 25%, early, late, not reached yet), including Renown ranks 2-15, zone openings, Grand
 Projects (Renown 12), Forge and Garden built, first commission, and the first tool of tiers 3-6. Design-doc
 milestones that cannot happen yet. Flags: items piling up with no use, items with a use that still pile up,
 skills that never or no longer gain XP, "coins only go up" (never spent anything), coins piling up, pacing
 milestones more than 25% off, pet rest share. Coin flow (earned by selling/commissions, spent on buildings,
 blueprints, seeds, scrolls). Charts: skill levels, Renown rank (with coins/100), Renown XP per day, stockpiles.
-Daily table, refused commands, final state (buildings, tools, pets) and a CSV download (skill levels, XP, coins,
+New series per day (daily table, a chart and the CSV): Taming level, pets owned, tamed total, digs, maps found/held, eggs found/held, hatched, relics held, coins from treasure; flags for maps/eggs piling up. Daily table, refused commands, final state (buildings, tools, pets) and a CSV download (skill levels, XP, coins,
 Renown rank and XP, every bag item, one row per day).
 
 ## What the simulator cannot measure yet
 
-Taming and more pets, evolution, Grand Projects themselves (only the Renown 12 mark), the Nest, Phase 7+ zones
-content, and the Focus mini-game (the policy always assumes a 'good' result). Pet feeding is whatever auto-feed
+Evolution, Grand Projects themselves (only the Renown 12 mark), Phase 8+ zone content (mythics), and the Focus mini-game (the policy always assumes a 'good' result). Pet feeding is whatever auto-feed
 does. Milestones during time away are accurate to 30 minutes. The policy checks in only at its check-in times, so
 the "first building upgrade in 10 minutes" target cannot be met by a 4-check-in player (it lands at the first
 check-in after enough materials exist).

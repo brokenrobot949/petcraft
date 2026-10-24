@@ -60,9 +60,30 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 6 done (2026-10-23)
-Next: Phase 7 (tracking, traps, bait, lures, Stable capacity, maps, dig sites, Nest and eggs). Phase 8 makes
-  station assist "an adult assistant keeps that station running" (no player slot used).
+Phase: 7 done (2026-10-23)
+Next: Phase 8 (callings, branch choice, catalysts, talents, gifts, station assists, Bestiary). Phase 8 makes
+  station assist "an adult assistant keeps that station running" (no player slot used); Scout pets dig;
+  gift talents are rolled for caught and hatched pets.
+Phase 7: save schema v6 (migration 5->6: taming, treasure, nest; workers.player.resume). Contract in
+  docs/architecture.md "Phase 7: taming and treasure". Tracking is a player task (js/systems/taming.js):
+  each try gives Taming XP and may reveal one wild hatchling per zone (hint "Looks ordinary" / "Something
+  special"; exact quality at Taming 30); then the player goes back to the harvest task they left. Traps
+  (pine/oak/cedar/willow/ashwood, tiers 1-5: frame at the Workbench + spring at the Forge, assembled at the
+  Workbench) and bait (Kitchen; Mossbrook sells bait and a Pine Trap) run 30 min of game time, offline too.
+  Catch chance exactly as the spec (35% + 10%/trap tier above zone + 20% matching bait + 0.5%/Taming level,
+  cap 95%). A set trap holds a pet space. Escaped: trap kept 50%, the monster stays 6 h. Lures (Alchemy,
+  merchant): quality one band up while they run; time stacks. Maps are bag items, one per zone, dropped by
+  any harvest (js/systems/harvest.js); digging (js/systems/treasure.js) is a player task, 20 min per map
+  (faster with better shovels), digs maps one after another then resumes harvesting; rewards: coins,
+  loot from data/treasure.json, Sanctuary Relics, 5% a Treasure Egg. Nest (js/systems/nest.js): place an
+  egg, it warms 4 h (less per Nest tier), then the player hatches and names it. pets/release gives
+  materials. Badges: World (a trap finished), Pets (an egg is ready). 8 new achievements. Test mode adds
+  encounters and "finish traps, eggs and dig". Core checks: 161. Simulator v3 tracks, traps (releasing
+  its worst stabled pet for a "special" find when full), digs at every check-in, builds the Nest, hatches.
+  Lead balance calls (Rob may want to know): map chance cut to 1/20 of the spec (fishing 0.1%, other
+  0.025%) and pet Luck multiplies it, because pets make tens of thousands of actions a day (the spec's
+  2% / 0.5% gave ~350 maps a day in the simulator; now ~17); dig coins halved. A caught pet is named
+  after its species (rename on its page).
 Phase 6: save schema v5 (migration 4->5: crafting.working/known, village, garden, achievements; the first
   busy station keeps working; renown.xp is now progress into the rank and old totals settle into ranks).
   Renown ranks 1-30 (js/systems/renown.js, addRenownXp is the only way in; titles in data/renown.json).
@@ -117,9 +138,8 @@ Art casting: data/sprites.json maps roles (player, pet.<archetype>.<form>, mythi
   suggestions; Rob recasts in the catalog (http://localhost:8080/tools/catalog/ -> Casting -> Save),
   which writes sprites.json and runs tools/atlas/pack.ps1 via tools/serve.ps1. Then commit + bump version.
 Known issues:
-- Pacing (simulator v2, 30 days, regular player): Renown zones arrive about 2x early (Whisperwood 5 h,
-  Stonecrag day 2, Mistfen day 7.4, Renown 12 day 12) but Emberfall (Renown 15) is not reached by day 30:
-  Renown XP dries up late. Harvest skills hit 60 by day 14-20; willow logs and other stockpiles reach the
+- Pacing (simulator v3, 30 days, regular player): Renown zones arrive early (Whisperwood 5 h, Stonecrag
+  day 1.4, Mistfen day 7.6, Renown 12 day 10.6, Emberfall day 22 vs target 32); treasure coins speed it up. Harvest skills hit 60 by day 14-20; willow logs and other stockpiles reach the
   hundreds of thousands. Light player is roughly on target to Renown 12 (day 18). All tuned in Phase 10 in
   balance.json (renown.xpCurve, village.daily.renown, XP curve, harvest yields).
 - Pets rest under 1% of the time even with the one-station rule (simulator 0.3%): meals are cheap and fast.
@@ -128,10 +148,16 @@ Known issues:
 - A brand-new player gets a Great Commission only once their skills meet one template's needs (the board
   keeps trying every minute).
 - Player outfits at Renown 5/10/15/20/25 are not built (needs Rob's casting of outfit looks).
-- Decor (market sink), fertilizer, lures, relic fragments and treasure coins arrive in later phases.
+- Decor (market sink) and fertilizer arrive in later phases. Sanctuary Relics pile up until Grand Projects (Phase 9).
+- Treasure (simulator v3, after the cuts): about 17 maps a day; dig coins are still over half of all coins
+  earned and coins pile up (Phase 10: balance.treasure.byTier.coins, mapChance). Regular player tames ~23-30
+  pets in 30 days; second pet tamed day 0.4 (target day 1-2). New players see many escapes at 35% without bait.
+- Weak Phase 7 icons (pack has no eggs, traps or springs): eggs are orbs, all trap springs share a hook,
+  willow/ashwood frames reuse plank icons, traps are crates/baskets/chest/cauldron, lures reuse potion
+  bottles, two map scrolls match blueprint icons, the scene trap is one basket for every tier, the dig site
+  is a twig piece.
 - A pet's personal favorite dish (+40 Bond, revealed on first feed) is not built yet (Phase 8 with gifts).
 - Pet XP is a placeholder: a pet reaches the hatchling cap (level 10) in about a day of work.
-- The Nest (Renown 8) can be built but eggs arrive in Phase 7.
 - Simulator: the scripted player acts only at check-ins, so "first building upgrade" shows 10 h (it must
   build the Forge first now); an active player needs about 5-10 minutes. The policy reads zone rares and
   reachability straight from data (no selector for "where does this item come from").

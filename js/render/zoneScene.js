@@ -9,7 +9,8 @@
 // each time the zone page opens and closes, so destroy() must release everything.
 import { Application, Container, Graphics, Rectangle, Sprite, Text, TextureSource } from '../../lib/pixi.mjs';
 import { loadSprites, createActor } from './sprites.js';
-import { actionMs, workerTask } from '../systems/harvest.js';
+import { actionMs, workerTask, isHarvestTask } from '../systems/harvest.js';
+import { mapCount } from '../systems/treasure.js';
 import { petStatus } from '../systems/pets.js';
 import { petRole } from '../systems/petstats.js';
 import { createPolish } from './polish.js';
@@ -29,6 +30,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
   const data = game.data;
   const cfg = data.balance.render.zone;
   const pcfg = cfg.pets;
+  const tcfg = cfg.taming; // Phase 7: tracking, digging, waiting encounters and traps
   const zone = data.zones.zones.find((z) => z.id === zoneId);
   const scene = zone?.scene || { spots: {}, decor: [], idle: [0.5, 0.9] };
   const colorOf = (v) => Number(v); // balance.json stores colors as "0xrrggbb" strings
@@ -93,8 +95,20 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     const cy = (0.5 - sprite.anchor.y) * tex.height;
     sprite.hitArea = new Rectangle(cx - w / 2, cy - h / 2, w, h);
   }
-  for (const [skillId, spot] of Object.entries(scene.spots || {})) addProp(spot.prop, spot.x, spot.y, skillId);
+  // Harvest spots are tappable props. The tracking and dig spots (tcfg.spotKeys) are not: the player
+  // only stands there, and the dig site picture shows while digging or while the zone has maps.
+  const taskSpotKeys = Object.values(tcfg.spotKeys);
+  let digProp = null;
+  for (const [skillId, spot] of Object.entries(scene.spots || {})) {
+    if (!spot.prop) continue;
+    if (taskSpotKeys.includes(skillId)) {
+      if (skillId === tcfg.spotKeys.treasure) digProp = addProp(spot.prop, spot.x, spot.y);
+      continue;
+    }
+    addProp(spot.prop, spot.x, spot.y, skillId);
+  }
   for (const d of scene.decor || []) addProp(d.prop, d.x, d.y);
+  if (digProp) digProp.sprite.visible = false;
 
   function sizeNow() { return { w: app.screen.width, h: app.screen.height }; }
   const px = (fx, fy) => { const { w, h } = sizeNow(); return [Math.round(fx * w), Math.round(fy * h)]; };
@@ -163,7 +177,8 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     return { x: x + ox, y: y + oy, face: 'down' };
   }
   function spotFor(task) {
-    return task && task.zone === zoneId ? scene.spots?.[task.skill] || null : null;
+    if (!task || task.zone !== zoneId) return null;
+    return scene.spots?.[tcfg.spotKeys[task.skill] || task.skill] || null;
   }
 
   function drawGround() {
@@ -219,7 +234,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
   // While working, draw in front of the spot's prop so the held tool (a rod over the pond)
   // is never hidden behind it.
   function workerZ(m) {
-    const front = m.mode === 'work' && m.spot ? px(m.spot.x, m.spot.y)[1] + 1 : 0;
+    const front = m.mode === 'work' && m.spot && m.spot.y != null ? px(m.spot.x, m.spot.y)[1] + 1 : 0;
     return Math.max(Math.round(m.y), front);
   }
 
@@ -272,7 +287,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     const dx = m.target.x - m.x;
     const dy = m.target.y - m.y;
     const dist = Math.hypot(dx, dy);
-    const speed = m.target.wander ? pcfg.wanderSpeedPxPerSec : cfg.walkSpeedPxPerSec;
+    const speed = m.target.speed || (m.target.wander ? pcfg.wanderSpeedPxPerSec : cfg.walkSpeedPxPerSec);
     const step = speed * scale * ms / 1000;
     if (dist <= step) {
       m.x = m.target.x; m.y = m.target.y;
@@ -314,7 +329,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     return a * DEG;
   }
 
-  function renderPlayer(m, state, task, ticker) {
+  function renderPlayer(m, state, task, ticker, ms) {
     const actor = m.actor;
     let bob = 0;
     let sx = scale;
@@ -324,20 +339,36 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
       actor.play('walk', m.dir);
       actor.update(ticker);
     } else if (m.mode === 'work' && task && m.spot) {
-      const kind = data.skills.skills.find((s) => s.id === task.skill)?.tool;
+      // Harvesting swings the skill's tool with the action's progress. Digging swings the shovel on a
+      // steady rhythm (not tied to the dig's length). Tracking holds nothing and wanders (stepTracking).
+      let kind = null;
+      let p = 0;
+      let pose = null;
+      if (isHarvestTask(data, task)) {
+        kind = data.skills.skills.find((s) => s.id === task.skill)?.tool;
+        const dur = actionMs(state, data, 'player', task);
+        p = clamp01(state.workers.player.progressMs / dur);
+        pose = cfg.held[kind];
+      } else if (task.skill === 'treasure') {
+        kind = 'shovel';
+        m.digMs = (m.digMs || 0) + ms;
+        if (m.digMs >= tcfg.digSwingMs) { m.digMs %= tcfg.digSwingMs; m.bounceMs = 0; } // the shovel lands
+        p = m.digMs / tcfg.digSwingMs;
+        pose = tcfg.shovelPose;
+      }
       setHeld(m, kind);
-      const wk = state.workers.player;
-      const dur = actionMs(state, data, 'player', task);
-      const p = clamp01(wk.progressMs / dur);
-      const hasSwing = bank.animNames('player').includes('swing');
-      m.dir = m.spot.face || m.dir;
+      const hasSwing = !!kind && bank.animNames('player').includes('swing');
+      if (task.skill === 'taming') {
+        if (m.trackLook) m.dir = m.trackLook;
+      } else {
+        m.dir = m.spot.face || m.dir;
+      }
       if (hasSwing) {
         actor.play('swing', m.dir);
         actor.sprite.gotoAndStop(p < cfg.windupFrac ? 0 : Math.min(1, actor.sprite.totalFrames - 1));
       } else {
         actor.play('idle', m.dir);
       }
-      const pose = cfg.held[kind];
       if (m.heldRole && pose) {
         const sign = m.dir === 'left' ? -1 : 1;
         const hand = cfg.hand[m.dir];
@@ -348,7 +379,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
       } else {
         m.heldSprite.visible = false;
       }
-      if (m.bounceMs < cfg.bounceMs) {
+      if (kind && m.bounceMs < cfg.bounceMs) {
         const k = Math.sin(Math.PI * m.bounceMs / cfg.bounceMs);
         bob = -cfg.bouncePx * scale * k;
         sy = scale * (1 - cfg.squash * k);
@@ -398,13 +429,120 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     return { bob, sx, sy };
   }
 
+  // While the player tracks, they stroll slowly around the tracking spot, pausing now and then to look about.
+  const DIRS = ['down', 'up', 'left', 'right'];
+  function stepTracking(m, task, ms) {
+    if (m.mode !== 'work' || !m.spot || task?.skill !== 'taming') { m.trackMs = null; m.trackLook = null; return; }
+    if (m.trackMs == null) m.trackMs = lerp(tcfg.trackPauseMinMs, tcfg.trackPauseMaxMs, Math.random());
+    m.trackMs -= ms;
+    if (m.trackMs > 0) return;
+    m.trackMs = lerp(tcfg.trackPauseMinMs, tcfg.trackPauseMaxMs, Math.random());
+    if (Math.random() < tcfg.trackLookChance) { m.trackLook = DIRS[Math.floor(Math.random() * DIRS.length)]; return; }
+    const home = standOf(m.spot, m);
+    const { w, h } = sizeNow();
+    const ang = Math.random() * Math.PI * 2;
+    const dist = Math.sqrt(Math.random()) * tcfg.trackRadiusPx * scale;
+    m.trackLook = null;
+    m.target = {
+      x: Math.min(w, Math.max(0, Math.round(home.x + Math.cos(ang) * dist))),
+      y: Math.min(h, Math.max(0, Math.round(home.y + Math.sin(ang) * dist))),
+      face: null, wander: true, speed: tcfg.trackWalkSpeedPxPerSec,
+    };
+    m.mode = 'walk';
+  }
+
+  // ---- Phase 7: the waiting encounter and the trap set beside it ----
+  let enc = null;      // { archetype, actor, shadow, alpha, hopMs, nextHopMs, ageMs }
+  let trapSprite = null;
+  let trapShadow = null;
+  let trapAgeMs = 0;
+  function encounterPlace() { return scene.encounter || tcfg.defaultEncounter; }
+  function removeEncounter() {
+    if (!enc) return;
+    enc.shadow?.remove();
+    enc.actor.destroy();
+    enc = null;
+  }
+  function removeTrap() {
+    if (!trapSprite) return;
+    trapShadow?.remove();
+    trapSprite.destroy();
+    trapSprite = null; trapShadow = null;
+  }
+  function updateTaming(state, ms, ticker) {
+    const place = encounterPlace();
+    const [ex, ey] = px(place.x, place.y);
+    const e = state.taming?.encounters?.[zoneId] || null;
+    const role = e ? `pet.${e.archetype}.hatchling` : null;
+    if (enc && (!e || enc.role !== role)) removeEncounter();
+    if (e && !enc && bank.has(role)) {
+      const actor = createActor(bank, role, { anim: 'idle', dir: place.face });
+      actor.view.scale.set(scale);
+      world.addChild(actor.view);
+      enc = { role, actor, shadow: polish.addShadow(actor.view, data.balance.render.home.shadowCharacterWidthPx),
+        ageMs: 0, hopMs: Infinity, nextHopMs: lerp(tcfg.encounterHopMinMs, tcfg.encounterHopMaxMs, Math.random()) };
+      actor.view.alpha = 0;
+    }
+    if (enc) {
+      enc.ageMs += ms;
+      enc.nextHopMs -= ms;
+      enc.hopMs += ms;
+      if (enc.nextHopMs <= 0) {
+        enc.hopMs = 0;
+        enc.nextHopMs = lerp(tcfg.encounterHopMinMs, tcfg.encounterHopMaxMs, Math.random());
+      }
+      const t = enc.hopMs / tcfg.encounterHopMs;
+      const air = t < 1 ? Math.sin(Math.PI * t) : 0;
+      const f = tcfg.encounterStretch * air;
+      const shy = Math.sin(enc.ageMs / tcfg.encounterShyMs * Math.PI * 2) * tcfg.encounterShyPx * scale;
+      const view = enc.actor.view;
+      view.scale.set(scale * (1 - f * 0.5), scale * (1 + f));
+      view.position.set(Math.round(ex + shy), Math.round(ey - tcfg.encounterHopPx * scale * air));
+      view.zIndex = ey;
+      view.alpha = tcfg.encounterAlpha * clamp01(enc.ageMs / tcfg.encounterFadeMs);
+      enc.actor.play('idle', place.face);
+      enc.actor.update(ticker);
+      if (enc.shadow) enc.shadow.groundY = ey;
+    }
+    // The trap sits beside the monster (its own picture if the encounter has gone but the trap is still set).
+    const trap = state.taming?.traps?.[zoneId] || null;
+    if (!trap) removeTrap();
+    else {
+      if (!trapSprite) {
+        const tex = bank.texture('prop.trap');
+        if (tex) {
+          trapSprite = new Sprite(tex);
+          const [ax, ay] = bank.anchor('prop.trap');
+          trapSprite.anchor.set(ax, ay);
+          world.addChild(trapSprite);
+          trapShadow = polish.addShadow(trapSprite, tex.width * data.balance.render.polish.shadow.propWidthFrac);
+        }
+      }
+      if (trapSprite) {
+        trapAgeMs += ms;
+        const pulse = 1 + tcfg.trapPulseAmp * Math.sin(trapAgeMs / tcfg.trapPulseMs * Math.PI * 2);
+        const tx = ex + tcfg.trapDx * scale;
+        const ty = ey + tcfg.trapDy * scale;
+        trapSprite.scale.set(scale * pulse);
+        trapSprite.position.set(Math.round(tx), Math.round(ty));
+        trapSprite.zIndex = ty;
+      }
+    }
+    // The dig site shows while the player digs here or the zone has a map waiting.
+    if (digProp) {
+      const t = state.workers.player?.task;
+      digProp.sprite.visible = (t?.zone === zoneId && t.skill === 'treasure') || mapCount(state, data, zoneId) > 0;
+    }
+  }
+
   function renderWorker(m, state, task, ms, ticker) {
     m.bounceMs += ms;
     const view = m.actor.view;
     view.visible = m.mode !== 'away';
     if (!view.visible) return;
     if (m.mode === 'walk') stepWalk(m, ms);
-    const { bob, sx, sy } = m.isPlayer ? renderPlayer(m, state, task, ticker) : renderPet(m, state, ms, ticker);
+    else if (m.isPlayer) stepTracking(m, task, ms);
+    const { bob, sx, sy } = m.isPlayer ? renderPlayer(m, state, task, ticker, ms) : renderPet(m, state, ms, ticker);
     view.scale.set(sx, sy);
     view.position.set(Math.round(m.x), Math.round(m.y + bob));
     view.zIndex = workerZ(m);
@@ -541,6 +679,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
       const task = chooseMode(m, state);
       renderWorker(m, state, task, ticker.deltaMS, ticker);
     }
+    updateTaming(state, ticker.deltaMS, ticker);
     updatePops(ticker.deltaMS);
     updateZs(ticker.deltaMS);
     polish.update(ticker.deltaMS);

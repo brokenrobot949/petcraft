@@ -8,6 +8,11 @@
     { "item": "melon_seed", "price": 24, "renown": 6 },
     { "item": "blueprint_sturdy", "price": 250, "renown": 3 },
     { "item": "blueprint_fine", "price": 900, "renown": 6 },
+    { "item": "berry_bait", "price": 12, "renown": 1 },
+    { "item": "nut_bait", "price": 12, "renown": 1 },
+    { "item": "fish_bait", "price": 16, "renown": 1 },
+    { "item": "meat_bait", "price": 16, "renown": 1 },
+    { "item": "pine_trap", "price": 150, "renown": 1 },
     { "item": "blueprint_grand", "price": 2500, "renown": 10 }
   ],
   "scrolls": [
@@ -35,6 +40,9 @@
     { "item": "fire_opal", "price": 1625, "qty": 1, "renown": 15, "weight": 1 },
     { "item": "potato_seed", "price": 11, "qty": 10, "renown": 3, "weight": 2 },
     { "item": "pumpkin_seed", "price": 18, "qty": 10, "renown": 5, "weight": 2 },
-    { "item": "melon_seed", "price": 22, "qty": 10, "renown": 6, "weight": 2 }
+    { "item": "melon_seed", "price": 22, "qty": 10, "renown": 6, "weight": 2 },
+    { "item": "wild_lure", "price": 80, "qty": 2, "renown": 3, "weight": 2 },
+    { "item": "strong_lure", "price": 240, "qty": 1, "renown": 3, "weight": 2 },
+    { "item": "rare_egg", "price": 1200, "qty": 1, "renown": 8, "weight": 1 }
   ]
 }

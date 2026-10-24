@@ -103,6 +103,37 @@
   "garden": {
     "growSpeed": 1
   },
+  "taming": {
+    "trackSeconds": 6,
+    "xpPerTrackSecond": 0.6,
+    "revealBase": 0.08,
+    "revealPerLevel": 0.001,
+    "qualityRevealLevel": 30,
+    "specialFrom": "rare",
+    "qualityLuckPerLevel": 0.01,
+    "trapMinutes": 30,
+    "catch": { "base": 0.35, "perTrapTier": 0.1, "bait": 0.2, "perLevel": 0.005, "cap": 0.95 },
+    "trapKeptOnCatch": 1,
+    "trapKeptOnEscape": 0.5,
+    "escapeStayHours": 6,
+    "catchXp": 40,
+    "maxResults": 6
+  },
+  "treasure": {
+    "mapChance": { "fishing": 0.001, "other": 0.00025 },
+    "petLuckMapMult": 0.5,
+    "digMinutes": 20,
+    "shovelSpeedPerTier": 0.15,
+    "eggChance": 0.05,
+    "byTier": {
+      "coins": [[10, 30], [25, 70], [60, 150], [125, 300], [250, 600]],
+      "rolls": [2, 2, 3, 3, 4],
+      "relic": [0.04, 0.06, 0.08, 0.1, 0.12]
+    }
+  },
+  "nest": {
+    "hatchHours": 4
+  },
   "render": {
     "pixelScale": 3,
     "pixelScaleWide": 4,
@@ -151,6 +182,30 @@
       "speckColor": "0x9aaa30",
       "specks": 26,
       "tapMinPx": 44,
+      "taming": {
+        "spotKeys": { "taming": "taming", "treasure": "dig" },
+        "trackWalkSpeedPxPerSec": 12,
+        "trackRadiusPx": 34,
+        "trackPauseMinMs": 1200,
+        "trackPauseMaxMs": 3200,
+        "trackLookChance": 0.6,
+        "digSwingMs": 1100,
+        "shovelPose": { "rest": 0, "windup": -55, "strike": 75 },
+        "encounterAlpha": 0.82,
+        "encounterFadeMs": 600,
+        "encounterHopMinMs": 1800,
+        "encounterHopMaxMs": 4200,
+        "encounterHopPx": 4,
+        "encounterHopMs": 300,
+        "encounterStretch": 0.12,
+        "encounterShyPx": 3,
+        "encounterShyMs": 2600,
+        "trapDx": -22,
+        "trapDy": 3,
+        "trapPulseMs": 1400,
+        "trapPulseAmp": 0.04,
+        "defaultEncounter": { "x": 0.92, "y": 0.55, "face": "left" }
+      },
       "pets": {
         "standOffsets": [[0, 0], [-14, 4], [14, 4], [0, 9], [-26, -2], [26, -2]],
         "idleOffsets": [[0, 0], [-24, 4], [24, 4], [0, 12], [-38, 0], [38, 0]],

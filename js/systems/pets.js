@@ -5,7 +5,7 @@
 // Time is stepped event by event (an action finishing, energy reaching the feed line or 0, a
 // Bond point from work), so any chunk size gives the same result.
 import { deriveSeed } from '../core/rng.js';
-import { removeItem, itemDef, itemLabel, parseKey } from './bag.js';
+import { addItem, removeItem, itemDef, itemLabel, parseKey } from './bag.js';
 import { actionMs, completeAction, dropStaleTask } from './harvest.js';
 import {
   HOUR_MS, archetypeOf, petLevelCap, petXpToNext, petHearts, petMaxEnergy, petDrainPerHour,
@@ -23,6 +23,7 @@ export function init(state, ctx) {
   const b = ctx.data.balance.pets;
   const p = state.pets;
   if (p.starter === undefined) p.starter = null;
+  if (state.stats.released == null) state.stats.released = 0;
   while (p.active.length < b.activeSlots) p.active.push(null);
   for (const pet of Object.values(p.list)) {
     if (!archetypeOf(ctx.data, pet.archetype)) continue; // unknown archetype: keep the pet, skip defaults
@@ -137,11 +138,12 @@ export function cleanName(name, data) {
 }
 
 // Makes a new pet. It takes the first free active slot, or goes to the Stable.
-// Refused when every active slot and Stable space is taken (saves already over the limit keep their pets).
-export function createPet(state, ctx, { archetype, quality, name }) {
+// Refused when every active slot and Stable space is taken (saves already over the limit keep their pets),
+// unless force is set: a trap that was set with a space held for its catch always delivers it.
+export function createPet(state, ctx, { archetype, quality, name }, { force = false } = {}) {
   const { data } = ctx;
   const p = state.pets;
-  if (Object.keys(p.list).length >= petCapacity(state, data)) {
+  if (!force && Object.keys(p.list).length >= petCapacity(state, data)) {
     throw new Error('The Stable is full. Upgrade it to make room for more pets.');
   }
   const petId = `pet${p.nextId++}`;
@@ -354,6 +356,20 @@ export const commands = {
     if (other) delete state.workers[other];
     p.active[slot] = petId;
     if (!state.workers[petId]) state.workers[petId] = newWorker(state, petId);
+  },
+  // Return a pet to the wild. It leaves a few materials behind (pets.json archetype `release`).
+  'pets/release': (state, { pet: petId }, ctx) => {
+    const pet = needPet(state, petId);
+    const p = state.pets;
+    if (Object.keys(p.list).length <= 1) throw new Error(`${pet.name} is your only pet. Keep them close!`);
+    const i = p.active.indexOf(petId);
+    if (i >= 0) p.active[i] = null;
+    delete state.workers[petId];
+    delete p.list[petId];
+    const items = { ...(archetypeOf(ctx.data, pet.archetype)?.release || {}) };
+    for (const [item, n] of Object.entries(items)) addItem(state, item, n);
+    state.stats.released += 1;
+    ctx.emit?.({ type: 'petReleased', pet: petId, name: pet.name, items });
   },
   'pets/stable': (state, { pet: petId }) => {
     needPet(state, petId);

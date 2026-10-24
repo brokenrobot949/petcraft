@@ -48,6 +48,9 @@ export function conditionProgress(state, data, w) {
     case 'renown': return progress(state.renown.rank, w.rank);
     case 'zone': return progress(zoneUnlocked(state, data, w.zone) ? 1 : 0, 1);
     case 'pets': return progress(pets.length, w.n);
+    case 'tamed': return progress(state.stats.tamed || 0, w.n);
+    case 'digs': return progress(state.stats.digs || 0, w.n);
+    case 'hatched': return progress(state.stats.hatched || 0, w.n);
     case 'petLevel': return progress(Math.max(0, ...pets.map((p) => p.level)), w.level);
     case 'petHearts': return progress(Math.max(0, ...pets.map((p) => petHearts(data, p).hearts)), w.hearts);
     case 'toolTier': {

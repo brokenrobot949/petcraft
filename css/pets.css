@@ -112,3 +112,24 @@ button.pet-row:active { background: #5a4a30; border-color: var(--orange); }
   .egg-wobble .egg-crack { opacity: 1; }
   .pet-float-heart { animation: none; opacity: 1; bottom: 60%; }
 }
+
+/* ---- capacity, Nest, release (Phase 7) ---- */
+.pet-capacity { margin: 0 0 8px; color: var(--pale); }
+.pet-capacity-note { margin: 0 0 8px; }
+.nest-slot {
+  display: flex; align-items: center; gap: 12px; min-width: 0; margin-top: 8px; padding: 8px;
+  background: var(--wood-dark); border: 2px solid var(--ink); border-radius: 6px;
+}
+.nest-slot.empty { flex-direction: column; align-items: stretch; gap: 6px; border-style: dashed; }
+.nest-slot.ready { border-color: var(--orange); }
+.nest-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.nest-slot .btn { min-height: var(--tap); }
+.nest-waiting { margin: 8px 0 0; color: var(--cream); }
+.nest-hatch .field, .nest-hatch .btn { width: 100%; }
+.egg-wobble-loop { animation: egg-wobble 2.4s ease-in-out infinite; transform-origin: 50% 90%; }
+.egg-wobble-loop .egg-crack { opacity: 1; }
+.pet-release { margin: 16px 0 8px; text-align: center; }
+.btn.btn-danger { filter: hue-rotate(-15deg) brightness(0.85); }
+.pet-release .btn { min-height: var(--tap); }
+@media (prefers-reduced-motion: reduce) { .egg-wobble-loop { animation: none; } }
+.nest-problem { margin: 0; color: #ff9d8a; min-height: 0; }

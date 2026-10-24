@@ -1,7 +1,7 @@
 // Save migrations. MIGRATIONS[n] upgrades a version-n save to version n+1.
 // Rules: never delete a migration, never edit one that has shipped, and add one for every
 // SCHEMA_VERSION bump in state.js. Each migration must set the new version number.
-import { SCHEMA_VERSION, newVillage } from './state.js';
+import { SCHEMA_VERSION, newVillage, newTamingState } from './state.js';
 import { deriveSeed } from './rng.js';
 
 const MIGRATIONS = {
@@ -49,6 +49,13 @@ const MIGRATIONS = {
     s.achievements = { done: {}, title: null };
     s.renown.xp = Number.isFinite(s.renown.xp) ? s.renown.xp : 0;
     s.version = 5;
+    return s;
+  },
+  // 5 -> 6 (Phase 7): tracking encounters, traps, lures, treasure dig progress and the Nest's eggs.
+  // Nothing old changes meaning; the player's harvest task stays as it was.
+  5: (s) => {
+    Object.assign(s, newTamingState(s.rng));
+    s.version = 6;
     return s;
   },
 };

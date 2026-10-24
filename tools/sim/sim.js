@@ -23,7 +23,6 @@ export const PLAYERS = {
 
 // Design-doc pacing milestones that cannot happen yet (docs/design.md "Pacing targets").
 export const NOT_YET = [
-  ['Second pet tamed', 'day 1-2'],
   ['First stage-2 evolution', 'day 2'],
   ['First stage-3 evolution', 'day 8-10'],
   ['First pet retired to the Elder Grove', 'week 6-8'],
@@ -42,6 +41,9 @@ export function fmtWhen(ms) {
   const day = Math.floor((new Date(ms).setHours(0, 0, 0, 0) - new Date(START_MS).setHours(0, 0, 0, 0)) / 86400000 + 0.5) + 1;
   return `Day ${day} ${hhmm(ms)}`;
 }
+
+const mapsHeld = (state) => Object.entries(state.bag).reduce((n, [k, c]) => n + (k.startsWith('map_') ? c : 0), 0);
+const eggsHeld = (state) => (state.bag.treasure_egg || 0) + state.nest.slots.filter(Boolean).length;
 
 export function totalXp(state, balance, skillId) {
   const s = state.skills[skillId];
@@ -70,6 +72,11 @@ function milestoneList(data) {
     { id: 'plank', label: 'First pine plank', test: (s) => (s.stats.crafts.pine_plank || 0) > 0 },
     { id: 'bar', label: 'First copper bar', test: (s) => (s.stats.crafts.copper_bar || 0) > 0 },
     { id: 'building', label: 'First building upgrade', target: 10 / DAY_MIN, targetText: '10 min', test: (s) => Object.values(s.buildings).some((b) => b.tier >= 2) },
+    { id: 'tamed1', label: 'Second pet tamed (first wild catch)', target: 1.5, targetText: 'day 1-2', test: (s) => (s.stats.tamed || 0) >= 1 },
+    { id: 'tamed3', label: '  Fourth pet tamed (third wild catch)', test: (s) => (s.stats.tamed || 0) >= 3 },
+    { id: 'dig1', label: 'First treasure dug', test: (s) => (s.stats.digs || 0) >= 1 },
+    { id: 'hatched1', label: 'First egg hatched', test: (s) => (s.stats.hatched || 0) >= 1 },
+    { id: 'nest_built', label: '  Nest built', test: (s) => (s.buildings.nest?.tier || 0) >= 1 },
     { id: 'commission', label: 'First commission delivered', test: (s) => (s.stats.commissions || 0) + (s.stats.greats || 0) > 0 },
   ];
   // Design-doc pacing targets (days since the start; the middle of a range). Zones open at their Renown rank.
@@ -124,6 +131,8 @@ export function runSim(data, opts = {}) {
     if ((q === 'fine' || q === 'masterwork') && !seen[q]) seen[q] = simNow;
   };
   const pets = { work: 0, rest: 0 };
+  const tre = { coins: 0, eggs: 0, relics: 0, digs: 0 };
+  const foldDig = (coins, its) => { tre.coins += coins; tre.eggs += its.treasure_egg || 0; tre.relics += its.sanctuary_relic || 0; };
   // Coin flow by source and sink, from the events the policy's own commands emit (all coin changes
   // are commands). Whatever the totals in state.stats show beyond these is reported as "other".
   const flow = { sold: 0, commissions: 0, buildings: 0, blueprints: 0, seeds: 0, scrolls: 0, otherBought: 0 };
@@ -139,6 +148,7 @@ export function runSim(data, opts = {}) {
         else if (def?.seed) flow.seeds += e.coins;
         else flow.otherBought += e.coins;
       }
+      if (e.type === 'dig') foldDig(e.coins, e.items || {});
       if (e.type === 'craft') noteQuality(e.item);
       else if (e.type === 'petTime') {
         pets.work += e.workMs;
@@ -147,6 +157,7 @@ export function runSim(data, opts = {}) {
     }
   });
   const foldSummary = (sum) => {
+    if (sum.treasure) foldDig(sum.treasure.coins, sum.treasure.items || {});
     for (const p of Object.values(sum.pets)) {
       pets.work += p.workMs;
       pets.rest += p.restMs;
@@ -177,6 +188,9 @@ export function runSim(data, opts = {}) {
     const prev = snapshots[snapshots.length - 1];
     snapshots.push({
       day: snapIdx + 1, time: simNow, levels, xp, coins: state.coins, bag: { ...state.bag }, petWorkMs: pets.work, petRestMs: pets.rest,
+      pets: Object.keys(state.pets.list).length, tamed: state.stats.tamed || 0, released: state.stats.released || 0, digs: state.stats.digs || 0,
+      mapsFound: state.stats.maps || 0, mapsHeld: mapsHeld(state), eggsFound: tre.eggs, eggsHeld: eggsHeld(state), hatched: state.stats.hatched || 0,
+      relicsHeld: state.bag.sanctuary_relic || 0, relicsFound: tre.relics, treasureCoins: tre.coins, tamingLevel: state.skills.taming?.level || 0,
       renownRank: state.renown.rank, renownXpTotal: rTotal, renownXpDay: rTotal - (prev ? prev.renownXpTotal : 0),
     });
     snapIdx++;
@@ -237,6 +251,7 @@ export function runSim(data, opts = {}) {
     notYet: NOT_YET,
     snapshots,
     refusals: [...policy.refusals.entries()].sort((a, b) => b[1] - a[1]),
+    mapsSold: policy.mapsSold, petsReleased: policy.petsReleased,
     dispatches: policy.dispatches,
     petWorkMs: pets.work,
     petRestMs: pets.rest,
@@ -292,7 +307,7 @@ function computeFlags(r, data) {
   // items with some use: a recipe input, food, a buff, or a tool
   const used = new Set();
   for (const rc of data.recipes.recipes) for (const i of Object.keys(rc.inputs)) used.add(i);
-  for (const [id, d] of Object.entries(items)) if (d.food || d.buff || d.tool) used.add(id);
+  for (const [id, d] of Object.entries(items)) if (d.food || d.buff || d.tool || d.trap || d.bait || d.lure) used.add(id);
 
   const byBase = {}; // base id -> counts per day
   const baseIds = new Set();
@@ -307,6 +322,7 @@ function computeFlags(r, data) {
     let rising = 0;
     for (let i = 1; i < series.length; i++) if (series[i] >= series[i - 1]) rising++;
     const alwaysUp = series.length > 1 && rising === series.length - 1 && last > series[0];
+    if (['map', 'egg', 'relic'].includes(items[id]?.category)) continue; // reported by the taming and treasure flags below
     if (!used.has(id) && alwaysUp) {
       flags.push({ kind: 'pile', text: `${name(id)} piles up with no use: ${last} in the bag after day ${snaps.length}, never fell on any day. (Not a recipe input, food, buff or tool.)` });
     } else if (used.has(id) && series.length > 7 && last >= 100 && last > series[series.length - 8]) {
@@ -320,7 +336,12 @@ function computeFlags(r, data) {
     if (lastSnap.xp[id] <= 0) flags.push({ kind: 'skill', text: `${r.skillNames[id]}: the policy never gained any XP in this skill.` });
     else if (snaps.length > 7 && lastSnap.xp[id] === snaps[snaps.length - 8].xp[id]) flags.push({ kind: 'skill', text: `${r.skillNames[id]}: no XP at all in the last 7 days.` });
   }
-  flags.push({ kind: 'info', text: 'Taming: a special skill with no way to train it yet (Phase 7); not checked.' });
+  flags.push({ kind: 'info', text: `Taming level ${lastSnap.tamingLevel} after ${snaps.length} days; ${lastSnap.tamed} pets tamed, ${lastSnap.digs} digs, ${lastSnap.hatched} eggs hatched, ${lastSnap.pets} pets owned at the end.` });
+  if (r.mapsSold > 0) flags.push({ kind: 'pile', text: `Maps pile up beyond what digging can use: ${lastSnap.mapsFound} found, ${lastSnap.digs} dug, ${r.mapsSold} sold off (the policy keeps only what a 10 h overnight dig covers). Maps arrive far faster than a player can dig them.` });
+  if (lastSnap.mapsHeld > 20) flags.push({ kind: 'pile', text: `Maps still held at the end: ${lastSnap.mapsHeld}.` });
+  if (lastSnap.eggsHeld >= 3) flags.push({ kind: 'pile', text: `Eggs pile up: ${lastSnap.eggsHeld} eggs in the bag or Nest at the end (${lastSnap.eggsFound} found, ${lastSnap.hatched} hatched).` });
+  if (lastSnap.eggsFound > 0 && lastSnap.hatched === 0) flags.push({ kind: 'pile', text: `${lastSnap.eggsFound} eggs found but none hatched (Nest not built, or no free pet space).` });
+  if (lastSnap.relicsHeld > 0) flags.push({ kind: 'info', text: `${lastSnap.relicsHeld} Sanctuary Relics held with no use until Grand Projects (Phase 9).` });
 
   // coins
   const c = r.coins;
@@ -353,14 +374,14 @@ export function buildCsv(result) {
   const keys = new Set();
   for (const s of result.snapshots) for (const k of Object.keys(s.bag)) keys.add(k);
   const bagKeys = [...keys].sort();
-  const head = ['day', ...result.skillIds.map((id) => `level_${id}`), ...result.skillIds.map((id) => `xp_${id}`), 'coins', 'renown_rank', 'renown_xp_total', 'renown_xp_day', ...bagKeys.map((k) => `bag_${k}`)];
+  const head = ['day', ...result.skillIds.map((id) => `level_${id}`), ...result.skillIds.map((id) => `xp_${id}`), 'coins', 'renown_rank', 'renown_xp_total', 'renown_xp_day', 'taming_level', 'pets', 'tamed', 'digs', 'maps_found', 'maps_held', 'eggs_found', 'eggs_held', 'hatched', 'relics_held', 'treasure_coins', ...bagKeys.map((k) => `bag_${k}`)];
   const rows = [head.join(',')];
   for (const s of result.snapshots) {
     rows.push([
       s.day,
       ...result.skillIds.map((id) => s.levels[id]),
       ...result.skillIds.map((id) => Math.round(s.xp[id])),
-      s.coins, s.renownRank, Math.round(s.renownXpTotal), Math.round(s.renownXpDay),
+      s.coins, s.renownRank, Math.round(s.renownXpTotal), Math.round(s.renownXpDay), s.tamingLevel, s.pets, s.tamed, s.digs, s.mapsFound, s.mapsHeld, s.eggsFound, s.eggsHeld, s.hatched, s.relicsHeld, s.treasureCoins,
       ...bagKeys.map((k) => s.bag[k] || 0),
     ].join(','));
   }
