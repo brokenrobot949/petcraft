@@ -1,6 +1,7 @@
 // Craft tab: buffs, the four stations (queues, recipe picker, Focus tap), equipped tools and the bag.
 import { el, sheet, sheetWithClose, toast } from './dom.js';
 import { itemIcon } from './icons.js';
+import { getPref, setPref } from './device.js';
 import { bagList, itemLabel, itemKey } from '../systems/bag.js';
 import { skillProgress } from '../systems/skills.js';
 import {
@@ -221,8 +222,37 @@ function openPicker(stationId) {
   const close = sheetWithClose('Close', `${data().recipes.stations.find((s) => s.id === stationId).name} recipes`, box);
   showList();
 
+  // Recipes you can make now come first, then ones short of materials, then locked ones (each group
+  // keeps the data order). Chips narrow the list: "Can make" and one per kind of output (Tools,
+  // Parts...). The choice is remembered per device, per station.
   function showList() {
-    box.replaceChildren(...recipesFor(data(), stationId).map((r) => recipeRow(r)));
+    const st = state();
+    const d = data();
+    const pref = `pickerFilter.${stationId}`;
+    const filter = getPref(pref, { canMake: false, category: null });
+    const rank = (chk) => (chk.reason.startsWith('Needs') ? 2 : chk.max < 1 ? 1 : 0);
+    const all = recipesFor(d, stationId).map((r, i) => {
+      const chk = recipeCheck(st, d, r.id, 1);
+      return { r, i, rank: rank(chk), category: d.items.items[r.output]?.category };
+    });
+    const cats = d.items.categories.filter((c) => all.some((e) => e.category === c.id));
+    if (filter.category && !cats.some((c) => c.id === filter.category)) filter.category = null;
+    const set = (next) => {
+      setPref(pref, { ...filter, ...next });
+      showList();
+    };
+    const chip = (label, on, onclick) => el('button.chip', { type: 'button', 'aria-pressed': String(on), onclick }, label);
+    const chips = [chip('Can make', filter.canMake, () => set({ canMake: !filter.canMake }))];
+    if (cats.length > 1) {
+      chips.push(chip('All', !filter.category, () => set({ category: null })));
+      for (const c of cats) chips.push(chip(c.name, filter.category === c.id, () => set({ category: filter.category === c.id ? null : c.id })));
+    }
+    const shown = all
+      .filter((e) => (!filter.canMake || e.rank === 0) && (!filter.category || e.category === filter.category))
+      .sort((a, b) => a.rank - b.rank || a.i - b.i);
+    box.replaceChildren(
+      el('div.picker-filters', {}, chips),
+      ...(shown.length ? shown.map((e) => recipeRow(e.r)) : [el('p.small.muted', {}, 'Nothing here you can make right now.')]));
   }
 
   function recipeRow(r) {
