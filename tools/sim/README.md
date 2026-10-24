@@ -139,3 +139,16 @@ Pick **90 days (endgame)** in the Length box (or add `?days=90&auto` to the addr
 The report gains milestones (Grand Projects open, first stage, each project, Elder Grove, first retirement, ending, first mythic,
 first Starmetal tool), an Endgame section (projects, current stage needs, elders, Mastery stars), an Endgame chart, daily columns
 (projects, stages, stage %, elders, stars; also in the CSV) and flags for stalled projects.
+
+## Phase 10: tuning helpers
+
+- **Same seed, same run.** Every random stream in a new game now follows the seed (`createInitialState(now, seed)`);
+  before Phase 10 the village, garden, taming, treasure, nest and elder streams were random per run, so two runs with
+  the same seed could differ.
+- **`worker.js`** runs one simulation in a Web Worker, so long runs don't freeze the page and several can run at once:
+  `new Worker('/tools/sim/worker.js', { type: 'module' }).postMessage({ days, seed, player, patch, keepState })`.
+  `patch` is JavaScript run as `(d) => { ... }` on a copy of the data first (try a balance change without editing
+  `data/balance.json`); `keepState: true` also returns the final game state (a late-game save for performance checks).
+- New daily columns: Renown XP by source (`renownBySource`: commission, great, achievement, building, firstCraft,
+  project, and `away` for what catch-up reports as one total) and the best pet's level and Bond (`petTopLevel`,
+  `petTopHearts`, which is Bond points).

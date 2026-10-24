@@ -2,7 +2,6 @@
 import { el, toast, formatAgo } from './dom.js';
 import { exportCode, importCode } from '../core/save.js';
 import { getPref, setPref } from './device.js';
-import { createDevPanel } from './devpanel.js';
 import { createBestiary } from './bestiary.js';
 import { openMossbrook } from './mossbrook.js';
 import { rankInfo } from '../systems/renown.js';
@@ -100,12 +99,15 @@ export function mount(container, app) {
     installBtn.hidden = !can;
   });
 
-  // ---- test mode: tap the version line 5 times within 3 seconds ----
+  // ---- test mode (local preview server only; not part of the shipped game): tap the version line
+  // 5 times within 3 seconds. The panel lives in tools/dev and is loaded only here.
   const devHost = el('div');
+  const devAllowed = ['localhost', '127.0.0.1'].includes(location.hostname);
   let taps = [];
   const versionLine = el('p.small.muted', {
     style: 'margin-top:8px',
     onclick: () => {
+      if (!devAllowed) return;
       const now = Date.now();
       taps = taps.filter((t) => now - t < 3000).concat(now);
       if (taps.length < 5) return;
@@ -116,8 +118,22 @@ export function mount(container, app) {
       toast(on ? 'Test mode on' : 'Test mode off');
     },
   }, `Version ${self.PETCRAFT_VERSION}`);
-  function showDev(on) {
-    devHost.replaceChildren(...(on ? [createDevPanel(app)] : []));
+  // How long the last catch-up took on this device (Phase 10 performance check; set in main.js).
+  const lastCatchUp = getPref('lastCatchUp', null);
+  const catchUpLine = lastCatchUp
+    ? el('p.small.muted', {}, `Last catch-up: ${Math.round(lastCatchUp.awayMs / 360000) / 10} h of game time in ${lastCatchUp.ms} ms.`)
+    : null;
+  async function showDev(on) {
+    if (!on || !devAllowed) {
+      devHost.replaceChildren();
+      return;
+    }
+    try {
+      const { createDevPanel } = await import('../../tools/dev/devpanel.js');
+      devHost.replaceChildren(createDevPanel(app));
+    } catch (err) {
+      console.warn('test mode panel', err);
+    }
   }
   showDev(getPref('devMode', false));
 
@@ -128,7 +144,7 @@ export function mount(container, app) {
     progressHost,
     bestiary.node,
     el('div.panel', {}, el('h2', {}, 'Sound'), ...toggles.map((t) => t.row),
-      el('p.small.muted', {}, 'Music and sound arrive in Phase 10. Your choice is remembered.')),
+      el('p.small.muted', {}, 'Sound starts after your first tap. Your choice is remembered.')),
     el('div.panel', {},
       el('h2', {}, 'Your save'),
       saveInfo,
@@ -140,7 +156,7 @@ export function mount(container, app) {
       importBox,
       el('div.row', {}, importBtn)),
     el('div.panel', {}, el('h2', {}, 'App'), installBtn, installHelp,
-      versionLine),
+      versionLine, ...(catchUpLine ? [catchUpLine] : [])),
     devHost,
     el('div.panel', {},
       el('h2', {}, 'Credits'),

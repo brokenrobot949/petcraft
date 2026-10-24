@@ -861,3 +861,52 @@ adult of its first branch), `dev/masteryStars { skill, stars }`, `dev/encounter 
 `elders { openLevel, retireLevel, retireHearts, branchBonus, stack, mythicBonus, heir { matchChance, bandsBelow } }`,
 `taming.mythic { revealShare, cooldownHours, catchBase, catchPerLevel, cap }`, `treasure.byTier.*` gain a tier 6 entry,
 `render.mythicScale`.
+
+## Phase 10: tune and ship
+
+No save schema change (still version 8). Contract changes:
+
+### Audio (js/ui/audio.js, data/audio.json)
+
+- `createAudio(game)` (main.js, exposed as `app.audio`): `setScene(name)` picks the music (a key of audio.json `music`:
+  `home`, `mossbrook` or a zone id; an unknown scene keeps the current track), `getScene()`, `debug()`.
+  Shell: the Home tab sets `home`; world.js sets the open zone; mossbrook.js sets `mossbrook` and restores the previous scene.
+- Nothing plays before the first tap (`pointerdown`/`touchend`/`keydown` creates the AudioContext; the two music
+  `<audio>` elements are unlocked with a silent clip inside that tap for iPhone Safari). Music: fetched as a Blob, played
+  by an `<audio>` element through a GainNode (crossfade `balance.audio.musicFadeMs`); never decoded whole. SFX: decoded
+  once into buffers. Throttles: `sfxMinGapMs` per sound, `sfxMaxPerSecond` overall. Ogg not playable: music stays off.
+- Sound effects come from live events only (`game.onEvents`; catch-up never plays sounds): audio.json `events`
+  (event type -> sfx id) and `harvestBySkill` (the player's harvests, only while the World tab shows that zone);
+  a quiet `uiTap` on button presses. Toggles: `state.settings.music` / `.sound` (in the save).
+- Offline: SFX are precached (sw.js FILES). Music (~9 MB) is in sw.js `MUSIC`, cached on first play in the
+  unversioned `petcraft-music` cache (kept across updates); check-precache.ps1 checks both lists.
+- balance.json `audio { musicVolume, sfxVolume, musicFadeMs, sfxMinGapMs, sfxMaxPerSecond }`.
+
+### Test mode is not shipped
+
+- The test mode panel and its commands moved to `tools/dev/devpanel.js` and `tools/dev/dev.js` (not in sw.js, not in
+  SYSTEMS). `registerCommands(commands)` in js/core/game.js adds them; the Journal imports the panel only when the page
+  is served from localhost/127.0.0.1 (tap the version line 5 times). tools/tests/core.html registers them itself.
+
+### Performance
+
+- `harvest.actionProfile(state, data, workerId, prev)`: one worker's per-action values (duration, XP, drop modifiers,
+  rare and map chances), reused while the task object, the pet's level and hearts (or the player's Mastery stars in that
+  skill) stay the same. harvest.advance and pets.advancePet pass it to `completeAction(state, ctx, workerId, profile)`.
+  Results are identical to computing everything per action (checked against the Phase 9 code on a 60-day save).
+- Lookups by id (zones, skills, harvest nodes, archetypes) use cached Maps; Mastery stars use cached thresholds;
+  `petEffects` checks its cache without building a string. 16 h catch-up on a 60-day save: ~70 ms cold, ~55 ms warm on
+  a desktop (was ~240 / ~195). main.js records the last launch catch-up per device (`petcraft.device.lastCatchUp`);
+  Journal -> App shows it, so it can be read on a phone.
+
+### Saves
+
+- `createInitialState(now, seed?)`: an optional seed makes every random stream reproducible (the simulator passes it).
+- tools/tests/saves.html: makes real saves with every old version's own code (tools/tests/extract-old.ps1 extracts
+  them into the gitignored tools/tests/old/), upgrades and plays them with today's code and checks nothing is lost;
+  plus damaged saves, the backup slot, storage full, export/import, the clock rules and catch-up speed.
+
+### Other
+
+- iPhone install guide (pwa.js): explains that the Home Screen app keeps its own save, and copies the game across with
+  a save code first.

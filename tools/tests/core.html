@@ -14,7 +14,8 @@
 // Open http://localhost:<port>/tools/tests/core.html. Not shipped.
 import { loadData } from '../../js/core/data.js';
 import { createInitialState, validateState, newTamingState, SCHEMA_VERSION } from '../../js/core/state.js';
-import { createGame } from '../../js/core/game.js';
+import { createGame, registerCommands } from '../../js/core/game.js';
+import { commands as devCommands } from '../dev/dev.js';
 import { parseSave } from '../../js/core/save.js';
 import { petMaxEnergy, petDrainPerHour } from '../../js/systems/petstats.js';
 import { qualityOdds, itemMs, queueSlots } from '../../js/systems/crafting.js';
@@ -24,7 +25,7 @@ import { offlineCapMs } from '../../js/core/time.js';
 import { pantryList } from '../../js/systems/pets.js';
 import { actionMs, zoneUnlocked } from '../../js/systems/harvest.js';
 import { recipeCheck } from '../../js/systems/crafting.js';
-import { rankInfo } from '../../js/systems/renown.js';
+import { rankInfo, xpToNextRank } from '../../js/systems/renown.js';
 import { weekOf, sellPrice } from '../../js/systems/village.js';
 import { growMs, seedDef } from '../../js/systems/garden.js';
 import { achievementList, wornTitle } from '../../js/systems/achievements.js';
@@ -45,6 +46,7 @@ import { masteryStars, masteryProgress } from '../../js/systems/skills.js';
 import { trapOptions } from '../../js/systems/taming.js';
 import { petStage, petRole, talentDef } from '../../js/systems/petstats.js';
 
+registerCommands(devCommands); // test mode commands are dev-only (tools/dev)
 const out = document.getElementById('out');
 const lines = [];
 let failed = 0;
@@ -388,7 +390,7 @@ try {
   const v4 = JSON.parse(JSON.stringify(so));
   v4.version = 4;
   delete v4.village; delete v4.garden; delete v4.achievements; delete v4.crafting.working; delete v4.crafting.known;
-  v4.renown = { rank: 1, xp: 400 };
+  v4.renown = { rank: 1, xp: xpToNextRank(1, data.balance) + xpToNextRank(2, data.balance) }; // an old running total worth rank 3
   v4.crafting.stations.kitchen.queue = [{ recipe: 'berry_compote', qty: 2, done: 0, focus: null, inputs: { berries: 3 }, made: {} }];
   v4.crafting.stations.forge.queue = [{ recipe: 'copper_bar', qty: 2, done: 0, focus: null, inputs: { copper_ore: 2 }, made: {} }];
   const m4 = parseSave(JSON.stringify(v4));
@@ -396,7 +398,7 @@ try {
   check('migration: the first busy station keeps working, the other pauses', JSON.stringify(m4.state?.crafting.working) === '["forge"]', JSON.stringify(m4.state?.crafting.working));
   const g4 = createGame(data, m4.state, { clock });
   const s4 = g4.getState();
-  check('old Renown total settles into ranks (400 XP -> rank 3)', s4.renown.rank >= 3, JSON.stringify(s4.renown));
+  check('old Renown total settles into ranks (enough XP for rank 3)', s4.renown.rank >= 3, JSON.stringify(s4.renown));
   check('migrated save keeps both queues', s4.crafting.stations.kitchen.queue.length === 1 && s4.crafting.stations.forge.queue.length === 1);
 
   const gw = freshGame(31);
@@ -448,8 +450,8 @@ try {
   const sr = gR.getState();
   gR.dispatch('dev/setRenown', { rank: 1 });
   check('Whisperwood is closed at Renown 1', !zoneUnlocked(sr, data, 'whisperwood'));
-  gR.dispatch('dev/addRenownXp', { amount: 150 + 250 });
-  check('Renown XP ranks up (150, then 250)', sr.renown.rank === 3 && sr.renown.xp === 0, JSON.stringify(sr.renown));
+  gR.dispatch('dev/addRenownXp', { amount: xpToNextRank(1, data.balance) + xpToNextRank(2, data.balance) });
+  check('Renown XP ranks up (rank 1 -> 2 -> 3)', sr.renown.rank === 3 && sr.renown.xp === 0, JSON.stringify(sr.renown));
   check('each zone opens at its rank', zoneUnlocked(sr, data, 'whisperwood') && !zoneUnlocked(sr, data, 'stonecrag'));
   check('rank info points at the next unlock', rankInfo(sr, data).nextUnlockRank === 5 && rankInfo(sr, data).nextUnlocks.includes('Build the Alchemy Lab'), JSON.stringify(rankInfo(sr, data)));
 
@@ -710,7 +712,7 @@ try {
   gD.dispatch('dev/grant', { item: 'map_meadowfold', qty: 600 });
   gD.dispatch('treasure/dig', { zone: 'meadowfold' });
   gD.catchUp(600 * 20 * 60000 + 60000);
-  check('600 digs: eggs about 5% of the time, relics now and then', sD.stats.digs === 600 && Math.abs((sD.bag.treasure_egg || 0) / 600 - 0.05) < 0.025 && sD.bag.sanctuary_relic > 0, `${sD.bag.treasure_egg} eggs, ${sD.bag.sanctuary_relic} relics`);
+  check(`600 digs: eggs about ${data.balance.treasure.eggChance * 100}% of the time, relics now and then`, sD.stats.digs === 600 && Math.abs((sD.bag.treasure_egg || 0) / 600 - data.balance.treasure.eggChance) < 0.025 && sD.bag.sanctuary_relic > 0, `${sD.bag.treasure_egg} eggs, ${sD.bag.sanctuary_relic} relics`);
 
   // The Nest: eggs warm for 4 hours (less at higher tiers), then hatch with a name.
   const gN = freshGame(80);

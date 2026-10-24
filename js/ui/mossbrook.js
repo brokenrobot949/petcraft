@@ -17,6 +17,7 @@ export function closeMossbrook() {
   closePicker();
   if (!current) return;
   current.unsub();
+  if (current.previousScene) current.audio?.setScene(current.previousScene);
   current.backdrop.remove();
   current = null;
 }
@@ -308,6 +309,8 @@ export function openMossbrook(app, startTab = 'board') {
   }
 
   const unsub = game.subscribe(render);
-  current = { backdrop, unsub, setTab };
+  const previousScene = app.audio?.getScene() || null;
+  app.audio?.setScene('mossbrook');
+  current = { backdrop, unsub, setTab, audio: app.audio, previousScene };
   render();
 }

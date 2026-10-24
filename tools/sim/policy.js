@@ -800,9 +800,13 @@ export function createPolicy(data) {
       if ((r.level || 1) > lvl || items[r.output]?.tool || r.scroll) continue;
       const ids = Object.keys(r.inputs);
       if (!ids.every((i) => !producer[i])) continue;
-      if (!(nodeIndex[ids[0]] || []).some((c) => nodeCheck(state, data, c.zone, c.skill, c.node).ok)) continue;
+      const reachable = (i) => (nodeIndex[i] || []).some((c) => nodeCheck(state, data, c.zone, c.skill, c.node).ok);
+      if (!ids.every(reachable)) continue;
+      // Gather the input that runs out first (Phase 10: gathering only the first input could leave
+      // a gate skill stuck when a later input, like honeycomb, was the scarce one).
+      const limiting = ids.reduce((a, b) => (itemCount(state, b) / r.inputs[b] < itemCount(state, a) / r.inputs[a] ? b : a));
       const xp = itemXp(data, r) / ids.length;
-      if (!best || xp > best.xp) best = { item: ids[0], xp };
+      if (!best || xp > best.xp) best = { item: limiting, xp };
     }
     return best?.item || null;
   }

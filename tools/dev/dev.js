@@ -1,16 +1,17 @@
-// Test mode commands (docs/handoff.md "Test mode"): grant items, set skill levels, add coins.
-// Opened from a hidden panel in Journal -> Settings. Removed from the shipped build in Phase 10.
-import { addItem, itemKey } from './bag.js';
-import { createPet, addPetXp } from './pets.js';
-import { archetypeOf, petMaxEnergy, petLevelCap, branchDef } from './petstats.js';
-import { addRenownXp } from './renown.js';
-import { newDay } from './village.js';
-import { randomInt } from '../core/rng.js';
-import { rollQuality } from './taming.js';
-import { digMs } from './treasure.js';
-import { currentStage, forceStage } from './sanctuary.js';
-import { recordPet } from './bestiary.js';
-import { xpToNext } from './skills.js';
+// Test mode commands (docs/handoff.md "Test mode"): grant items, set skill levels, add coins, jump to content.
+// Dev only, not shipped (Phase 10): the Journal loads the panel only on the local preview server, and the
+// panel and tools/tests add these commands with registerCommands() from js/core/game.js.
+import { addItem, itemKey } from '../../js/systems/bag.js';
+import { createPet, addPetXp } from '../../js/systems/pets.js';
+import { archetypeOf, petMaxEnergy, petLevelCap, branchDef } from '../../js/systems/petstats.js';
+import { addRenownXp } from '../../js/systems/renown.js';
+import { newDay } from '../../js/systems/village.js';
+import { randomInt } from '../../js/core/rng.js';
+import { rollQuality } from '../../js/systems/taming.js';
+import { digMs } from '../../js/systems/treasure.js';
+import { currentStage, forceStage } from '../../js/systems/sanctuary.js';
+import { recordPet } from '../../js/systems/bestiary.js';
+import { xpToNext } from '../../js/systems/skills.js';
 
 export const id = 'dev';
 

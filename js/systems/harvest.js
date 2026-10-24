@@ -5,7 +5,7 @@
 // random stream, so live play and offline catch-up (any chunk size) give the same results.
 import { chance, random, randomInt, deriveSeed } from '../core/rng.js';
 import { addItem } from './bag.js';
-import { addXp, skillLevel, masterySpeed } from './skills.js';
+import { addXp, skillLevel, masterySpeed, masteryStars } from './skills.js';
 import { isPet, petSpeed, petRareBonus, effectValue } from './petstats.js';
 import { buffSpeed } from './buffs.js';
 import { sanctuaryBonus } from './sanctuary.js';
@@ -30,16 +30,29 @@ export function init(state, ctx) {
 
 // ---- lookups ----
 
+// Lookups run on every action, so the lists are indexed once (per data object).
+const byIdCache = new WeakMap();
+function indexed(list) {
+  let m = byIdCache.get(list);
+  if (!m) {
+    m = new Map();
+    for (const x of list) if (!m.has(x.id)) m.set(x.id, x); // first one wins, like find()
+    byIdCache.set(list, m);
+  }
+  return m;
+}
+
 function zoneById(data, zoneId) {
-  return data.zones.zones.find((z) => z.id === zoneId) || null;
+  return indexed(data.zones.zones).get(zoneId) || null;
 }
 
 function skillById(data, skillId) {
-  return data.skills.skills.find((s) => s.id === skillId) || null;
+  return indexed(data.skills.skills).get(skillId) || null;
 }
 
 function findNode(data, { zone, skill, node }) {
-  return zoneById(data, zone)?.harvest?.[skill]?.find((n) => n.id === node) || null;
+  const nodes = zoneById(data, zone)?.harvest?.[skill];
+  return (nodes && indexed(nodes).get(node)) || null;
 }
 
 // Is this a harvesting task (not tracking or digging)?
@@ -159,42 +172,70 @@ function pickWeighted(stream, list) {
   return list[list.length - 1];
 }
 
+// Everything one worker's action needs that only changes with a level, a heart or a Mastery star
+// within a span of game time (tools, buffs, talents, projects and elders change only at span
+// boundaries or by command). Workers repeat one action thousands of times while away, so this is
+// worked out once and reused while profileKey stays the same (docs/architecture.md "Phase 10").
+function profileKey(state, data, pet, task) {
+  if (pet) {
+    const marks = data.balance.pets.bond.hearts;
+    let hearts = 0;
+    while (hearts < marks.length && pet.bond >= marks[hearts]) hearts++;
+    return pet.level * 64 + hearts;
+  }
+  return masteryStars(state, data, task.skill);
+}
+
+export function actionProfile(state, data, workerId, prev = null) {
+  const task = state.workers[workerId].task;
+  const pet = isPet(state, workerId) ? state.pets.list[workerId] : null;
+  const key = profileKey(state, data, pet, task);
+  if (prev && prev.task === task && prev.key === key && prev.data === data) return prev;
+  const node = findNode(data, task);
+  return {
+    data, task, key, node, pet,
+    ms: actionMs(state, data, workerId, task),
+    xp: actionXp(data, task, node),
+    // Pet talents and branches: by-product drops (chance below 1) come more often; extraItem may add
+    // one more of the main drop. Workers without these effects roll exactly as before.
+    byproduct: pet ? effectValue(data, pet, 'byproduct', task.skill) : 0,
+    extra: pet ? effectValue(data, pet, 'extraItem', task.skill) : 0,
+    main: node.drops.find((d) => d.chance >= 1),
+    rares: zoneById(data, task.zone).rare?.[task.skill],
+    rareChance: rareChance(state, data, workerId, task),
+    mapItem: mapItemFor(data, task.zone),
+    mapChance: mapChance(state, data, workerId, task),
+  };
+}
+
 // One finished action for a worker: roll drops and rare finds (from the worker's own random
 // stream), fill the bag. The player earns skill XP; a pet's XP is returned for the pets system
-// to add. Returns { xp } (the XP the action is worth).
-export function completeAction(state, ctx, workerId) {
+// to add. Returns { xp } (the XP the action is worth). `profile` (from actionProfile) is optional.
+export function completeAction(state, ctx, workerId, profile = null) {
   const { data } = ctx;
   const w = state.workers[workerId];
   const task = w.task;
-  const node = findNode(data, task);
-  const pet = isPet(state, workerId);
+  const p = actionProfile(state, data, workerId, profile);
+  const { node, pet } = p;
   const items = {};
-  // Pet talents and branches: by-product drops (chance below 1) come more often; extraItem may add
-  // one more of the main drop. Workers without these effects roll exactly as before.
-  const p = pet ? state.pets.list[workerId] : null;
-  const byproduct = p ? effectValue(data, p, 'byproduct', task.skill) : 0;
   for (const d of node.drops) {
-    if (d.chance < 1 && !chance(w, Math.min(1, d.chance * (1 + byproduct)))) continue;
+    if (d.chance < 1 && !chance(w, Math.min(1, d.chance * (1 + p.byproduct)))) continue;
     const qty = randomInt(w, d.qty[0], d.qty[1]);
     if (qty > 0) items[d.item] = (items[d.item] || 0) + qty;
   }
-  const extra = p ? effectValue(data, p, 'extraItem', task.skill) : 0;
-  const main = node.drops.find((d) => d.chance >= 1);
-  if (extra > 0 && main && chance(w, extra)) items[main.item] = (items[main.item] || 0) + 1;
+  if (p.extra > 0 && p.main && chance(w, p.extra)) items[p.main.item] = (items[p.main.item] || 0) + 1;
   let rare = false;
-  const rares = zoneById(data, task.zone).rare?.[task.skill];
-  if (rares && rares.length && chance(w, rareChance(state, data, workerId, task))) {
-    const pick = pickWeighted(w, rares);
+  if (p.rares && p.rares.length && chance(w, p.rareChance)) {
+    const pick = pickWeighted(w, p.rares);
     items[pick.item] = (items[pick.item] || 0) + 1;
     rare = true;
   }
-  const mapItem = mapItemFor(data, task.zone);
-  if (mapItem && chance(w, mapChance(state, data, workerId, task))) {
-    items[mapItem] = (items[mapItem] || 0) + 1;
+  if (p.mapItem && chance(w, p.mapChance)) {
+    items[p.mapItem] = (items[p.mapItem] || 0) + 1;
     state.stats.maps = (state.stats.maps || 0) + 1;
   }
-  for (const [itemId, qty] of Object.entries(items)) addItem(state, itemId, qty);
-  const xp = actionXp(data, task, node);
+  for (const itemId in items) addItem(state, itemId, items[itemId]);
+  const xp = p.xp;
   state.stats.actions[task.skill] = (state.stats.actions[task.skill] || 0) + 1;
   const petXp = pet ? xp * data.balance.pets.xpPerSkillXp : 0;
   ctx.emit?.({ type: 'harvest', worker: workerId, zone: task.zone, skill: task.skill, node: task.node, items, xp: pet ? 0 : xp, petXp, rare });
@@ -217,12 +258,12 @@ export function advance(state, ms, ctx) {
     if (!w.task || isPet(state, workerId) || !isHarvestTask(ctx.data, w.task)) continue;
     if (dropStaleTask(ctx.data, w)) continue;
     w.progressMs += ms;
-    // Re-read the duration after each action: a level-up can change it.
-    let dur = actionMs(state, ctx.data, workerId, w.task);
-    while (w.progressMs >= dur) {
-      w.progressMs -= dur;
-      completeAction(state, ctx, workerId);
-      dur = actionMs(state, ctx.data, workerId, w.task);
+    // Re-read the duration after each action: a Mastery star can change it (the profile refreshes then).
+    let prof = actionProfile(state, ctx.data, workerId);
+    while (w.progressMs >= prof.ms) {
+      w.progressMs -= prof.ms;
+      completeAction(state, ctx, workerId, prof);
+      prof = actionProfile(state, ctx.data, workerId, prof);
     }
   }
 }

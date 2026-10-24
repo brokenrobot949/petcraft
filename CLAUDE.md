@@ -60,9 +60,32 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 9 done (2026-10-24)
-Next: Phase 10 (tune and ship: simulator tuning to pacing targets, audio, save stress tests, performance,
-  credits, iPhone install guide, remove test mode from the shipped build).
+Phase: 10 done (2026-10-24). All eleven phases built.
+Next: Rob's final playtest; then fixes from it. Open design calls are listed under Known issues.
+Phase 10: no schema change (still v8). Contract in docs/architecture.md "Phase 10: tune and ship".
+  Tuning (balance.json; simulator v5 + tools/sim/worker.js and lab.js, 3 seeds): renown.xpCurve {375, 0.5, 60}
+  (a flatter curve: about 435-2100 XP a rank), pets.xpCurve {0.000007, 8, 11000} (levels 1-20 about as before,
+  20-30 much slower), Bond from favorite dishes 15 -> 2 and personal dish 40 -> 5 (pets eat often, so Bond had
+  exploded), daily commission coins x1.6 -> x1, Great Commission x2.5 -> x1.5, dig coins cut to a tenth, treasure
+  eggs 5% -> 2%; market.json: the Pine Trap sells from Renown 3 (was 1). Regular player, seeds 12345/777/4242:
+  second pet day 1.2-1.6, first juvenile day 2.0-2.2, first adult day 7.6-8.0, Whisperwood day 0.6-1.0,
+  Stonecrag 4.0-5.0, Mistfen 13.0-14.3, Renown 12 day 17-19, Emberfall 35-38, first elder 46-58, ending 66-69:
+  every target within 25% except Whisperwood on seed 777 (the evening of day 1). Light player: ending day 69.5-71
+  (target by week 14). Coins at day 90: earned ~640k, ~190k left (was 2.3M earned, 1.8M left).
+  Simulator fixes: every random stream follows the seed (createInitialState(now, seed); runs were not repeatable
+  before); the policy gathers the scarce input of a training recipe (seed 777 used to stall at Alchemy 17).
+  Audio (js/ui/audio.js, data/audio.json, balance.audio): 8 music tracks (Home, Mossbrook, one per zone,
+  crossfaded, cached on first play in the petcraft-music cache), 22 sound effects from live events; starts on the
+  first tap; Journal toggles. Test mode moved to tools/dev/ and only loads on localhost (registerCommands in
+  game.js). Save stress tests: tools/tests/saves.html (153 checks) makes saves with every old version's own code
+  (tools/tests/extract-old.ps1 -> gitignored tools/tests/old/), upgrades and plays them: nothing lost from v1-v8;
+  plus damaged saves, backup, storage full, export/import, clock. Performance: harvest.actionProfile and cached
+  lookups make catch-up ~3.5x faster with identical results (16 h on a 60-day save: ~55-80 ms on desktop);
+  Journal -> App shows the last catch-up time on the device. iPhone install guide: copies the save across with a
+  save code first (the Home Screen app has its own storage). CREDITS.md lists every audio file. Core checks: 242.
+  Lead calls Rob may want to know: five of the eight adult catalysts need Mistfen materials (Renown 10, week 2-3),
+  so a pet on those branches can't become an adult before then (the day 8-10 target needs Boulder, Gem or Fang
+  first); Renown ranks now cost about the same each (no big late jumps); the music tracks are Claude's picks.
 Phase 9: save schema v8 (migration 7->8: sanctuary, story, elders, taming.mythicMs, pet heirloom/parent).
   Contract in docs/architecture.md "Phase 9: endgame". Grand Projects (js/systems/sanctuary.js, data/projects.json):
   5 projects x 3 stages from Renown 12, delivered bit by bit (sanctuary/deliver), 300 Renown XP per stage,
@@ -176,29 +199,26 @@ Art casting: data/sprites.json maps roles (player, pet.<archetype>.<form>, mythi
   suggestions; Rob recasts in the catalog (http://localhost:8080/tools/catalog/ -> Casting -> Save),
   which writes sprites.json and runs tools/atlas/pack.ps1 via tools/serve.ps1. Then commit + bump version.
 Known issues:
-- Pacing (simulator v3, 30 days, regular player): Renown zones arrive early (Whisperwood 5 h, Stonecrag
-  day 1.4, Mistfen day 7.6, Renown 12 day 10.6, Emberfall day 22 vs target 32); treasure coins speed it up. Harvest skills hit 60 by day 14-20; willow logs and other stockpiles reach the
-  hundreds of thousands. Light player is roughly on target to Renown 12 (day 18). All tuned in Phase 10 in
-  balance.json (renown.xpCurve, village.daily.renown, XP curve, harvest yields).
-- Pets rest under 1% of the time even with the one-station rule (simulator 0.3%): meals are cheap and fast.
-  Making meals cost more is a Phase 10 lever. Auto-feed uses cooked meals and tonics only (Rob, 2026-10-19).
+- Pacing after Phase 10: see Status. Harvest and craft skills still reach 60 around day 25-30 (Mastery stars carry
+  on after that); many raw materials still pile up in the tens of thousands (simulator: ~50 items flagged).
+- Pets rest under 1% of the time (simulator 0.1%): auto-feed keeps them topped up with cheap meals. Left as is
+  (a design question for Rob: make meals cost more, or accept that fed pets never rest). Auto-feed uses cooked meals and tonics only (Rob, 2026-10-19).
 - Some commissions ask for meals made with Garden crops; a player without a Garden yet can reroll them.
 - A brand-new player gets a Great Commission only once their skills meet one template's needs (the board
   keeps trying every minute).
 - Player outfits at Renown 5/10/15/20/25 are not built (needs Rob's casting of outfit looks).
 - Decor (market sink) and fertilizer are not built. Relics still pile up (simulator: ~460 held at day 90; the
   projects need 25).
-- Pets retire far too early (simulator: first elder day 17 vs week 6-8; 20+ elders by day 90) because pet XP
-  is a placeholder; tune balance.pets.xpCurve in Phase 10. Many elders stack a large legacy bonus.
+- Pet levels 20-30 are now slow by design (first elder week 6-8); levels 25-30 take several days each.
 - The simulated player can't keep project meals from auto-feed except by toggling the pantry (it does now);
   real players must switch those meals off in the Pantry themselves. Rob may want projects to reserve them.
 - Phase 9 weak art: starmetal tools and heads reuse the generic tool pictures; elderwood log/plank match oak;
   heir egg is an orb on a pedestal; mythic bait is a nut; tier-6 meals reuse sushi/onigiri/yakitori; the
   restored Sanctuary hall (stages 3-5) is a flat cream block with sunflower terraces; the pheasant glade has no bird.
 - Wild visitors in the ending scene and pets gathering for a project scene walk straight lines through buildings.
-- Treasure (simulator v3, after the cuts): about 17 maps a day; dig coins are still over half of all coins
-  earned and coins pile up (Phase 10: balance.treasure.byTier.coins, mapChance). Regular player tames ~23-30
-  pets in 30 days; second pet tamed day 0.4 (target day 1-2). New players see many escapes at 35% without bait.
+- Treasure: maps still come fast (simulator ~55 a day by day 90, mostly from pets) and Relics pile up (~470
+  held at day 90); dig coins are now about a quarter of coins earned. The regular simulated player tames ~95 pets
+  in 90 days, so the Bestiary target (month 4+) is not measured and may come early. New players see many escapes at 35% without bait.
 - Weak Phase 7 icons (pack has no eggs, traps or springs): eggs are orbs, all trap springs share a hook,
   willow/ashwood frames reuse plank icons, traps are crates/baskets/chest/cauldron, lures reuse potion
   bottles, two map scrolls match blueprint icons, the scene trap is one basket for every tier, the dig site
@@ -207,12 +227,13 @@ Known issues:
   (Hunter's Musk), a milk pot (Abyssal Pearl: the pack has no pearl). Unseen Bestiary entries show as dark boxes.
 - Assistants use no energy and earn no XP or Bond while posted. The simulator's player keeps its best pets
   active, so it posts only ~2 assistants and its Scouts rarely dig (Phase 10 policy question).
-- Heart 4 gifts (simulator: ~260 in 30 days) add to the coin and loot pile-up; tune heartGifts in Phase 10.
-- Pet XP is a placeholder: a pet reaches the hatchling cap (level 10) in about a day of work.
+- Heart 4 gifts (simulator: ~760 in 90 days) add to the loot pile-up (balance.pets.heartGifts).
 - Simulator: the scripted player acts only at check-ins, so "first building upgrade" shows 10 h (it must
   build the Forge first now); an active player needs about 5-10 minutes. The policy reads zone rares and
   reachability straight from data (no selector for "where does this item come from").
-- Catch-up: 16 h in about 80 ms on desktop; not yet measured on a phone. 30 fps likewise desktop-only.
+- Catch-up: 16 h in ~55-80 ms on desktop on a late game; on a phone see Journal -> App ("Last catch-up").
+  30 fps is measured on desktop only. Music is Ogg: an iPhone that cannot play Ogg stays silent for music
+  (sound effects still play). Audio is untested on a real iPhone.
 - Weak icon matches: pine frame (a shelf), copper nails. Several buildings reuse the same house pictures
   at different tiers; Rob may want to recast (the catalog can't edit composed "parts" roles yet).
 - Weak item icon matches Rob may want to recast: bow (sideways), pine log (a stump), pine seed,

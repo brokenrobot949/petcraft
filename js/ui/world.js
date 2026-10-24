@@ -48,6 +48,7 @@ export function mount(container, a) {
 
 export function show() {
   tabVisible = true;
+  if (zoneId) app.audio?.setScene(zoneId);
   if (!root) return;
   lastKey = '';
   refresh();
@@ -83,6 +84,7 @@ function destroyScene() {
 function openZone(id) {
   zoneId = id;
   setPref('worldZone', id);
+  app.audio?.setScene(id);
   buildPage();
 }
 

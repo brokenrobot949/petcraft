@@ -5,8 +5,15 @@ import { sanctuaryBonus } from './sanctuary.js';
 
 export const HOUR_MS = 3600 * 1000;
 
+const archCache = new WeakMap(); // archetypes by id, per data (looked up on every pet action)
 export function archetypeOf(data, archetypeId) {
-  return data.pets.archetypes.find((a) => a.id === archetypeId) || null;
+  let m = archCache.get(data.pets.archetypes);
+  if (!m) {
+    m = new Map();
+    for (const a of data.pets.archetypes) if (!m.has(a.id)) m.set(a.id, a);
+    archCache.set(data.pets.archetypes, m);
+  }
+  return m.get(archetypeId) || null;
 }
 
 export function isPet(state, workerId) {
@@ -135,9 +142,11 @@ export const EFFECT_KINDS = ['speed', 'rare', 'extraItem', 'byproduct', 'maps', 
 // parent). Cached per pet object until its form or talents change.
 const effectCache = new WeakMap();
 export function petEffects(data, pet) {
-  const sig = `${pet.form}|${pet.branch}|${(pet.gifts || []).join(',')}|${(pet.talents || []).join(',')}|${pet.heirloom || ''}`;
+  // Talent and gift lists only change by push or by being replaced, so their identity and length
+  // (plus form, branch and heirloom) tell whether the cached list still holds. Checked on every action.
   const hit = effectCache.get(pet);
-  if (hit && hit.sig === sig && hit.data === data) return hit.list;
+  if (hit && hit.data === data && hit.form === pet.form && hit.branch === pet.branch && hit.heirloom === pet.heirloom
+    && hit.gifts === pet.gifts && hit.nGifts === pet.gifts?.length && hit.talents === pet.talents && hit.nTalents === pet.talents?.length) return hit.list;
   const list = [];
   const br = pet.form !== 'hatchling' && branchDef(data, pet.archetype, pet.branch);
   if (br) {
@@ -147,7 +156,10 @@ export function petEffects(data, pet) {
   if (pet.form === 'mythic') list.push(...(mythicDef(data, pet.archetype)?.strength || []));
   const talents = [...(pet.gifts || []), ...(pet.talents || []), ...(pet.heirloom ? [pet.heirloom] : [])];
   for (const t of talents) list.push(...(talentDef(data, t)?.effects || []));
-  effectCache.set(pet, { sig, data, list });
+  effectCache.set(pet, {
+    data, list, form: pet.form, branch: pet.branch, heirloom: pet.heirloom,
+    gifts: pet.gifts, nGifts: pet.gifts?.length, talents: pet.talents, nTalents: pet.talents?.length,
+  });
   return list;
 }
 

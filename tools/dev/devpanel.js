@@ -1,8 +1,12 @@
 // Test mode panel (hidden; toggled by tapping the version line in Journal five times).
-// For testing only. Removed before release.
-import { el, toast } from './dom.js';
-import { petList } from '../systems/pets.js';
-import { ended } from '../systems/sanctuary.js';
+// Dev only, not shipped: the Journal imports this file only on the local preview server (Phase 10).
+import { el, toast } from '../../js/ui/dom.js';
+import { registerCommands } from '../../js/core/game.js';
+import { commands as devCommands } from './dev.js';
+import { petList } from '../../js/systems/pets.js';
+import { ended } from '../../js/systems/sanctuary.js';
+
+registerCommands(devCommands);
 
 export function createDevPanel(app) {
   const { game } = app;

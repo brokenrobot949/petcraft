@@ -9,3 +9,6 @@ tools/catalog/files.json
 Thumbs.db
 desktop.ini
 .vscode/
+
+# Dev-only: old game versions extracted to make save fixtures (tools/tests/make-fixtures)
+tools/tests/old/

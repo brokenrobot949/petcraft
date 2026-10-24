@@ -54,10 +54,11 @@ function showInstallGuide() {
   }
   const steps = isIOS
     ? [
-        'Open this page in Safari.',
-        'Tap the Share button (the square with an arrow).',
-        'Scroll down and tap "Add to Home Screen", then "Add".',
-        'Open PetCraft from your Home Screen from now on.',
+        'Already playing here? First copy your save code: Journal → Your save → Show save code → Copy code.',
+        'Tap the Share button: the square with an arrow pointing up. It is at the bottom of Safari, or behind the ••• button on newer iPhones.',
+        'Scroll down the list and tap "Add to Home Screen". If you see "Open as Web App", leave it on. Then tap "Add".',
+        'Open PetCraft from the new icon on your Home Screen. If you copied a save code, paste it in Journal → Your save and tap "Load this save".',
+        'From now on, always play from the Home Screen icon.',
       ]
     : [
         'Open the browser menu (the three dots).',
@@ -65,9 +66,13 @@ function showInstallGuide() {
         'Open PetCraft from your Home Screen from now on.',
       ];
   sheet('Add PetCraft to your Home Screen',
-    el('p', {}, 'It plays full screen and offline, and on iPhone your progress is much safer there.'),
+    el('p', {}, isIOS
+      ? 'Safari can clear a website’s saved data if you don’t visit it for about a week. The Home Screen app is kept safe, and it plays full screen and offline.'
+      : 'It plays full screen and offline.'),
     el('ol', {}, steps.map((s) => el('li', {}, s))),
-    el('p.small.muted', {}, 'Tip: Journal → Your save → Show save code makes a backup you can paste back any time.'));
+    el('p.small.muted', {}, isIOS
+      ? 'The Home Screen app keeps its own save, separate from Safari, which is why step 1 copies your game across.'
+      : 'Tip: Journal → Your save → Show save code makes a backup you can paste back any time.'));
 }
 
 function requestPersistentStorage() {

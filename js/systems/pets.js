@@ -11,7 +11,7 @@
 import { deriveSeed, random, chance, randomInt } from '../core/rng.js';
 import { petSeed } from '../core/state.js';
 import { addItem, removeItem, itemDef, itemLabel, parseKey } from './bag.js';
-import { actionMs, completeAction, dropStaleTask } from './harvest.js';
+import { actionProfile, completeAction, dropStaleTask } from './harvest.js';
 import {
   HOUR_MS, archetypeOf, petLevelCap, petXpToNext, petHearts, petMaxEnergy, petDrainPerHour,
   petRestPerHour, petFeedThreshold, petStage, branchDef, talentDef, effectValue, canDig, petSpecies, mythicDef,
@@ -463,6 +463,11 @@ function advancePet(state, ctx, pet, ms) {
   }
 
   const pointMs = b.bond.workMinutesPerPoint * 60000;
+  // Per-action values change only when the pet levels up (or gains a heart, for speed): see actionProfile.
+  let prof = null;
+  let seenLevel = -1;
+  let threshold = 0;
+  let drain = 0;
   let guard = 0;
   while (left > EPS && guard++ < MAX_STEPS) {
     if (!w.task) {
@@ -486,7 +491,11 @@ function advancePet(state, ctx, pet, ms) {
       }
       continue;
     }
-    const threshold = petFeedThreshold(data, pet);
+    if (pet.level !== seenLevel) {
+      seenLevel = pet.level;
+      threshold = petFeedThreshold(data, pet);
+      drain = petDrainPerHour(data, pet) / HOUR_MS;
+    }
     if (pet.autoFeed && pet.energy <= threshold + EPS) {
       const food = nextPantryFood(state, data);
       if (food && eat(state, ctx, pet, food, true)) continue;
@@ -497,8 +506,8 @@ function advancePet(state, ctx, pet, ms) {
       ctx.emit?.({ type: 'petRest', pet: pet.id });
       continue;
     }
-    const drain = petDrainPerHour(data, pet) / HOUR_MS;
-    const dur = digging ? petDigMs(state, data, pet) : actionMs(state, data, pet.id, w.task);
+    if (!digging) prof = actionProfile(state, data, pet.id, prof);
+    const dur = digging ? petDigMs(state, data, pet) : prof.ms;
     const toAction = Math.max(0, dur - w.progressMs);
     const toFeed = pet.autoFeed && pet.energy > threshold + EPS ? (pet.energy - threshold) / drain : Infinity;
     const toZero = drain > 0 ? pet.energy / drain : Infinity;
@@ -522,7 +531,7 @@ function advancePet(state, ctx, pet, ms) {
         if (mapCount(state, data, w.task.zone) <= 0) stopDigging(w);
       } else {
         const skill = w.task.skill;
-        const { xp } = completeAction(state, ctx, pet.id);
+        const { xp } = completeAction(state, ctx, pet.id, prof);
         pet.actions[skill] = (pet.actions[skill] || 0) + 1;
         addPetXp(state, ctx, pet, earnedXp(data, pet, xp));
       }

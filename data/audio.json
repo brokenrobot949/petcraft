@@ -1,0 +1,44 @@
+{
+  "sfxDir": "assets/audio/sfx/",
+  "musicDir": "assets/audio/music/",
+  "sfx": {
+    "chop": "chop.wav", "mine": "mine.wav", "forage": "forage.wav", "fish": "fish.wav", "hunt": "hunt.wav",
+    "level-up": "level-up.wav", "rank-up": "rank-up.wav", "achievement": "achievement.wav",
+    "project-stage": "project-stage.wav", "project-done": "project-done.wav",
+    "power-up": "power-up.wav", "batch-done": "batch-done.wav", "coin": "coin.wav", "gold": "gold.wav",
+    "heal": "heal.wav", "magic": "magic.wav", "evolve": "evolve.wav", "jump": "jump.wav", "bounce": "bounce.wav",
+    "alert": "alert.wav", "trap": "trap.wav", "tap": "tap.wav"
+  },
+  "uiTap": "tap",
+  "harvestBySkill": { "chopping": "chop", "mining": "mine", "foraging": "forage", "fishing": "fish", "hunting": "hunt" },
+  "events": {
+    "levelUp": "level-up",
+    "rankUp": "rank-up",
+    "achievement": "achievement",
+    "projectStage": "project-stage",
+    "projectDone": "project-done",
+    "buildingUpgraded": "power-up",
+    "batchDone": "batch-done",
+    "sold": "coin",
+    "bought": "coin",
+    "commissionDone": "gold",
+    "dig": "gold",
+    "petHatched": "magic",
+    "petEvolved": "evolve",
+    "petLevelUp": "jump",
+    "petPat": "bounce",
+    "petHeart": "heal",
+    "encounter": "alert",
+    "trapDone": "trap"
+  },
+  "music": {
+    "home": "home-peaceful.ogg",
+    "mossbrook": "mossbrook-village.ogg",
+    "meadowfold": "meadowfold-clearing.ogg",
+    "whisperwood": "whisperwood-mystical.ogg",
+    "stonecrag": "stonecrag-road.ogg",
+    "mistfen": "mistfen-aquatic.ogg",
+    "emberfall": "emberfall-temple.ogg",
+    "heartgrove": "heartgrove-ascension.ogg"
+  }
+}

@@ -49,18 +49,25 @@ export function addXp(state, ctx, skillId, amount) {
 // ---- Mastery (docs/design.md "Skills and progression") ----
 
 // Stars covered by `xp` banked past the max level, and the XP into the next star.
+// XP banked past the max level that each star count needs in total: cum[k] = XP for k stars.
+// Built once per curve (a maxed player checks stars on every action, so this must be cheap).
+const starCache = new WeakMap();
+function starThresholds(balance) {
+  const sk = balance.skills;
+  const c = sk.xpCurve;
+  const hit = starCache.get(sk);
+  if (hit && hit.a === c.a && hit.exp === c.exp && hit.b === c.b && hit.maxLevel === sk.maxLevel && hit.max === sk.mastery.maxStars) return hit.cum;
+  const cum = [0];
+  for (let k = 0; k < sk.mastery.maxStars; k++) cum.push(cum[k] + xpToNext(sk.maxLevel + k, balance));
+  starCache.set(sk, { a: c.a, exp: c.exp, b: c.b, maxLevel: sk.maxLevel, max: sk.mastery.maxStars, cum });
+  return cum;
+}
+
 function starsAndRest(xp, balance) {
-  const { maxLevel } = balance.skills;
-  const max = balance.skills.mastery.maxStars;
+  const cum = starThresholds(balance);
   let stars = 0;
-  let left = xp;
-  while (stars < max) {
-    const need = xpToNext(maxLevel + stars, balance);
-    if (left < need) break;
-    left -= need;
-    stars += 1;
-  }
-  return { stars, left };
+  while (stars < cum.length - 1 && xp >= cum[stars + 1]) stars += 1;
+  return { stars, left: xp - cum[stars] };
 }
 
 function starsFor(xp, balance) {

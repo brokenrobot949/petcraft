@@ -5,8 +5,8 @@ import { newSeed, deriveSeed } from './rng.js';
 
 export const SCHEMA_VERSION = 8;
 
-export function createInitialState(now) {
-  const seed = newSeed();
+// seed: optional, for reproducible runs (the balance simulator, tests); a new game picks a random one.
+export function createInitialState(now, seed = newSeed()) {
   return {
     version: SCHEMA_VERSION,
     meta: {

@@ -15,6 +15,15 @@ for (const sys of SYSTEMS) {
   }
 }
 
+// Dev tools only (tools/dev: test mode panel, tools/tests): adds commands that the shipped game never loads.
+// Registering the same set twice is harmless.
+export function registerCommands(commands) {
+  for (const [type, fn] of Object.entries(commands)) {
+    if (COMMANDS[type] && COMMANDS[type] !== fn) throw new Error(`command ${type} registered twice`);
+    COMMANDS[type] = fn;
+  }
+}
+
 // Fill per-skill / per-tool defaults from data. Safe to run on any loaded save.
 export function initState(state, ctx) {
   for (const sys of SYSTEMS) if (sys.init) sys.init(state, ctx);

@@ -6,10 +6,14 @@ import { elapsedOfflineMs, offlineCapMs } from './core/time.js';
 import { createGame } from './core/game.js';
 import { mountShell } from './ui/shell.js';
 import { initPwa } from './ui/pwa.js';
+import { createAudio } from './ui/audio.js';
 import { loadIcons } from './ui/icons.js';
 import { showAwaySummary } from './ui/away.js';
 import { el, toast } from './ui/dom.js';
 import { needsStarter } from './systems/pets.js';
+import { setPref } from './ui/device.js';
+
+const HOUR_MS = 3600000;
 
 async function boot() {
   const data = await loadData();
@@ -23,7 +27,11 @@ async function boot() {
 
   // Offline catch-up runs through the same systems as live play.
   const awayMs = Math.max(0, now - game.getState().meta.lastSavedAt);
-  const offlineSummary = game.catchUp(elapsedOfflineMs(game.getState(), balance, now));
+  const catchUpMs = elapsedOfflineMs(game.getState(), balance, now);
+  const t0 = performance.now();
+  const offlineSummary = game.catchUp(catchUpMs);
+  // Shown in Journal -> App, so catch-up speed can be read on a real phone (target: 16 h in under 300 ms).
+  if (catchUpMs >= HOUR_MS) setPref('lastCatchUp', { awayMs: catchUpMs, ms: Math.round(performance.now() - t0) });
   game.dispatch('meta/launched');
   // Daily commissions reset at local midnight; the board checks the date on load, on return and every minute.
   const checkDay = () => {
@@ -111,6 +119,9 @@ async function boot() {
     },
     pwa: initPwa({ beforeReload: saveNow }),
   };
+  app.audio = createAudio(game);
+  // Local preview only: a handle for checking the audio from the browser console.
+  if (location.hostname === 'localhost') window.__petcraft = app;
   const shell = mountShell(app);
   // A new player starts at the four eggs.
   if (needsStarter(game.getState())) shell.select('pets');

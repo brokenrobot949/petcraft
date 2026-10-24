@@ -7,6 +7,20 @@ importScripts('./version.js');
 const CACHE = `petcraft-${self.PETCRAFT_VERSION}`;
 const DEV = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
 
+// Music is too big for the install precache (about 9 MB). Each track is cached the first time it plays
+// and kept in its own cache, so it also survives updates and then plays offline.
+const MUSIC_CACHE = 'petcraft-music';
+const MUSIC = [
+  'assets/audio/music/emberfall-temple.ogg',
+  'assets/audio/music/heartgrove-ascension.ogg',
+  'assets/audio/music/home-peaceful.ogg',
+  'assets/audio/music/meadowfold-clearing.ogg',
+  'assets/audio/music/mistfen-aquatic.ogg',
+  'assets/audio/music/mossbrook-village.ogg',
+  'assets/audio/music/stonecrag-road.ogg',
+  'assets/audio/music/whisperwood-mystical.ogg',
+];
+
 const FILES = [
   './',
   'index.html',
@@ -38,6 +52,7 @@ const FILES = [
   'data/talents.json',
   'data/projects.json',
   'data/story.json',
+  'data/audio.json',
   'js/main.js',
   'js/core/data.js',
   'js/core/game.js',
@@ -55,7 +70,6 @@ const FILES = [
   'js/systems/buildings.js',
   'js/systems/coins.js',
   'js/systems/crafting.js',
-  'js/systems/dev.js',
   'js/systems/garden.js',
   'js/systems/taming.js',
   'js/systems/treasure.js',
@@ -80,7 +94,6 @@ const FILES = [
   'js/ui/away.js',
   'js/ui/craft.js',
   'js/ui/device.js',
-  'js/ui/devpanel.js',
   'js/ui/dom.js',
   'js/ui/home.js',
   'js/ui/icons.js',
@@ -96,8 +109,31 @@ const FILES = [
   'js/ui/pwa.js',
   'js/ui/shell.js',
   'js/ui/world.js',
+  'js/ui/audio.js',
   'assets/atlas/atlas.json',
   'assets/atlas/atlas.png',
+  'assets/audio/sfx/achievement.wav',
+  'assets/audio/sfx/alert.wav',
+  'assets/audio/sfx/batch-done.wav',
+  'assets/audio/sfx/bounce.wav',
+  'assets/audio/sfx/chop.wav',
+  'assets/audio/sfx/coin.wav',
+  'assets/audio/sfx/evolve.wav',
+  'assets/audio/sfx/fish.wav',
+  'assets/audio/sfx/forage.wav',
+  'assets/audio/sfx/gold.wav',
+  'assets/audio/sfx/heal.wav',
+  'assets/audio/sfx/hunt.wav',
+  'assets/audio/sfx/jump.wav',
+  'assets/audio/sfx/level-up.wav',
+  'assets/audio/sfx/magic.wav',
+  'assets/audio/sfx/mine.wav',
+  'assets/audio/sfx/power-up.wav',
+  'assets/audio/sfx/project-done.wav',
+  'assets/audio/sfx/project-stage.wav',
+  'assets/audio/sfx/rank-up.wav',
+  'assets/audio/sfx/tap.wav',
+  'assets/audio/sfx/trap.wav',
   'assets/fonts/NormalFont.ttf',
   'assets/icons/apple-touch-icon.png',
   'assets/icons/favicon-32.png',
@@ -124,10 +160,22 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('petcraft-') && k !== CACHE).map((k) => caches.delete(k))))
+      .then((keys) => Promise.all(keys.filter((k) => k.startsWith('petcraft-') && k !== CACHE && k !== MUSIC_CACHE).map((k) => caches.delete(k))))
+      .then(pruneMusic)
       .then(() => self.clients.claim()),
   );
 });
+
+// Forget cached tracks that are no longer in the MUSIC list.
+async function pruneMusic() {
+  try {
+    const cache = await caches.open(MUSIC_CACHE);
+    for (const req of await cache.keys()) {
+      const path = new URL(req.url).pathname;
+      if (!MUSIC.some((m) => path.endsWith('/' + m))) await cache.delete(req);
+    }
+  } catch {}
+}
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
@@ -136,6 +184,17 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  if (new URL(req.url).pathname.includes('/assets/audio/music/')) {
+    // Music: cache-first from its own cache; fetched and kept on the first listen.
+    event.respondWith(caches.open(MUSIC_CACHE).then(async (cache) => {
+      const hit = await cache.match(req, { ignoreSearch: true });
+      if (hit) return hit;
+      const res = await fetch(req);
+      if (res.ok) cache.put(req, res.clone()).catch(() => {});
+      return res;
+    }));
+    return;
+  }
   event.respondWith(
     caches.open(CACHE).then(async (cache) => {
       // Local preview: always fetch fresh files so edits show on reload.

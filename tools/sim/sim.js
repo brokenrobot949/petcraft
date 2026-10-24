@@ -146,7 +146,7 @@ export function runSim(data, opts = {}) {
   const t0 = globalThis.performance ? performance.now() : Date.now();
 
   let simNow = START_MS;
-  const s0 = createInitialState(START_MS);
+  const s0 = createInitialState(START_MS, seed); // every random stream follows the seed, so runs repeat exactly
   s0.rng = seed;
   s0.workers.player.rng = seed + 1;
   const game = createGame(data, s0, { clock: () => simNow });
@@ -162,12 +162,15 @@ export function runSim(data, opts = {}) {
   const pets = { work: 0, rest: 0 };
   let petDigs = 0; // digs done by Scout pets
   const tre = { coins: 0, eggs: 0, relics: 0, digs: 0 };
+  const renownSrc = {}; // Renown XP by source (catch-up only reports a total: those are crafts finishing while away)
+  const addSrc = (src, n) => { renownSrc[src] = (renownSrc[src] || 0) + n; };
   const foldDig = (coins, its) => { tre.coins += coins; tre.eggs += its.treasure_egg || 0; tre.relics += its.sanctuary_relic || 0; };
   // Coin flow by source and sink, from the events the policy's own commands emit (all coin changes
   // are commands). Whatever the totals in state.stats show beyond these is reported as "other".
   const flow = { sold: 0, commissions: 0, buildings: 0, blueprints: 0, seeds: 0, scrolls: 0, otherBought: 0 };
   game.onEvents((evs) => {
     for (const e of evs) {
+      if (e.type === 'renownXp') addSrc(e.source, e.amount);
       if (e.type === 'sold') flow.sold += e.coins;
       else if (e.type === 'commissionDone') flow.commissions += e.coins;
       else if (e.type === 'learned') flow.scrolls += e.coins;
@@ -187,6 +190,7 @@ export function runSim(data, opts = {}) {
     }
   });
   const foldSummary = (sum) => {
+    if (sum.renown?.xp) addSrc('away', sum.renown.xp);
     if (sum.treasure) foldDig(sum.treasure.coins, sum.treasure.items || {});
     for (const p of Object.values(sum.pets)) petDigs += p.digs || 0;
     for (const p of Object.values(sum.pets)) {
@@ -228,6 +232,8 @@ export function runSim(data, opts = {}) {
       sanctOpen: sanctuaryOpen(state, data), projectsDone: state.sanctuary.done.length, stagesDone: stagesDone(state, data),
       stageFrac: stageFraction(state, data), elders: state.elders.list.length, retired: state.stats.retired || 0,
       masteryStars: masteryTotal(state, data), mythics: mythicsHad(state),
+      petTopLevel: Math.max(0, ...Object.values(state.pets.list).map((p) => p.level)), petTopHearts: Math.max(0, ...Object.values(state.pets.list).map((p) => p.bond || 0)),
+      renownBySource: { ...renownSrc },
     });
     snapIdx++;
   };
@@ -291,11 +297,13 @@ export function runSim(data, opts = {}) {
     evolved: policy.evolveCounts, talentPicked: policy.talentPicked, assistsPosted: policy.assistsPosted, petDigsSent: policy.petDigsSent,
     eldersRetired: policy.eldersRetired, heirsPlaced: policy.heirsPlaced, deliveries: policy.deliveries,
     dispatches: policy.dispatches,
+    renownBySource: { ...renownSrc },
     petWorkMs: pets.work,
     petRestMs: pets.rest,
     final: finalSummary(game.getState(), data),
   };
   result.flags = computeFlags(result, data);
+  if (opts.keepState) result.state = game.getState(); // e.g. a late-game save for performance checks
   result.elapsedMs = (globalThis.performance ? performance.now() : Date.now()) - t0;
   return result;
 }

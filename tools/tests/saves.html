@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PetCraft save stress tests</title>
+<style>body{font:14px/1.4 system-ui,sans-serif;margin:16px;background:#fff;color:#111}pre{white-space:pre-wrap}</style>
+</head>
+<body>
+<h1>PetCraft save stress tests (dev only)</h1>
+<p>Makes real saves with every old version's own code (tools/tests/old/, made by
+<code>powershell -ExecutionPolicy Bypass -File tools/tests/extract-old.ps1</code>), then loads, upgrades, plays and
+re-saves them with today's code. Also: damaged saves, the backup slot, storage errors, export/import, the clock and
+catch-up speed. Your own local save is put back afterwards.</p>
+<pre id="out">running...</pre>
+<script type="module">
+import { loadData } from '../../js/core/data.js';
+import { createInitialState, validateState, SCHEMA_VERSION } from '../../js/core/state.js';
+import { createGame } from '../../js/core/game.js';
+import { parseSave, loadSave, writeSave, exportCode, importCode, SAVE_KEY } from '../../js/core/save.js';
+import { elapsedOfflineMs, offlineCapMs } from '../../js/core/time.js';
+import { parseKey } from '../../js/systems/bag.js';
+
+// Today's loadData fetches 'data/...' relative to the page, so point it at the repo root.
+const realFetch = window.fetch.bind(window);
+window.fetch = (u, o) => realFetch(typeof u === 'string' && u.startsWith('data/') ? new URL(u, new URL('../../', location.href)) : u, o);
+
+const out = document.getElementById('out');
+const lines = [];
+let failed = 0;
+const H = 3600000;
+const T0 = new Date(2026, 9, 19, 8, 0).getTime();
+function check(name, ok, detail = '') {
+  if (!ok) failed++;
+  lines.push(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `  (${detail})` : ''}`);
+  out.textContent = lines.join('\n') + '\n\nrunning...';
+}
+const note = (t) => { lines.push(t); out.textContent = lines.join('\n') + '\n\nrunning...'; };
+const pause = () => new Promise((r) => setTimeout(r, 0));
+
+// Keep the developer's own save safe while the tests use localStorage.
+const KEYS = [SAVE_KEY, `${SAVE_KEY}.bak`, `${SAVE_KEY}.corrupt`];
+const kept = Object.fromEntries(KEYS.map((k) => [k, localStorage.getItem(k)]));
+const restore = () => KEYS.forEach((k) => (kept[k] == null ? localStorage.removeItem(k) : localStorage.setItem(k, kept[k])));
+const clearKeys = () => KEYS.forEach((k) => localStorage.removeItem(k));
+
+// ---- make an old save with that version's own code ----
+// Versions 1-3 have no simulator: a short scripted session. Versions 4+ play their own balance simulator.
+const SIM_DAYS = { 4: 4, 5: 6, 6: 8, 7: 12, 8: 25 };
+async function makeOldSave(v) {
+  const base = `./old/v${v}/`;
+  const { loadData: oldLoad } = await import(`${base}js/core/data.js`);
+  const data = await oldLoad();
+  if (SIM_DAYS[v]) {
+    const { runSim } = await import(`${base}tools/sim/sim.js`);
+    runSim(data, { days: SIM_DAYS[v], seed: 777 + v, player: 'regular' });
+    return globalThis.__simGame.getState();
+  }
+  const { createInitialState: oldInit } = await import(`${base}js/core/state.js`);
+  const { createGame: oldGame } = await import(`${base}js/core/game.js`);
+  const s = oldInit(T0);
+  const game = oldGame(data, s);
+  const tryDo = (type, payload) => { try { game.dispatch(type, payload); } catch {} };
+  tryDo('meta/launched');
+  tryDo('settings/toggle', { key: 'music' });
+  if (v >= 2) {
+    const z = data.zones.zones[0];
+    const node = (skill) => z.harvest?.[skill]?.[0]?.id;
+    tryDo('harvest/assign', { zone: z.id, skill: 'chopping', node: node('chopping') });
+    game.catchUp?.(2 * H);
+    tryDo('harvest/assign', { zone: z.id, skill: 'mining', node: node('mining') });
+    game.catchUp?.(1 * H);
+  }
+  if (v >= 3) {
+    tryDo('pets/hatchStarter', { archetype: data.pets.archetypes[0].id, name: 'Mossy' });
+    const petId = Object.keys(game.getState().pets.list)[0];
+    tryDo('harvest/assign', { worker: petId, zone: data.zones.zones[0].id, skill: 'foraging', node: data.zones.zones[0].harvest?.foraging?.[0]?.id });
+    tryDo('pets/pat', { pet: petId });
+    game.catchUp?.(3 * H);
+  }
+  return game.getState();
+}
+
+// What must survive an upgrade: items (by base item id; old keys may gain a quality), coins, skill
+// levels, pets and their names/levels, building tiers, settings.
+function progressOf(s) {
+  const items = {};
+  for (const [k, n] of Object.entries(s.bag || {})) {
+    const id = parseKey(k).id;
+    items[id] = (items[id] || 0) + n;
+  }
+  return {
+    coins: s.coins || 0,
+    items,
+    levels: Object.fromEntries(Object.entries(s.skills || {}).map(([k, v]) => [k, v.level])),
+    pets: Object.values(s.pets?.list || {}).map((p) => `${p.name}:${p.level}`).sort().join(','),
+    buildings: Object.fromEntries(Object.entries(s.buildings || {}).map(([k, b]) => [k, b.tier])),
+    music: s.settings?.music,
+    rank: s.renown?.rank || 1,
+  };
+}
+
+function compareProgress(v, before, after, data) {
+  check(`v${v}: coins kept`, after.coins === before.coins, `${before.coins} -> ${after.coins}`);
+  const lost = Object.entries(before.items).filter(([id, n]) => (after.items[id] || 0) < n);
+  check(`v${v}: every item kept`, !lost.length, lost.slice(0, 5).map(([id, n]) => `${id} ${n} -> ${after.items[id] || 0}`).join(', '));
+  const unknown = Object.keys(after.items).filter((id) => !data.items.items[id]);
+  check(`v${v}: every item still exists in today's data`, !unknown.length, unknown.join(', '));
+  const lv = Object.entries(before.levels).filter(([k, l]) => after.levels[k] !== l);
+  check(`v${v}: skill levels kept`, !lv.length, lv.map(([k, l]) => `${k} ${l} -> ${after.levels[k]}`).join(', '));
+  check(`v${v}: pets kept (names and levels)`, after.pets === before.pets, before.pets.length > 80 ? `${before.pets.split(',').length} pets` : before.pets);
+  const bd = Object.entries(before.buildings).filter(([k, t]) => after.buildings[k] !== t);
+  check(`v${v}: building tiers kept`, !bd.length, bd.map(([k, t]) => `${k} ${t} -> ${after.buildings[k]}`).join(', '));
+  check(`v${v}: settings kept`, after.music === before.music);
+  check(`v${v}: Renown rank not lowered`, after.rank >= before.rank, `${before.rank} -> ${after.rank}`);
+}
+
+async function run() {
+  const data = await loadData();
+  const late = {}; // the newest old save, reused below
+
+  // ---- 1. every old version upgrades without loss ----
+  for (let v = 1; v <= SCHEMA_VERSION; v++) {
+    await pause();
+    let old;
+    try {
+      old = await makeOldSave(v);
+    } catch (e) {
+      check(`v${v}: old code made a save`, false, `${e.message} (run tools/tests/extract-old.ps1?)`);
+      continue;
+    }
+    const text = JSON.stringify(old);
+    check(`v${v}: old code made a version ${v} save`, old.version === v, `${(text.length / 1024).toFixed(0)} KB`);
+    const before = progressOf(JSON.parse(text));
+    if (v >= 2) check(`v${v}: the old game gathered items (a real test)`, Object.keys(before.items).length > 0, `${Object.keys(before.items).length} kinds`);
+    if (v >= 3) check(`v${v}: the old game has pets`, before.pets.length > 0);
+    const r = parseSave(text);
+    check(`v${v}: loads and upgrades to version ${SCHEMA_VERSION}`, !!r.state && r.state.version === SCHEMA_VERSION, r.error || '');
+    if (!r.state) continue;
+    let game;
+    try {
+      game = createGame(data, r.state, { clock: () => r.state.meta.lastSavedAt + 16 * H });
+      check(`v${v}: today's game starts from it`, true);
+    } catch (e) {
+      check(`v${v}: today's game starts from it`, false, e.message);
+      continue;
+    }
+    compareProgress(v, before, progressOf(game.getState()), data);
+    try {
+      const t = performance.now();
+      game.catchUp(Math.min(16 * H, offlineCapMs(game.getState(), data.balance)));
+      check(`v${v}: catch-up after the upgrade runs`, true, `${(performance.now() - t).toFixed(0)} ms`);
+      game.dispatch('meta/launched');
+      game.dispatch('village/newDay');
+      check(`v${v}: commands work after the upgrade`, true);
+    } catch (e) {
+      check(`v${v}: plays after the upgrade`, false, e.message);
+    }
+    const again = parseSave(JSON.stringify(game.getState()));
+    check(`v${v}: the upgraded game saves and loads again`, !!again.state, again.error || '');
+    if (v === SCHEMA_VERSION) late.state = game.getState();
+    if (v === SCHEMA_VERSION) late.oldText = text;
+  }
+
+  // ---- 2. damaged saves, backup slot, storage errors ----
+  await pause();
+  clearKeys();
+  const fresh = createInitialState(T0);
+  let w = writeSave(fresh, T0);
+  check('first write works', w.ok);
+  const firstText = localStorage.getItem(SAVE_KEY);
+  const second = JSON.parse(firstText);
+  second.coins = 1234;
+  w = writeSave(second, T0 + 60000);
+  check('second write keeps the first as the backup', w.ok && localStorage.getItem(`${SAVE_KEY}.bak`) === JSON.stringify({ ...JSON.parse(firstText) }));
+  let l = loadSave();
+  check('loads the newest save', l.source === 'main' && l.state.coins === 1234);
+
+  const goodMain = localStorage.getItem(SAVE_KEY);
+  for (const [label, bad] of [
+    ['cut-off JSON (half a save)', goodMain.slice(0, Math.floor(goodMain.length / 2))],
+    ['empty text', ' '],
+    ['not JSON', 'hello'],
+    ['JSON with no version', '{"coins":5}'],
+    ['a save missing its pets', JSON.stringify({ ...JSON.parse(goodMain), pets: null })],
+    ['a save from a newer game', JSON.stringify({ ...JSON.parse(goodMain), version: SCHEMA_VERSION + 1 })],
+  ]) {
+    localStorage.setItem(SAVE_KEY, bad);
+    l = loadSave();
+    check(`damaged main save (${label}) falls back to the backup`, l.source === 'backup' && !!l.state);
+    check(`  ...and the damaged save is kept for recovery`, localStorage.getItem(`${SAVE_KEY}.corrupt`) === bad);
+  }
+  localStorage.setItem(SAVE_KEY, 'garbage');
+  localStorage.setItem(`${SAVE_KEY}.bak`, 'garbage too');
+  l = loadSave();
+  check('both damaged: starts fresh with a message, nothing thrown', l.source === 'new' && !!l.error);
+
+  // a bad state is refused and storage is left alone
+  clearKeys();
+  writeSave(createInitialState(T0), T0);
+  const kept1 = localStorage.getItem(SAVE_KEY);
+  const broken = createInitialState(T0);
+  broken.pets = null;
+  w = writeSave(broken, T0 + 1000);
+  check('a broken game state is refused, the old save untouched', !w.ok && localStorage.getItem(SAVE_KEY) === kept1, w.error);
+
+  // storage full: report it, keep the old save
+  const realSet = Storage.prototype.setItem;
+  Storage.prototype.setItem = function () {
+    const e = new Error('full');
+    e.name = 'QuotaExceededError';
+    throw e;
+  };
+  try {
+    w = writeSave(createInitialState(T0), T0 + 2000);
+  } finally {
+    Storage.prototype.setItem = realSet;
+  }
+  check('storage full: reported, nothing thrown', !w.ok && /full/.test(w.error), w.error);
+  check('  ...and the old save is untouched', localStorage.getItem(SAVE_KEY) === kept1);
+
+  // ---- 3. a late-game save: size, export/import, autosave churn ----
+  await pause();
+  if (late.state) {
+    const text = JSON.stringify(late.state);
+    check('late-game save is well under the storage limit', text.length < 1024 * 1024, `${(text.length / 1024).toFixed(0)} KB (limit about 5 MB)`);
+    const code = exportCode(late.state);
+    const back = importCode(code);
+    check('export -> import gives the same game', !!back.state && JSON.stringify(back.state) === text, back.error || `${(code.length / 1024).toFixed(0)} KB code`);
+    check('import of a code with line breaks and spaces works', !!importCode(`  ${code.slice(0, 50)}\n${code.slice(50)}  `).state);
+    check('import of a cut-off code is refused politely', !!importCode(code.slice(0, code.length - 400)).error);
+    check('import of the raw old (Phase 9) save JSON works', !!importCode(late.oldText).state);
+    // autosave churn: many writes in a row never lose the save
+    clearKeys();
+    const g = createGame(data, structuredClone(late.state), { clock: () => late.state.meta.lastSavedAt });
+    let allOk = true;
+    for (let i = 0; i < 40; i++) {
+      g.advance(30000);
+      const r = writeSave(g.getState(), late.state.meta.lastSavedAt + i * 30000);
+      if (!r.ok || !loadSave().state) allOk = false;
+    }
+    check('40 autosaves in a row: every one loads', allOk);
+
+    // ---- 4. time rules ----
+    const s = structuredClone(late.state);
+    const now = s.meta.lastSavedAt;
+    check('clock moved back: no offline time', elapsedOfflineMs(s, data.balance, now - 5 * H) === 0);
+    check('long absence is capped at the Cottage cap', elapsedOfflineMs(s, data.balance, now + 1000 * H) === offlineCapMs(s, data.balance));
+
+    // ---- 5. catch-up speed on a late game (target under 300 ms on a mid-range phone) ----
+    const times = [];
+    for (let i = 0; i < 3; i++) {
+      const g2 = createGame(data, structuredClone(late.state), { clock: () => now });
+      const t = performance.now();
+      g2.catchUp(16 * H);
+      times.push(performance.now() - t);
+    }
+    const best = Math.min(...times);
+    check('16 h catch-up on a late game (this computer)', best < 150, `${times.map((t) => t.toFixed(0)).join(' / ')} ms; phones are roughly 2-3x slower, so under 150 ms here`);
+  }
+
+  restore();
+  lines.push('', failed ? `${failed} FAILED` : 'ALL PASSED');
+  out.textContent = lines.join('\n');
+  document.title = failed ? `FAIL ${failed}` : 'PASS';
+}
+
+run().catch((e) => {
+  restore();
+  lines.push(`ERROR ${e.stack || e}`);
+  out.textContent = lines.join('\n');
+  document.title = 'ERROR';
+});
+</script>
+</body>
+</html>

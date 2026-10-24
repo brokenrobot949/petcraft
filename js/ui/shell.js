@@ -51,6 +51,9 @@ export function mountShell(app) {
     next.screen.hidden = false;
     next.button.setAttribute('aria-selected', 'true');
     next.tab.show?.();
+    // Music: Home has its own track; the World tab sets its zone's track itself (world.js);
+    // the other tabs keep whatever is playing (or Home's track if nothing is yet).
+    if (next.tab.id === 'home' || !app.audio?.getScene()) app.audio?.setScene('home');
     setPref('tab', next.tab.id);
   }
 
