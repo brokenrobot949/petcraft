@@ -123,6 +123,17 @@ export function mount(container, app) {
   app.pwa.onInstallable((can) => {
     installBtn.hidden = !can;
   });
+  const updateBtn = el('button.btn.wide', {
+    type: 'button',
+    onclick: async () => {
+      updateBtn.disabled = true;
+      const r = await app.pwa.checkForUpdate();
+      if (!r.ok) toast(r.error, 3500);
+      else if (r.latest) toast(`You have the latest version (${r.version})`, 3000);
+      else toast(`Updating to ${r.version}...`, 8000);
+      if (!r.ok || r.latest) updateBtn.disabled = false;
+    },
+  }, 'Check for updates');
 
   // ---- test mode (local preview server only; not part of the shipped game): tap the version line
   // 5 times within 3 seconds. The panel lives in tools/dev and is loaded only here.
@@ -183,7 +194,7 @@ export function mount(container, app) {
         el('p.small', { style: 'margin-top:12px' }, 'Start again from the first egg. Your current game is deleted.'),
         el('div.row', {}, newGameBtn)),
       el('div.panel', {}, el('h2', {}, 'App'), installBtn, installHelp,
-        versionLine, ...(catchUpLine ? [catchUpLine] : [])),
+        updateBtn, versionLine, ...(catchUpLine ? [catchUpLine] : [])),
       devHost,
       el('div.panel', {},
         el('h2', {}, 'Credits'),

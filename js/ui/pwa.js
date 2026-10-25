@@ -21,7 +21,7 @@ export function initPwa({ beforeReload }) {
     emitInstallable();
   });
 
-  registerServiceWorker(beforeReload);
+  const regReady = registerServiceWorker(beforeReload);
   requestPersistentStorage();
 
   // One-time iPhone guide: Safari may clear data for sites not visited in about a week;
@@ -44,6 +44,7 @@ export function initPwa({ beforeReload }) {
       emitInstallable();
     },
     showInstallGuide,
+    checkForUpdate: () => checkForUpdate(regReady, beforeReload),
   };
 }
 
@@ -81,16 +82,22 @@ function requestPersistentStorage() {
   navigator.storage.persist().catch(() => {});
 }
 
+const UPDATE_CHECK_MS = 15 * 60 * 1000; // also look for a new version this often while the game is open
+const FORCE_UPDATE_AFTER_MS = 8000; // "Check for updates": wait this long for the new version before reloading fresh
+let acceptedUpdate = false; // the player asked for the new version: reload when it takes over
+
 function registerServiceWorker(beforeReload) {
-  if (!('serviceWorker' in navigator)) return;
+  if (!('serviceWorker' in navigator)) return Promise.resolve(null);
   const bar = document.getElementById('update-bar');
   let reloading = false;
 
-  navigator.serviceWorker.register('sw.js').then((reg) => {
+  // updateViaCache 'none': update checks skip the phone's web cache, so a new version.js is seen at once.
+  const ready = navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
     const offer = (worker) => {
       bar.hidden = false;
       bar.querySelector('button').onclick = () => {
         beforeReload();
+        acceptedUpdate = true;
         worker.postMessage({ type: 'SKIP_WAITING' });
       };
     };
@@ -105,11 +112,54 @@ function registerServiceWorker(beforeReload) {
     document.addEventListener('visibilitychange', () => {
       if (!document.hidden) reg.update().catch(() => {});
     });
-  }).catch((err) => console.warn('service worker not registered', err));
+    setInterval(() => { if (!document.hidden) reg.update().catch(() => {}); }, UPDATE_CHECK_MS);
+    return reg;
+  }).catch((err) => {
+    console.warn('service worker not registered', err);
+    return null;
+  });
 
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (reloading || !bar || bar.hidden) return; // first install takes control silently
+    if (reloading || !acceptedUpdate) return; // first install takes control silently
     reloading = true;
     location.reload();
   });
+  return ready;
+}
+
+// Journal -> "Check for updates". Asks the website for its version (past every cache). If it is newer,
+// saves, then installs it the normal way; if that stalls, drops the old offline copy and reloads fresh.
+// The save lives in localStorage, which none of this touches.
+async function checkForUpdate(regReady, beforeReload) {
+  let live;
+  try {
+    const res = await fetch(`version.js?check=${Date.now()}`, { cache: 'no-store' });
+    live = (await res.text()).match(/PETCRAFT_VERSION\s*=\s*'([^']+)'/)?.[1];
+  } catch {}
+  if (!live) return { ok: false, error: "Couldn't reach the website. Are you online?" };
+  if (live === self.PETCRAFT_VERSION) return { ok: true, latest: true, version: live };
+
+  beforeReload();
+  acceptedUpdate = true;
+  const reg = await regReady;
+  await reg?.update().catch(() => {});
+  const worker = reg?.waiting || reg?.installing;
+  if (worker) {
+    worker.postMessage({ type: 'SKIP_WAITING' });
+    worker.addEventListener('statechange', () => {
+      if (worker.state === 'installed') worker.postMessage({ type: 'SKIP_WAITING' });
+    });
+    setTimeout(reloadFresh, FORCE_UPDATE_AFTER_MS);
+  } else {
+    reloadFresh();
+  }
+  return { ok: true, latest: false, version: live };
+}
+
+async function reloadFresh() {
+  try {
+    for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister();
+    for (const k of await caches.keys()) if (k.startsWith('petcraft-') && k !== 'petcraft-music') await caches.delete(k);
+  } catch {}
+  location.reload();
 }

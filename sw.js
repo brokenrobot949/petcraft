@@ -184,6 +184,7 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  if (req.cache === 'no-store') return; // "Check for updates" asks the website itself
   if (new URL(req.url).pathname.includes('/assets/audio/music/')) {
     // Music: cache-first from its own cache; fetched and kept on the first listen.
     event.respondWith(caches.open(MUSIC_CACHE).then(async (cache) => {
