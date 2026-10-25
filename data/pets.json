@@ -122,6 +122,18 @@
     "Sprig", "Juniper", "Willow", "Pickle", "Bean", "Acorn",
     "Marzipan", "Honey", "Pudding", "Dewdrop", "Hazel", "Moss"
   ],
+  "nameParts": {
+    "starts": [
+      "Bram", "Pip", "Moss", "Fen", "Wil", "Tum", "Bis", "Clo", "Pud", "Hon", "Jun", "Mar",
+      "Nib", "Sprig", "Dew", "Haz", "Pick", "Nut", "Bun", "Pop", "Wren", "Tof", "Mim", "Lu",
+      "Ash", "Bel", "Cob", "Dot", "Fig", "Gus", "Kip", "Lark", "Oll", "Pon", "Rue", "Sol"
+    ],
+    "ends": [
+      "ble", "py", "kin", "let", "o", "ie", "bit", "nut", "berry", "wick", "sy", "ver",
+      "ling", "mo", "dle", "per", "zy", "ty", "bun", "a", "kins", "bean", "drop", "pod",
+      "fern", "puff", "bug", "sprout", "ly", "pie"
+    ]
+  },
   "lines": {
     "hatch": "The shell cracks and a sleepy little face peeks out!",
     "patted": [

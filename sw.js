@@ -106,6 +106,7 @@ const FILES = [
   'js/ui/journal.js',
   'js/ui/mossbrook.js',
   'js/ui/pets.js',
+  'js/ui/petname.js',
   'js/ui/pwa.js',
   'js/ui/shell.js',
   'js/ui/world.js',

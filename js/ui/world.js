@@ -13,6 +13,7 @@ import {
 } from '../systems/taming.js';
 import { mapItemFor, mapCount, digInfo } from '../systems/treasure.js';
 import { masteryInfo } from './mastery.js';
+import { randomName, renameSheet } from './petname.js';
 
 export const id = 'world';
 export const label = 'World';
@@ -168,7 +169,7 @@ function keyFor() {
   const tools = Object.values(s.tools).map((x) => x.item + x.quality).join(',');
   const d = data();
   const tm = s.taming;
-  const mine = tm.results.map((r) => `${r.zone}${r.caught ? 1 : 0}${r.pet || ''}${r.trapKept ? 1 : 0}`).join(';');
+  const mine = tm.results.map((r) => `${r.zone}${r.caught ? 1 : 0}${r.pet ? `${r.pet}=${s.pets.list[r.pet]?.name}` : ''}${r.trapKept ? 1 : 0}`).join(';');
   const lure = lureInfo(s, d);
   const stock = [...trapOptions(s, d, zoneId), ...lureList(s, d)].map((x) => `${x.key}${x.count}`).join(',');
   const wild = `${zoneMarkKey(s, zoneId)}|${tm.encounters[zoneId]?.msLeft === null ? 'w' : 'e'}|${trapCheck(s, d, zoneId).reason}|${lure ? lure.item : ''}|${mine}|${stock}`;
@@ -561,8 +562,14 @@ function wildCard(s, d, z) {
         const text = r.caught
           ? (r.mythic ? `The mythic ${sp} chose to stay with you! What a wonderful day. ${hi}` : `${sp} was caught! ${hi}`)
           : `The ${sp} slipped away. ${r.trapKept ? 'Your trap came back safe.' : 'The trap broke.'}`;
-        return el(`p.small.wild-result${r.caught ? '.good' : ''}${r.mythic ? '.mythic' : ''}`, {},
+        const line = el(`p.small.wild-result${r.caught ? '.good' : ''}${r.mythic ? '.mythic' : ''}`, {},
           encFace(r.mythic, r.archetype, 24, sp), el('span', {}, text));
+        // A caught pet is named after its species until the player names it.
+        if (!pet || pet.name !== sp) return line;
+        return el('div', {}, line, el('button.btn.wide', {
+          type: 'button',
+          onclick: () => renameSheet(app.game, pet, { title: `Name your ${sp}`, start: randomName(d) }),
+        }, `Give the ${sp} a name`));
       }));
   }
   // Lure

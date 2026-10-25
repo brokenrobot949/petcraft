@@ -38,6 +38,7 @@
     "starterQuality": "uncommon",
     "callingActions": 150,
     "nameMaxLength": 16,
+    "randomNameListChance": 0.35,
     "energy": {
       "max": 100,
       "drainPerHour": 33,

@@ -60,7 +60,7 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 10 done (2026-10-24), plus Rob's follow-ups (0.10.1, 0.11.0, 0.11.2). All eleven phases built.
+Phase: 10 done (2026-10-24), plus Rob's follow-ups (0.10.1, 0.11.0, 0.11.2, 0.11.3). All eleven phases built.
 Next: Rob's final playtest; then fixes from it. Open design calls are listed under Known issues.
 Phase 10: no schema change (still v8). Contract in docs/architecture.md "Phase 10: tune and ship".
   Tuning (balance.json; simulator v5 + tools/sim/worker.js and lab.js, 3 seeds): renown.xpCurve {375, 0.5, 60}
@@ -97,6 +97,10 @@ Phase 10: no schema change (still v8). Contract in docs/architecture.md "Phase 1
   live = catch-up stays exact. Zone page and "While you were away" show the share. Contract in docs/architecture.md
   "After Phase 10: pets share skill XP". Simulator (3 seeds): milestones about the same (ending day 64-70, light
   69.5); harvest skills all reach 60 by day 20 (was ~day 30). Core checks: 253.
+  0.11.3 (Rob): random pet names. js/ui/petname.js (randomName, the "Random name" button, the rename sheet): a name
+  from pets.json suggestedNames (balance.pets.randomNameListChance) or two nameParts joined ("Bram" + "kin"). Used
+  when hatching the first egg, hatching from the Nest and renaming; a caught pet still named after its species gets
+  a "Give the <species> a name" button in the zone's Recent results. UI only, no schema change.
   Lead calls Rob may want to know: five of the eight adult catalysts need Mistfen materials (Renown 10, week 2-3),
   so a pet on those branches can't become an adult before then (the day 8-10 target needs Boulder, Gem or Fang
   first); Renown ranks now cost about the same each (no big late jumps); the music tracks are Claude's picks.

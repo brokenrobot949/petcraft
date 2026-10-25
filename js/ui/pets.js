@@ -2,7 +2,7 @@
 // The UI only reads state and sends commands with game.dispatch. The screen is rebuilt only when a
 // "structural key" changes (who/what is shown); bars and numbers are updated in place on every
 // change so taps are never swallowed by a rebuild.
-import { el, toast, sheet, sheetWithClose } from './dom.js';
+import { el, toast, sheetWithClose } from './dom.js';
 import { buildingTier, petCapacity } from '../systems/buildings.js';
 import { freePetSpaces } from '../systems/taming.js';
 import { nestList, eggList } from '../systems/nest.js';
@@ -19,6 +19,7 @@ import {
 } from '../systems/petstats.js';
 import { stationDef } from '../systems/crafting.js';
 import { retireInfo, heirEggList } from '../systems/elders.js';
+import { randomName, randomNameButton, renameSheet } from './petname.js';
 
 export const id = 'pets';
 export const label = 'Pets';
@@ -302,8 +303,7 @@ function buildEggChoice() {
 
 function startHatch() {
   if (!ui.sel) return;
-  const names = gdata().pets.suggestedNames;
-  const h = { arch: ui.sel, step: reducedMotion() ? 'name' : 'crack', idx: Math.floor(Math.random() * names.length) };
+  const h = { arch: ui.sel, step: reducedMotion() ? 'name' : 'crack', name: randomName(gdata()) };
   ui.hatch = h;
   if (h.step === 'crack') {
     setTimeout(() => {
@@ -328,15 +328,15 @@ function buildHatch() {
         el('p.muted', { 'aria-live': 'polite' }, 'Something is stirring inside...')),
     ];
   }
-  const names = d.pets.suggestedNames;
   const input = el('input.field.pet-name-input', {
     type: 'text',
     maxLength: d.balance.pets.nameMaxLength,
     autocomplete: 'off',
     enterKeyHint: 'done',
-    value: names[h.idx],
+    value: h.name,
     id: 'pet-name-field',
   });
+  input.addEventListener('input', () => { h.name = input.value; });
   const submit = () => {
     if (!act('pets/hatchStarter', { archetype: h.arch, name: input.value })) return;
     const mine = petList(gstate())[0];
@@ -346,7 +346,6 @@ function buildHatch() {
     render();
   };
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
-  const suggest = () => { h.idx = (h.idx + 1) % names.length; input.value = names[h.idx]; };
   return [
     el('h1', {}, 'Pets'),
     el('div.panel.hatch-stage', {},
@@ -356,7 +355,7 @@ function buildHatch() {
       el('p.small.muted', {}, arch.blurb),
       el('label.small.muted', { for: 'pet-name-field' }, 'What will you call it?'),
       input,
-      el('button.btn.wide', { type: 'button', onclick: suggest }, 'Suggest a name'),
+      el('button.btn.wide', { type: 'button', onclick: () => { input.value = h.name = randomName(d, input.value); } }, 'Random name'),
       el('button.btn.wide', { type: 'button', onclick: submit }, 'Name it')),
     el('button.btn.wide', { type: 'button', onclick: () => { ui.hatch = null; render(); } }, 'Back to the eggs'),
   ];
@@ -459,13 +458,11 @@ function hatchSheet(slot) {
   const e = gstate().nest.slots[slot];
   if (!e) return;
   const arch = archetypeOf(d, e.archetype);
-  const names = d.pets.suggestedNames;
   const body = el('div.hatch-stage.nest-hatch', {});
   let closeSheet = () => {};
   const nameStep = () => {
-    let idx = Math.floor(Math.random() * names.length);
     const input = el('input.field.pet-name-input', {
-      type: 'text', maxLength: d.balance.pets.nameMaxLength, autocomplete: 'off', enterKeyHint: 'done', value: names[idx], 'aria-label': 'Pet name',
+      type: 'text', maxLength: d.balance.pets.nameMaxLength, autocomplete: 'off', enterKeyHint: 'done', value: randomName(d), 'aria-label': 'Pet name',
     });
     const problem = el('p.small.nest-problem', { 'aria-live': 'polite' });
     const submit = () => {
@@ -490,7 +487,7 @@ function hatchSheet(slot) {
       el('label.small.muted', { for: 'nest-name-field' }, 'What will you call it?'),
       input,
       problem,
-      el('button.btn.wide', { type: 'button', onclick: () => { idx = (idx + 1) % names.length; input.value = names[idx]; } }, 'Suggest a name'),
+      randomNameButton(d, input),
       el('button.btn.wide', { type: 'button', onclick: submit }, 'Name it'));
     input.id = 'nest-name-field';
     input.focus();
@@ -599,19 +596,6 @@ function spawnHearts() {
     host.append(h);
     setTimeout(() => h.remove(), 1800 + i * 120);
   }
-}
-
-function renameSheet(pet) {
-  const d = gdata();
-  const input = el('input.field.pet-name-input', {
-    type: 'text', maxLength: d.balance.pets.nameMaxLength, autocomplete: 'off', enterKeyHint: 'done', value: pet.name, 'aria-label': 'New name',
-  });
-  let close = () => {};
-  const save = () => { if (act('pets/rename', { pet: pet.id, name: input.value })) close(); };
-  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } });
-  close = sheet(`Rename ${pet.name}`, input, el('button.btn.wide', { type: 'button', onclick: save }, 'Save name'));
-  input.focus();
-  input.select();
 }
 
 function panelOf(title, ...kids) {
@@ -894,7 +878,7 @@ function buildPage(st, day, pet) {
     el('div.pet-head-text', {},
       el('div.pet-name-row', {},
         el('h2.pet-title', {}, pet.name),
-        el('button.btn', { type: 'button', onclick: () => renameSheet(pet) }, 'Rename')),
+        el('button.btn', { type: 'button', onclick: () => renameSheet(app.game, pet) }, 'Rename')),
       el('p.small.muted', {}, `${petSpecies(d, pet)} - ${form?.name || pet.form}`),
       el('p.pet-quality', {}, stars(pet), el('span.small', {}, quality?.name || pet.quality)))),
     patBtn,
