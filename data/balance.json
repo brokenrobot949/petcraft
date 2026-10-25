@@ -34,6 +34,7 @@
     "stageLevelCaps": [10, 20, 30],
     "xpCurve": { "a": 0.000007, "exp": 8, "b": 11000 },
     "xpPerSkillXp": 1,
+    "playerXpShare": 0.25,
     "starterQuality": "uncommon",
     "callingActions": 150,
     "nameMaxLength": 16,

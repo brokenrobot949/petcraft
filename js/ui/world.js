@@ -439,6 +439,11 @@ function renderZone() {
         : null;
       parts.push(el('p', {}, digLine || `${taskLabel(d, task, node)}${where}`),
         el('div.bar.big', {}, rec.fill), rec.text);
+      const share = d.balance.pets.playerXpShare;
+      if (w.pet && !digLine && share > 0) {
+        const skill = d.skills.skills.find((x) => x.id === task.skill);
+        if (skill) parts.push(el('p.small.muted', {}, `You get ${Math.round(share * 100)}% of the ${skill.name} XP it earns.`));
+      }
     } else {
       parts.push(el('p', {}, w.pet ? 'Not working yet.' : "You're resting. Pick something to do below."));
     }

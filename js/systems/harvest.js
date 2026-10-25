@@ -152,9 +152,14 @@ export function actionMs(state, data, workerId, task) {
   return baseActionMs(data, task) / speed;
 }
 
+// Skill XP per action is kept on a 1/1024 grid: the player and pets add to the same skill in a
+// different order live and offline, and sums of such numbers come out the same in any order.
+const XP_GRID = 1024;
+const onGrid = (x) => Math.round(x * XP_GRID) / XP_GRID;
+
 function actionXp(data, task, node) {
   const b = data.balance.harvest;
-  return (baseActionMs(data, task) / 1000) * b.xpPerActionSecond * (1 + (node.level || 1) * b.xpPerNodeLevel);
+  return onGrid((baseActionMs(data, task) / 1000) * b.xpPerActionSecond * (1 + (node.level || 1) * b.xpPerNodeLevel));
 }
 
 function rareChance(state, data, workerId, task) {
@@ -223,8 +228,8 @@ export function actionProfile(state, data, workerId, prev = null) {
 }
 
 // One finished action for a worker: roll drops and rare finds (from the worker's own random
-// stream), fill the bag. The player earns skill XP; a pet's XP is returned for the pets system
-// to add. Returns { xp } (the XP the action is worth). `profile` (from actionProfile) is optional.
+// stream), fill the bag. The player earns skill XP (from a pet's action, a share of it); a pet's XP
+// is returned for the pets system to add. Returns { xp } (the XP the action is worth). `profile` (from actionProfile) is optional.
 export function completeAction(state, ctx, workerId, profile = null) {
   const { data } = ctx;
   const w = state.workers[workerId];
@@ -252,8 +257,10 @@ export function completeAction(state, ctx, workerId, profile = null) {
   const xp = p.xp;
   state.stats.actions[task.skill] = (state.stats.actions[task.skill] || 0) + 1;
   const petXp = pet ? xp * data.balance.pets.xpPerSkillXp : 0;
-  ctx.emit?.({ type: 'harvest', worker: workerId, zone: task.zone, skill: task.skill, node: task.node, items, xp: pet ? 0 : xp, petXp, rare });
-  if (!pet) addXp(state, ctx, task.skill, xp);
+  // A pet's work also gives the player a share of the skill XP (balance.pets.playerXpShare).
+  const playerXp = pet ? onGrid(xp * data.balance.pets.playerXpShare) : xp;
+  ctx.emit?.({ type: 'harvest', worker: workerId, zone: task.zone, skill: task.skill, node: task.node, items, xp: playerXp, petXp, rare });
+  if (playerXp > 0) addXp(state, ctx, task.skill, playerXp);
   return { xp: petXp };
 }
 

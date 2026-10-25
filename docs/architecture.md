@@ -202,7 +202,8 @@ of the scene size. Scene timing and sizes live in `balance.render.zone`.
 - Working drains energy; at or below `autoFeedBelowFrac` of max, an auto-feeding pet eats one
   pantry item (smallest `food` first; only `balance.pets.energy.autoFeedCategories`: meals and tonics, never raw food); at 0 it rests until full. An active pet with no task
   recovers at the rest rate; stabled pets rest `stabledRestMult` times faster and earn no XP.
-- Pet actions give pet XP (`xpPerSkillXp` x the action's skill XP), never player skill XP. Levels
+- Pet actions give pet XP (`xpPerSkillXp` x the action's skill XP), and the player `playerXpShare` of the
+  action's skill XP (0 before 0.11.2; see "After Phase 10: pets share skill XP"). Levels
   stop at the stage cap (10 / 20 / 30); extra XP banks.
 - Bond: +1 per `workMinutesPerPoint` of work, +`pat` once per local day.
 
@@ -929,3 +930,17 @@ Rob, 2026-10-24. Migration 8 -> 9 adds `crafting.paused` (false).
 - Simulator policy: the job is set first and the stations are worked last in each check-in; XP-only crafting is sized
   to `XP_CRAFT_SHARE` (30%) of the time until the next check-in.
 - `bag.ownedCount(state, itemId)`: all qualities of an item (the recipe picker shows "in bag").
+
+## After Phase 10: pets share skill XP (no schema change)
+
+Rob, 2026-10-25 (0.11.2).
+- `harvest.completeAction`: a pet's action adds `balance.pets.playerXpShare` (0.25) x the action's skill XP to the
+  player's skill (`skills.addXp`, so level-ups and Mastery stars work as usual). The `harvest` event's `xp` is that
+  share (it was 0 for pets), so "While you were away" lists "+N <Skill> XP" under each pet. Pet XP is unchanged.
+- Skill XP per harvest action sits on a 1/1024 grid (`onGrid` in harvest.js): the player and pets now add to the same
+  skill in a different order live and offline, and grid numbers sum to the same total in any order (core check:
+  live = catch-up skills, exactly).
+- Zone page: a pet's worker card says "You get 25% of the <Skill> XP it earns."
+- Simulator (90 days, seeds 12345/777/4242, share 0 vs 0.25): milestones barely move (ending 64-67 -> 64-70; every
+  paced milestone is gated by Renown or projects, not skill levels). Harvest skills climb faster: average level
+  22 -> 28 on day 5, 32 -> 45 on day 10, 48 -> 60 on day 20 (all five at 60 by day 20 instead of ~day 30).

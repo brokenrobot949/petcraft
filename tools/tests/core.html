@@ -24,6 +24,7 @@ import { petRestPerHour } from '../../js/systems/petstats.js';
 import { offlineCapMs } from '../../js/core/time.js';
 import { pantryList } from '../../js/systems/pets.js';
 import { actionMs, zoneUnlocked } from '../../js/systems/harvest.js';
+import { xpToNext } from '../../js/systems/skills.js';
 import { recipeCheck } from '../../js/systems/crafting.js';
 import { rankInfo, xpToNextRank } from '../../js/systems/renown.js';
 import { weekOf, sellPrice } from '../../js/systems/village.js';
@@ -118,9 +119,10 @@ try {
   check('full bar = about 3 h of work', near(fullHours, 3, 0.2), `${fullHours.toFixed(2)} h`);
   // No food in the bag: work until 0.
   const logs0 = st.bag.pine_log || 0;
-  let worked = 0, rested = 0, wentToRest = false, woke = false;
+  let worked = 0, rested = 0, wentToRest = false, woke = false, shareXp = 0, petBaseXp = 0;
   const off = g.onEvents((evs) => {
     for (const e of evs) {
+      if (e.type === 'harvest' && e.worker === pid) { shareXp += e.xp; petBaseXp += e.petXp; }
       if (e.type === 'petTime' && e.pet === pid) { worked += e.workMs; rested += e.restMs; }
       if (e.type === 'petRest') wentToRest = true;
       if (e.type === 'petWoke') woke = true;
@@ -131,7 +133,11 @@ try {
   check('worked about 3 h before resting', near(worked / H, fullHours, 0.15), `${(worked / H).toFixed(3)} h`);
   check('pet harvested logs', (st.bag.pine_log || 0) > logs0, `${(st.bag.pine_log || 0) - logs0} logs`);
   check('pet gained XP / levels', pet.level > 1 || pet.xp > 0, `level ${pet.level}`);
-  check('player skill XP untouched by pet work', st.skills.chopping.xp === 0 && st.skills.chopping.level === 1);
+  let playerXp = st.skills.chopping.xp;
+  for (let l = 1; l < st.skills.chopping.level; l++) playerXp += xpToNext(l, data.balance);
+  const share = data.balance.pets.playerXpShare;
+  check('pet work gives the player its share of skill XP', shareXp > 0 && near(playerXp, shareXp, 1e-6 * shareXp) && near(shareXp, petBaseXp * share / data.balance.pets.xpPerSkillXp, 1e-6 * shareXp),
+    `${playerXp.toFixed(1)} player XP, share ${share}`);
   check('work earns Bond (+1 per 30 min)', pet.bond === 6, `bond ${pet.bond}`);
   runChunks(g, 1.2 * H, 60000);
   check('rests about 1 h, wakes full, works again', woke && !pet.resting, `rested ${(rested / H).toFixed(2)} h`);
@@ -337,7 +343,7 @@ try {
   const ls = cLive.getState();
   const os = cOff.getState();
   check('crafting: live ticks and catch-up give the same bag', sortedJson(ls.bag) === sortedJson(os.bag), `${sortedJson(ls.bag)} vs ${sortedJson(os.bag)}`);
-  check('... the same skills', JSON.stringify(ls.skills) === JSON.stringify(os.skills));
+  check('... the same skills', JSON.stringify(ls.skills) === JSON.stringify(os.skills), `${JSON.stringify(ls.skills.chopping)} vs ${JSON.stringify(os.skills.chopping)}`);
   check('crafted state still valid', validateState(os) === null && validateState(sc) === null, validateState(os) || validateState(sc) || '');
 
   // 10. Buildings (Phase 5).

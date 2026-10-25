@@ -202,6 +202,7 @@ Gift talents are innate perks rolled at capture or hatch. Lures, Taming level an
 
 - **Starter:** choose one of four eggs (one per archetype). It hatches Uncommon, and you name it.
 - **Active:** 2 pets work in zones. The rest live in the Stable: 2 / 4 / 6 / 8 / 10 spaces by Stable tier.
+- **Player skill XP from pets:** an active pet's harvesting gives the player 25% of the skill XP the same action would give the player (balance `pets.playerXpShare`). The pet's own XP is unchanged. (Rob, 2026-10-25.)
 - **Stabled pets** earn no XP but rest twice as fast. Evolved stabled pets can assist a crafting station (see Evolution).
 - **Swap** active and stabled pets anytime. **Release** returns a pet to the wild for a few materials.
 

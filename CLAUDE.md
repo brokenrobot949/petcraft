@@ -60,7 +60,7 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 10 done (2026-10-24), plus Rob's follow-ups (0.10.1, 0.11.0). All eleven phases built.
+Phase: 10 done (2026-10-24), plus Rob's follow-ups (0.10.1, 0.11.0, 0.11.2). All eleven phases built.
 Next: Rob's final playtest; then fixes from it. Open design calls are listed under Known issues.
 Phase 10: no schema change (still v8). Contract in docs/architecture.md "Phase 10: tune and ship".
   Tuning (balance.json; simulator v5 + tools/sim/worker.js and lab.js, 3 seeds): renown.xpCurve {375, 0.5, 60}
@@ -92,6 +92,11 @@ Phase 10: no schema change (still v8). Contract in docs/architecture.md "Phase 1
   25%. World zone page: Harvest / Taming / Treasure sub-tabs, only the picked worker has a full card (others one line).
   Journal: Progress / Collection / Settings sub-tabs; achievement groups and Bestiary families fold away (dom.js fold,
   open state per device). Recipe picker shows how many of each item are in the bag. Core checks: 253.
+  0.11.2 (Rob): pets share skill XP. An active pet's harvest action gives the player 25% of its skill XP
+  (balance.pets.playerXpShare; pet XP unchanged; no schema change). Harvest XP per action sits on a 1/1024 grid so
+  live = catch-up stays exact. Zone page and "While you were away" show the share. Contract in docs/architecture.md
+  "After Phase 10: pets share skill XP". Simulator (3 seeds): milestones about the same (ending day 64-70, light
+  69.5); harvest skills all reach 60 by day 20 (was ~day 30). Core checks: 253.
   Lead calls Rob may want to know: five of the eight adult catalysts need Mistfen materials (Renown 10, week 2-3),
   so a pet on those branches can't become an adult before then (the day 8-10 target needs Boulder, Gem or Fang
   first); Renown ranks now cost about the same each (no big late jumps); the music tracks are Claude's picks.
@@ -208,7 +213,7 @@ Art casting: data/sprites.json maps roles (player, pet.<archetype>.<form>, mythi
   suggestions; Rob recasts in the catalog (http://localhost:8080/tools/catalog/ -> Casting -> Save),
   which writes sprites.json and runs tools/atlas/pack.ps1 via tools/serve.ps1. Then commit + bump version.
 Known issues:
-- Pacing after Phase 10: see Status. Harvest and craft skills still reach 60 around day 25-30 (Mastery stars carry
+- Pacing after Phase 10: see Status. Harvest skills reach 60 around day 20 since pets share XP (0.11.2), craft skills around day 25-30 (Mastery stars carry
   on after that); many raw materials still pile up in the tens of thousands (simulator: ~50 items flagged).
 - Pets rest under 1% of the time (simulator 0.1%): auto-feed keeps them topped up with cheap meals. Left as is
   (a design question for Rob: make meals cost more, or accept that fed pets never rest). Auto-feed uses cooked meals and tonics only (Rob, 2026-10-19).
