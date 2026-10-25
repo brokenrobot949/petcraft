@@ -1,4 +1,5 @@
 // Small shared DOM helpers for every screen.
+import { getPref, setPref } from './device.js';
 
 // el('div.panel', { onclick }, child, 'text', ...)
 export function el(spec, props = {}, ...children) {
@@ -52,4 +53,15 @@ export function formatAgo(ms) {
   const m = Math.round(s / 60);
   if (m < 60) return `${m} min ago`;
   return `${Math.round(m / 60)} h ago`;
+}
+
+// A fold-away section: a one-line summary the player taps to open or close the body. Starts closed;
+// whether it is open is remembered per device under `fold.<key>`, so re-renders keep it.
+export function fold(key, summary, ...body) {
+  const pref = `fold.${key}`;
+  const node = el('details.fold', { open: !!getPref(pref, false) },
+    el('summary', {}, summary),
+    el('div.fold-body', {}, ...body));
+  node.addEventListener('toggle', () => setPref(pref, node.open));
+  return node;
 }

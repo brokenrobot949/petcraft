@@ -2,7 +2,7 @@
 import { el, sheet, sheetWithClose, toast } from './dom.js';
 import { itemIcon, faceIcon } from './icons.js';
 import { getPref, setPref } from './device.js';
-import { bagList, itemLabel, itemKey } from '../systems/bag.js';
+import { bagList, itemLabel, itemKey, ownedCount } from '../systems/bag.js';
 import { skillProgress } from '../systems/skills.js';
 import { masteryInfo } from './mastery.js';
 import {
@@ -143,7 +143,7 @@ function renderWorkLine() {
   const tiers = data().balance.crafting.workSlotsByCottageTier;
   const text = `You work at ${n} station${n === 1 ? '' : 's'} at a time.`;
   const more = tiers.findIndex((x) => x > n);
-  workLine.textContent = `${more >= 0 ? `${text} (${tiers[more]} from Cottage tier ${more + 1})` : text} Adult pets resting in the Stable can help at a station (on their pet page).`;
+  workLine.textContent = `${more >= 0 ? `${text} (${tiers[more]} from Cottage tier ${more + 1})` : text} While you craft, your own harvesting, tracking or digging waits; when your queues are done you go back to it. Adult pets resting in the Stable can help at a station (on their pet page).`;
 }
 
 function buildStations(list) {
@@ -174,11 +174,15 @@ function stationCard(s, _i, list) {
       el('div.assist-text', {},
         el('div', {}, s.status === 'assisted' ? `${helper.name} is helping: keeps running` : `${helper.name} is helping (queue something)`),
         bonus && el('div.small.muted', {}, bonus)));
-  } else if (s.status === 'working') status = el('p.station-status', {}, "You're working here.");
+  } else if (s.status === 'working') {
+    status = el('div', {},
+      el('p.station-status', {}, "You're working here. Your own job (harvesting, tracking or digging) waits until your queues are done."),
+      el('button.btn.wide', { type: 'button', onclick: () => run('crafting/pause') }, 'Stop crafting'));
+  }
   else if (s.status === 'paused') {
     const other = list.find((x) => x.working);
     status = el('div', {},
-      el('p.station-status', {}, `Paused - you're at the ${other ? other.name : 'other station'}.`),
+      el('p.station-status', {}, other ? `Paused - you're at the ${other.name}.` : "Paused - you're away doing your job."),
       el('button.btn.wide', { type: 'button', onclick: () => run('crafting/work', { station: s.id }) }, 'Work here'));
   }
   if (s.status === 'unbuilt') {
@@ -304,7 +308,7 @@ function openPicker(stationId) {
       { type: 'button', onclick: () => (chk.max >= 1 && !locked ? showQty(r) : showMissing(r)) },
       itemIcon(r.output, 32, itemName(r.output)),
       el('div.recipe-body', {},
-        el('div.recipe-name', {}, itemName(r.output), r.qty > 1 && ` x${r.qty}`),
+        el('div.recipe-name', {}, itemName(r.output), r.qty > 1 && ` x${r.qty}`, el('span.recipe-owned', {}, ` - in bag: ${ownedCount(st, r.output).toLocaleString()}`)),
         el('div.recipe-inputs', {}, inputs),
         el('div.small.muted', {}, `${fmtTime(itemMs(st, d, r))} each - level ${r.level || 1}`),
         note && el('div.small.recipe-note', {}, note)));
@@ -352,6 +356,7 @@ function openPicker(stationId) {
       const chk = recipeCheck(now, d, r.id, qty);
       qtyText.textContent = `${qty} x ${itemName(r.output)}${r.qty > 1 ? ` (makes ${qty * r.qty})` : ''}`;
       const lines = [
+        el('p', {}, `In your bag: ${ownedCount(now, r.output).toLocaleString()}`),
         el('p', {}, `Time: ${fmtTime(qty * itemMs(now, d, r))}`),
         el('p', {}, `Skill XP: ${Math.round(qty * itemXp(d, r)).toLocaleString()}`),
       ];

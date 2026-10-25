@@ -1,5 +1,5 @@
 // Journal tab. Phase 0 has Settings: sound toggles, save export/import, install, credits.
-import { el, toast, formatAgo, sheetWithClose } from './dom.js';
+import { el, toast, formatAgo, sheetWithClose, fold } from './dom.js';
 import { exportCode, importCode } from '../core/save.js';
 import { getPref, setPref } from './device.js';
 import { createBestiary } from './bestiary.js';
@@ -8,6 +8,7 @@ import { rankInfo } from '../systems/renown.js';
 import { boardList, greatCommission } from '../systems/village.js';
 import { achievementList, wornTitle } from '../systems/achievements.js';
 import { createStoryPanel } from './story.js';
+import { storyNotice } from '../systems/story.js';
 import { createElderPanel } from './elders.js';
 
 export const id = 'journal';
@@ -24,6 +25,7 @@ export function mount(container, app) {
 
   // ---- Renown, commissions, achievements ----
   const progressHost = el('div');
+  const achHost = el('div');
   const bestiary = createBestiary(game);
   const story = createStoryPanel(app);
   const elderPanel = createElderPanel(app);
@@ -160,34 +162,59 @@ export function mount(container, app) {
   }
   showDev(getPref('devMode', false));
 
-  container.append(
-    el('h1', {}, 'Journal'),
-    story.node,
-    elderPanel.node,
-    progressHost,
-    bestiary.node,
-    el('div.panel', {}, el('h2', {}, 'Sound'), ...toggles.map((t) => t.row),
-      el('p.small.muted', {}, 'Sound starts after your first tap. Your choice is remembered.')),
-    el('div.panel', {},
-      el('h2', {}, 'Your save'),
-      saveInfo,
-      el('div.row', {}, saveNow),
-      el('p.small', { style: 'margin-top:12px' }, 'Keep a copy of your game: tap Show save code, copy it, and keep it somewhere safe (a note or a message to yourself).'),
-      el('div.row', {}, exportBtn, copyBtn),
-      exportBox,
-      el('p.small', { style: 'margin-top:12px' }, 'To restore a game, paste its code below.'),
-      importBox,
-      el('div.row', {}, importBtn),
-      el('p.small', { style: 'margin-top:12px' }, 'Start again from the first egg. Your current game is deleted.'),
-      el('div.row', {}, newGameBtn)),
-    el('div.panel', {}, el('h2', {}, 'App'), installBtn, installHelp,
-      versionLine, ...(catchUpLine ? [catchUpLine] : [])),
-    devHost,
-    el('div.panel', {},
-      el('h2', {}, 'Credits'),
-      el('p.small', {}, 'Art, font and sound: the Ninja Adventure pack by Pixel-boy and AAA (CC0).'),
-      el('p.small', {}, el('a', { href: 'https://pixel-boy.itch.io/ninja-adventure-asset-pack', target: '_blank', rel: 'noopener', style: 'color: var(--pale)' }, 'Visit the pack page')),
-      el('p.small', {}, 'Rendering: PixiJS (MIT). Game design: Rob.')));
+  // Three sub-tabs keep the page short: Progress, Collection, Settings. The last pick is remembered.
+  const TABS = [['progress', 'Progress'], ['collection', 'Collection'], ['settings', 'Settings']];
+  const panes = {
+    progress: el('div.subpane', { role: 'tabpanel' }, story.node, progressHost),
+    collection: el('div.subpane', { role: 'tabpanel' }, achHost, bestiary.node, elderPanel.node),
+    settings: el('div.subpane', { role: 'tabpanel' },
+      el('div.panel', {}, el('h2', {}, 'Sound'), ...toggles.map((t) => t.row),
+        el('p.small.muted', {}, 'Sound starts after your first tap. Your choice is remembered.')),
+      el('div.panel', {},
+        el('h2', {}, 'Your save'),
+        saveInfo,
+        el('div.row', {}, saveNow),
+        el('p.small', { style: 'margin-top:12px' }, 'Keep a copy of your game: tap Show save code, copy it, and keep it somewhere safe (a note or a message to yourself).'),
+        el('div.row', {}, exportBtn, copyBtn),
+        exportBox,
+        el('p.small', { style: 'margin-top:12px' }, 'To restore a game, paste its code below.'),
+        importBox,
+        el('div.row', {}, importBtn),
+        el('p.small', { style: 'margin-top:12px' }, 'Start again from the first egg. Your current game is deleted.'),
+        el('div.row', {}, newGameBtn)),
+      el('div.panel', {}, el('h2', {}, 'App'), installBtn, installHelp,
+        versionLine, ...(catchUpLine ? [catchUpLine] : [])),
+      devHost,
+      el('div.panel', {},
+        el('h2', {}, 'Credits'),
+        el('p.small', {}, 'Art, font and sound: the Ninja Adventure pack by Pixel-boy and AAA (CC0).'),
+        el('p.small', {}, el('a', { href: 'https://pixel-boy.itch.io/ninja-adventure-asset-pack', target: '_blank', rel: 'noopener', style: 'color: var(--pale)' }, 'Visit the pack page')),
+        el('p.small', {}, 'Rendering: PixiJS (MIT). Game design: Rob.'))),
+  };
+  let tab = getPref('journalTab', 'progress');
+  if (!panes[tab]) tab = 'progress';
+  const tabBtns = {};
+  const tabBar = el('div.subtabs', { role: 'tablist', 'aria-label': 'Journal sections' }, TABS.map(([tid, name]) => {
+    const dot = el('span.dot', { hidden: true, 'aria-label': 'needs attention' });
+    const btn = el('button.subtab', { type: 'button', role: 'tab', onclick: () => pick(tid) }, name, dot);
+    tabBtns[tid] = { btn, dot };
+    return btn;
+  }));
+  function pick(tid) {
+    tab = tid;
+    setPref('journalTab', tid);
+    for (const [k, p] of Object.entries(panes)) p.hidden = k !== tid;
+    for (const [k, t] of Object.entries(tabBtns)) t.btn.setAttribute('aria-selected', k === tid ? 'true' : 'false');
+    if (!container.hidden) showRender?.();
+  }
+  // A dot on Progress when a story entry is new or a commission can be delivered.
+  function updateMarks(state) {
+    const d = game.data;
+    const mark = storyNotice(state) || boardList(state, d).some((c) => c.canDeliver) || !!greatCommission(state, d)?.canDeliver;
+    tabBtns.progress.dot.hidden = !mark;
+  }
+  container.append(el('h1', {}, 'Journal'), tabBar, panes.progress, panes.collection, panes.settings);
+  pick(tab);
 
 
   // ---- Renown, commissions and achievements panels ----
@@ -242,10 +269,11 @@ export function mount(container, app) {
     for (const [gid, gname] of GROUPS) {
       const rows = achs.filter((a) => a.group === gid);
       if (!rows.length) continue;
-      achBody.push(el('h3.jr-group', {}, gname), ...rows.map(achRow));
+      achBody.push(fold(`ach.${gid}`, `${gname}: ${rows.filter((a) => a.done).length} of ${rows.length} done`, ...rows.map(achRow)));
     }
     const achPanel = el('div.panel', {}, el('h2', {}, `Achievements (${doneCount} of ${achs.length} done)`), achBody);
-    progressHost.replaceChildren(renownPanel, commissionPanel, achPanel);
+    progressHost.replaceChildren(renownPanel, commissionPanel);
+    achHost.replaceChildren(achPanel);
 
     function achRow(a) {
       const wearing = a.done && a.title && state.achievements.title === a.id;
@@ -273,6 +301,7 @@ export function mount(container, app) {
     }
   }
   function render(state) {
+    updateMarks(state);
     if (!container.hidden) {
       renderProgress(state);
       story.update(state);

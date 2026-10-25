@@ -8,7 +8,7 @@ import { random, randomInt, chance, deriveSeed } from '../core/rng.js';
 import { addItem, removeItem, itemDef, itemLabel } from './bag.js';
 import { addXp, skillLevel, masterySpeed } from './skills.js';
 import { buffSpeed } from './buffs.js';
-import { zoneUnlocked, isHarvestTask } from './harvest.js';
+import { zoneUnlocked, isHarvestTask, playerCrafting, leaveStations } from './harvest.js';
 import { createPet } from './pets.js';
 import { archetypeOf, bestEffect, mythicDef } from './petstats.js';
 import { petCapacity } from './buildings.js';
@@ -272,7 +272,7 @@ export function advance(state, ms, ctx) {
   const w = state.workers.player;
   let left = ms;
   while (left > EPS) {
-    const tracking = w.task?.skill === 'taming';
+    const tracking = w.task?.skill === 'taming' && !playerCrafting(state); // tracking waits while the player crafts
     if (!tracking && !t.lure) break;
     const dur = tracking ? trackMs(state, ctx.data, w.task.zone) : Infinity;
     const step = Math.min(left, tracking ? Math.max(0, dur - w.progressMs) : Infinity, t.lure ? t.lure.msLeft : Infinity);
@@ -318,6 +318,7 @@ export const commands = {
     if (!zone || !zone.archetypes?.length) throw new Error('No wild monsters live there.');
     if (!zoneUnlocked(state, ctx.data, zoneId)) throw new Error(`${zone.name} isn't open yet.`);
     const w = state.workers.player;
+    leaveStations(state);
     if (w.task?.skill === 'taming' && w.task.zone === zoneId) return;
     if (isHarvestTask(ctx.data, w.task)) w.resume = w.task;
     w.task = { zone: zoneId, skill: 'taming', node: 'track' };

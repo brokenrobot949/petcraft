@@ -835,6 +835,51 @@ try {
   check('after level 10 the picks come from the Timber pool', bud.talents.length === pickLevels.filter((l) => l <= bud.level).length
     && bud.talents.slice(2).every((t) => data.talents.pools.timber.includes(t) || data.talents.pools.hatchling.includes(t)) && data.talents.pools.timber.includes(bud.talents[2]));
 
+  // Crafting is a player task (Rob, 2026-10-24): working a station pauses the player's own job.
+  {
+    const setup = (seed) => {
+      const g = freshGame(seed);
+      g.dispatch('dev/grant', { item: 'pine_log', qty: 100 });
+      g.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'chopping', node: 'pine' });
+      g.dispatch('crafting/start', { recipe: 'pine_plank', qty: 3 });
+      return g;
+    };
+    const gC = setup(301);
+    const sC = gC.getState();
+    const plankMs = itemMs(sC, data, data.recipes.recipes.find((r) => r.id === 'pine_plank'));
+    check('queueing a craft sends the player to the station', sC.crafting.working.includes('workbench') && !sC.crafting.paused);
+    const chops0 = sC.stats.actions.chopping;
+    gC.advance(plankMs * 2);
+    check('no harvesting while the player crafts', sC.stats.actions.chopping === chops0, `${chops0} -> ${sC.stats.actions.chopping}`);
+    check('the harvest job is kept while crafting', sC.workers.player.task?.skill === 'chopping');
+    gC.advance(plankMs * 1.5 + 60000);
+    check('once the queue is done the player goes back to harvesting', sC.crafting.working.length === 0 && sC.stats.actions.chopping > chops0 && (sC.stats.crafts.pine_plank || 0) === 3);
+    // taking up a job leaves the stations; working one again comes back
+    const gP = setup(302);
+    const sP2 = gP.getState();
+    gP.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'chopping', node: 'pine' }); // same job again
+    check('tapping a harvest job leaves the station (queue kept, paused)', sP2.crafting.paused && sP2.crafting.working.length === 0 && sP2.crafting.stations.workbench.queue.length === 1);
+    const before = sP2.stats.actions.chopping;
+    gP.advance(60000);
+    check('  ...and the player harvests while the queue waits', sP2.stats.actions.chopping > before && !sP2.stats.crafts.pine_plank);
+    gP.dispatch('crafting/work', { station: 'workbench' });
+    check('Work here goes back to the station', sP2.crafting.working.includes('workbench') && !sP2.crafting.paused);
+    gP.dispatch('crafting/pause');
+    check('Stop crafting leaves the station', sP2.crafting.paused && sP2.crafting.working.length === 0);
+    gP.dispatch('crafting/cancel', { station: 'workbench', index: 0 }); // one queue slot at tier 1
+    gP.dispatch('crafting/start', { recipe: 'pine_plank', qty: 1 });
+    check('queueing something new goes back to the stations', !sP2.crafting.paused && sP2.crafting.working.includes('workbench'));
+    gP.dispatch('taming/track', { zone: 'meadowfold' });
+    check('tracking leaves the stations too', sP2.crafting.paused && sP2.crafting.working.length === 0);
+    // live play and offline catch-up agree
+    const gLive = setup(303);
+    const gAway = setup(303);
+    for (let t = 0; t < 30 * 60; t++) gLive.advance(1000);
+    gAway.catchUp(30 * 60000);
+    const pick = (s) => JSON.stringify([s.bag, s.stats.actions, s.stats.crafts, s.skills, s.crafting.working, s.workers.player]);
+    check('crafting then harvesting: 30 min live = 30 min offline', pick(gLive.getState()) === pick(gAway.getState()));
+  }
+
   // Station assist: a stabled adult keeps its station running while the player works elsewhere.
   const assistSetup = (gx) => {
     gx.dispatch('pets/hatchStarter', { archetype: 'sprout', name: 'Bud' });
@@ -846,10 +891,10 @@ try {
     gx.dispatch('dev/grant', { item: 'stone', qty: 200 });
     gx.dispatch('dev/grant', { item: 'copper_ore', qty: 200 });
     gx.dispatch('dev/setLevel', { skill: 'carpentry', level: 5 });
+    gx.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'chopping', node: 'pine' }); // before queueing: taking a job leaves the stations
     gx.dispatch('crafting/start', { recipe: 'pine_plank', qty: 30 });
     gx.dispatch('crafting/start', { recipe: data.recipes.recipes.find((r) => r.station === 'forge' && r.level <= 1).id, qty: 30 });
     gx.dispatch('pets/assist', { pet: 'pet1', station: 'workbench' });
-    gx.dispatch('harvest/assign', { worker: 'player', zone: 'meadowfold', skill: 'chopping', node: 'pine' });
   };
   const aL = freshGame(93); assistSetup(aL);
   const sA = aL.getState();

@@ -27,6 +27,7 @@
 .recipe.locked, .recipe.nomats { opacity: 0.55; }
 .recipe-body { flex: 1; min-width: 0; }
 .recipe-name { color: var(--pale); overflow-wrap: anywhere; }
+.recipe-owned { color: var(--muted); font-size: 0.85em; }
 .recipe-inputs { display: flex; flex-wrap: wrap; gap: 4px 10px; margin: 2px 0; }
 .need { display: inline-flex; align-items: center; gap: 2px; font-size: 14px; }
 .need.short { color: #ff8a7a; }

@@ -913,3 +913,19 @@ No save schema change (still version 8). Contract changes:
 - Journal -> Your save -> Start a new game (after a confirmation sheet): `app.startNewGame()` stops saving, then
   `startFresh(state, now)` (save.js) writes a new game and deletes the backup and damaged copy (nothing is deleted if the
   write fails); the page reloads into the egg choice. The device prefs tab, worldZone and lastCatchUp are cleared.
+
+## After Phase 10: crafting is a player task (save schema v9)
+
+Rob, 2026-10-24. Migration 8 -> 9 adds `crafting.paused` (false).
+- `harvest.playerCrafting(state)`: true while `crafting.working` is non-empty. The player's harvesting (harvest.advance),
+  tracking (taming.advance) and digging (treasure.advance) skip their time while it is true; the task stays in
+  `workers.player.task` and goes on by itself when the worked queues run out. Pets are not affected.
+- `harvest.leaveStations(state)`: `paused = true`, `working = []`. Called by `harvest/assign` (player), `taming/track`,
+  `treasure/dig` (player) and the new `crafting/pause` command. While paused, `normalizeWorking` keeps `working`
+  empty (queues wait, status 'paused'); assisted stations keep running.
+- `crafting/start` and `crafting/work` set `paused = false` (queueing is choosing to craft).
+- `crafting.nextBoundaryMs` now always splits time where a worked queue runs out, so the player's job resumes at the
+  exact moment live and offline (core check: 30 min live = 30 min catch-up).
+- Simulator policy: the job is set first and the stations are worked last in each check-in; XP-only crafting is sized
+  to `XP_CRAFT_SHARE` (30%) of the time until the next check-in.
+- `bag.ownedCount(state, itemId)`: all qualities of an item (the recipe picker shows "in bag").

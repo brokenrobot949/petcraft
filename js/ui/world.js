@@ -3,7 +3,8 @@ import { el, toast, sheetWithClose } from './dom.js';
 import { getPref, setPref } from './device.js';
 import { itemIcon, faceIcon } from './icons.js';
 import { skillProgress } from '../systems/skills.js';
-import { zoneUnlocked, nodeCheck, actionMs, workerTask, toolFor, isHarvestTask } from '../systems/harvest.js';
+import { zoneUnlocked, nodeCheck, actionMs, workerTask, toolFor, isHarvestTask, playerCrafting } from '../systems/harvest.js';
+import { stationList } from '../systems/crafting.js';
 import { getPet, needsStarter, petStatus } from '../systems/pets.js';
 import { petRole, petMaxEnergy, petRestPerHour, archetypeOf, canDig } from '../systems/petstats.js';
 import { petDigMs } from '../systems/pets.js';
@@ -171,8 +172,17 @@ function keyFor() {
   const lure = lureInfo(s, d);
   const stock = [...trapOptions(s, d, zoneId), ...lureList(s, d)].map((x) => `${x.key}${x.count}`).join(',');
   const wild = `${zoneMarkKey(s, zoneId)}|${tm.encounters[zoneId]?.msLeft === null ? 'w' : 'e'}|${trapCheck(s, d, zoneId).reason}|${lure ? lure.item : ''}|${mine}|${stock}`;
-  return `${base}|${sk}|${tools}|${wild}`;
+  return `${base}|${sk}|${tools}|${wild}|${craftingNames(s, d).join(',')}|${tamingNotice(s) ? 'n' : ''}`;
 }
+
+// Names of the stations the player is working at right now (empty when not crafting).
+function craftingNames(s, d) {
+  if (!playerCrafting(s)) return [];
+  return stationList(s, d).filter((x) => x.working).map((x) => x.name);
+}
+
+// The zone page's sub-tab: remembered per device; falls back to Harvest if this zone lacks it.
+let zoneTab = 'harvest';
 
 // What shows on the map for a zone: waiting monster, set trap, number of maps.
 function zoneMarkKey(s, zid) {
@@ -358,6 +368,24 @@ function tapSpot(zid, skillId) {
     ...rows);
 }
 
+// One line for a worker who isn't picked: who and what they're doing (or resting). Tap to pick them.
+function workerLine(s, d, w, task, z, pick) {
+  let doing;
+  if (!w.pet && playerCrafting(s)) doing = `Crafting at the ${craftingNames(s, d).join(' and the ') || 'station'}`;
+  else if (task) {
+    const tz = d.zones.zones.find((x) => x.id === task.zone);
+    const node = tz?.harvest?.[task.skill]?.find((n) => n.id === task.node);
+    doing = `${taskLabel(d, task, node)}${task.zone !== z.id && tz ? ` in ${tz.name}` : ''}`;
+  } else doing = w.pet ? 'Not working yet' : 'Resting';
+  // (The page redraws when a status changes, so the line says "resting" rather than a live energy number.)
+  const energy = w.pet && petStatus(s, w.id) === 'resting' ? 'resting' : null;
+  return el('button.worker-line', { type: 'button', onclick: () => pick(w.id) },
+    w.pet ? faceIcon(petRole(w.pet), 24, w.name) : el('span.you-tag', {}, 'You'),
+    el('span.worker-line-text', {},
+      el('b', {}, w.pet ? w.name : 'You'),
+      el('span.small.muted', {}, ` ${doing}${energy ? ` - ${energy}` : ''}`)));
+}
+
 function renderZone() {
   const body = root.querySelector('.zone-body');
   if (!body) return;
@@ -368,25 +396,38 @@ function renderZone() {
   const sel = selectedWorker(s);
   const selTask = workerTask(s, sel);
 
-  const chooser = el('div.panel', {},
+  // "Who works?": the picked worker gets a full card; the others are one tappable line each (tap to pick).
+  const chooser = el('div.panel.worker-head', {},
     el('h2', {}, 'Who works?'),
-    el('p.small.muted', {}, 'Then tap a spot in the picture, or pick a job below.'),
-    el('div.worker-chips', {}, ws.map((w) =>
-      el('button.chip', {
-        type: 'button',
-        'aria-pressed': w.id === sel ? 'true' : 'false',
-        onclick: () => {
-          setPref('worldWorker', w.id);
-          refresh();
-        },
-      }, w.pet ? faceIcon(petRole(w.pet), 24, w.name) : null, el('span', {}, w.name)))));
+    el('p.small.muted', {}, 'Tap a name to pick, then tap a spot in the picture or a job below.'));
+  const pickWorker = (id) => {
+    setPref('worldWorker', id);
+    refresh();
+  };
 
   bars = new Map();
   const cards = ws.map((w) => {
     const task = workerTask(s, w.id);
+    if (w.id !== sel) return workerLine(s, d, w, task, z, pickWorker);
     const rec = { pet: w.pet };
     const parts = [el('h2', {}, w.pet ? faceIcon(petRole(w.pet), 32, w.name) : null, el('span', {}, w.name),
       w.id === sel ? el('span.small.muted', {}, ' (picking jobs)') : null)];
+    const crafting = !w.pet && playerCrafting(s);
+    if (crafting) {
+      // The player is at a station: their own job waits.
+      const names = craftingNames(s, d);
+      parts.push(el('p', {}, `Crafting at the ${names.join(' and the ') || 'station'}`));
+      if (task) {
+        const tz = d.zones.zones.find((x) => x.id === task.zone);
+        const node = tz?.harvest?.[task.skill]?.find((n) => n.id === task.node);
+        const where = task.zone !== z.id && tz ? ` in ${tz.name}` : '';
+        parts.push(el('p.small.muted', {}, `Then back to: ${taskLabel(d, task, node)}${where}`));
+      }
+      parts.push(el('div.row', { style: 'margin-top:8px' },
+        el('button.btn', { type: 'button', onclick: () => send('crafting/pause') }, 'Stop crafting')));
+      bars.set(w.id, rec);
+      return el(`div.panel.worker-card${w.id === sel ? '.selected' : ''}`, {}, ...parts);
+    }
     if (task) {
       const tz = d.zones.zones.find((x) => x.id === task.zone);
       const node = tz?.harvest?.[task.skill]?.find((n) => n.id === task.node);
@@ -447,11 +488,38 @@ function renderZone() {
       })));
   }
   live = [];
-  const extra = [];
-  if (z.archetypes?.length) extra.push(wildCard(s, d, z));
-  if (mapItemFor(d, z.id)) extra.push(treasureCard(s, d, z));
-  if (!sections.length && !extra.length) sections.push(el('div.panel', {}, el('p', {}, 'Nothing to do here yet.')));
-  body.replaceChildren(chooser, ...cards, ...sections, ...extra);
+  if (!sections.length) sections.push(el('div.panel', {}, el('p', {}, 'Nothing to do here yet.')));
+  const defs = [{ id: 'harvest', name: 'Harvest', nodes: sections }];
+  if (z.archetypes?.length) {
+    const enc = s.taming.encounters[z.id];
+    defs.push({ id: 'taming', name: 'Taming', nodes: [wildCard(s, d, z)], mark: (!!enc && !s.taming.traps[z.id]) || tamingNotice(s) });
+  }
+  if (mapItemFor(d, z.id)) defs.push({ id: 'treasure', name: 'Treasure', nodes: [treasureCard(s, d, z)] });
+  zoneTab = getPref('zoneTab', 'harvest');
+  if (!defs.some((x) => x.id === zoneTab)) zoneTab = 'harvest';
+  const paneEls = {};
+  const btnEls = {};
+  const pick = (tid) => {
+    zoneTab = tid;
+    setPref('zoneTab', tid);
+    for (const [k, p] of Object.entries(paneEls)) p.hidden = k !== tid;
+    for (const [k, b] of Object.entries(btnEls)) b.setAttribute('aria-selected', k === tid ? 'true' : 'false');
+  };
+  const tabBar = defs.length > 1
+    ? el('div.subtabs', { role: 'tablist', 'aria-label': 'Zone activities' }, defs.map((x) => {
+      const b = el('button.subtab', { type: 'button', role: 'tab', onclick: () => pick(x.id) }, x.name,
+        x.mark ? el('span.dot', { 'aria-label': 'needs attention' }) : null);
+      btnEls[x.id] = b;
+      return b;
+    }))
+    : null;
+  for (const x of defs) paneEls[x.id] = el('div.subpane', { role: 'tabpanel' }, ...x.nodes);
+  // Keep the scroll position across a rebuild.
+  const scroller = root.closest('.screen') || root.parentElement;
+  const top = scroller ? scroller.scrollTop : 0;
+  body.replaceChildren(chooser, ...cards, ...(tabBar ? [tabBar] : []), ...Object.values(paneEls));
+  pick(zoneTab);
+  if (scroller && scroller.scrollTop !== top) scroller.scrollTop = top;
   updateXpBars();
   tickBar();
 }

@@ -3,7 +3,7 @@
 // Per-skill and per-tool entries are filled from data by each system's init(), not here.
 import { newSeed, deriveSeed } from './rng.js';
 
-export const SCHEMA_VERSION = 8;
+export const SCHEMA_VERSION = 9;
 
 // seed: optional, for reproducible runs (the balance simulator, tests); a new game picks a random one.
 export function createInitialState(now, seed = newSeed()) {
@@ -33,7 +33,7 @@ export function createInitialState(now, seed = newSeed()) {
     stats: { actions: {}, crafts: {} },
     pets: { nextId: 1, active: [], list: {} },
     pantry: {},
-    crafting: { stations: {}, working: [], known: {}, assists: {} },
+    crafting: { stations: {}, working: [], known: {}, assists: {}, paused: false },
     buffs: {},
     village: newVillage(seed),
     garden: { plots: [], rng: deriveSeed(seed, 3000) },
@@ -179,5 +179,7 @@ export function validateState(s) {
   for (const e of el.list) if (!isObj(e) || typeof e.archetype !== 'string' || typeof e.name !== 'string') return 'bad elder';
   for (const e of el.eggs) if (!isObj(e) || typeof e.archetype !== 'string' || typeof e.quality !== 'string') return 'bad heir egg';
   if (!isCount(t.mythicMs)) return 'bad mythic timer';
+  if (s.version < 9) return null;
+  if (typeof s.crafting.paused !== 'boolean') return 'bad crafting pause';
   return null;
 }

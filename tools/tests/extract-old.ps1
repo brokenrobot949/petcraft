@@ -12,7 +12,8 @@ $versions = [ordered]@{
   5 = '1d3aac3'  # Phase 6: village
   6 = '23bed00'  # Phase 7: taming and treasure
   7 = 'c732a02'  # Phase 8: evolution
-  8 = '8b42f5d'  # Phase 9: endgame
+  8 = '1d1fd95'  # Phases 9-10: endgame, tune and ship
+  # Add the last commit of each new version here once it is replaced (v9: after the next schema bump).
 }
 Push-Location $root
 try {

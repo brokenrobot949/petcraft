@@ -107,12 +107,12 @@ export function createStoryPanel(app) {
           el('span.hs-row-main', {}, el('span.hs-row-name', {}, e.title)),
           e.seen ? null : el('span.story-dot', { 'aria-label': 'New' }))))
         : el('p.small.muted', {}, 'Your story will be written here as you play.'),
-      unread ? el('button.btn.wide', {
+      ...(unread ? [el('button.btn.wide', {
         type: 'button',
         onclick: () => {
           try { game.dispatch('story/seen', {}); } catch (err) { toast(err.message); }
         },
-      }, 'Mark all read') : null);
+      }, 'Mark all read')] : [])); // (replaceChildren would print a null as text)
   }
   return { node: host, update };
 }

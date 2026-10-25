@@ -38,6 +38,7 @@ const RAW_RESERVE = 50;     // selling keeps this many of anything that still ha
 const POTION_RESERVE = 10;  // and this many buff potions
 const SOON_LEVELS = 8;      // "can meet soon": a skill level within this many of the player's
 const COIN_FLOOR = 300;     // sell surplus whenever coins are under this, even with nothing to buy
+const XP_CRAFT_SHARE = 0.3; // crafting is a player task: XP-only crafting gets this share of the time until the next check-in
 const SEEDS_PER_PLOT = 10;  // seeds bought per plot when the bag runs out
 const NOT_BUILT = new Set();
 const TRAP_STOCK = 2;       // traps kept in the bag (made at the stations)
@@ -953,7 +954,7 @@ export function createPolicy(data) {
           }
         }
       }
-      xpCraft(game, st, plan, units);
+      xpCraft(game, st, plan, (s, r) => Math.max(1, Math.ceil((horizonMs * XP_CRAFT_SHARE) / itemMs(s, data, r))));
     }
   }
 
@@ -1065,9 +1066,11 @@ export function createPolicy(data) {
     const playerTask = planHarvest(game, plan2);
     eat(game, playerTask?.skill || game.getState().workers.player.task?.skill);
     steerCallings(game);
-    chooseStations(game, plan2);
     tame(game, info);
     scoutDigs(game);
+    // Last: the job (harvest, tracking, digging) is set, so working the stations now makes that job wait
+    // until the queues are done (crafting is a player task).
+    chooseStations(game, plan2);
   }
 
   return {

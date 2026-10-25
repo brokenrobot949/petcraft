@@ -1,5 +1,5 @@
 // The Bestiary panel (Journal tab): every pet form with five quality stars.
-import { el, sheet } from './dom.js';
+import { el, sheet, fold } from './dom.js';
 import { faceIcon } from './icons.js';
 import { bestiaryList, bestiaryStars } from '../systems/bestiary.js';
 
@@ -55,13 +55,14 @@ export function createBestiary(game) {
     for (const a of data.pets.archetypes) {
       const rows = list.filter((e) => e.archetype === a.id && e.form !== 'mythic');
       if (!rows.length) continue;
-      parts.push(el('h3.jr-group', {}, a.name), el('div.be-grid', {}, rows.map(tile)));
+      const have = rows.reduce((n, e) => n + e.count, 0);
+      parts.push(fold(`bestiary.${a.id}`, `${a.name}: ${have} of ${rows.length * quals.length} stars`, el('div.be-grid', {}, rows.map(tile))));
     }
     const mythics = list.filter((e) => e.form === 'mythic');
     if (mythics.length) {
-      parts.push(el('h3.jr-group', {}, 'Heartgrove mythics'),
+      parts.push(fold('bestiary.mythics', `Heartgrove mythics: ${mythics.reduce((n, e) => n + e.count, 0)} of ${mythics.length * quals.length} stars`,
         el('p.small.muted', {}, 'Found only in the Heartgrove.'),
-        el('div.be-grid', {}, mythics.map(tile)));
+        el('div.be-grid', {}, mythics.map(tile))));
     }
     host.replaceChildren(...parts);
   }

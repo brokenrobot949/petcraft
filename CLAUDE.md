@@ -60,7 +60,7 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 10 done (2026-10-24). All eleven phases built.
+Phase: 10 done (2026-10-24), plus Rob's follow-ups (0.10.1, 0.11.0). All eleven phases built.
 Next: Rob's final playtest; then fixes from it. Open design calls are listed under Known issues.
 Phase 10: no schema change (still v8). Contract in docs/architecture.md "Phase 10: tune and ship".
   Tuning (balance.json; simulator v5 + tools/sim/worker.js and lab.js, 3 seeds): renown.xpCurve {375, 0.5, 60}
@@ -85,6 +85,13 @@ Phase 10: no schema change (still v8). Contract in docs/architecture.md "Phase 1
   save code first (the Home Screen app has its own storage). CREDITS.md lists every audio file. Core checks: 242.
   After Phase 10 (0.10.1, Rob): Journal -> Your save -> "Start a new game" deletes this device's game and its
   backup after a confirmation sheet, then reloads into the egg choice. Save checks: 156.
+  0.11.0 (Rob): save schema v9 (migration 8->9: crafting.paused). Crafting is a player task: while the player works a
+  station their harvesting, tracking or digging waits and resumes when the queues are done; taking a job, or "Stop
+  crafting", leaves the stations (queues wait). Contract in docs/architecture.md "After Phase 10". Simulator (3 seeds):
+  ending day 63-67, light 71.5; second pet day 2.2 on seed 12345 and first adult day 14 on two seeds are just outside
+  25%. World zone page: Harvest / Taming / Treasure sub-tabs, only the picked worker has a full card (others one line).
+  Journal: Progress / Collection / Settings sub-tabs; achievement groups and Bestiary families fold away (dom.js fold,
+  open state per device). Recipe picker shows how many of each item are in the bag. Core checks: 253.
   Lead calls Rob may want to know: five of the eight adult catalysts need Mistfen materials (Renown 10, week 2-3),
   so a pet on those branches can't become an adult before then (the day 8-10 target needs Boulder, Gem or Fang
   first); Renown ranks now cost about the same each (no big late jumps); the music tracks are Claude's picks.

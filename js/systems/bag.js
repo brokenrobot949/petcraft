@@ -31,6 +31,13 @@ export function itemCount(state, key) {
   return state.bag[key] || 0;
 }
 
+// How many of an item the bag holds in every quality (Normal + Fine + Masterwork).
+export function ownedCount(state, itemId) {
+  let n = 0;
+  for (const [key, count] of Object.entries(state.bag)) if (key === itemId || key.startsWith(`${itemId}:`)) n += count;
+  return n;
+}
+
 export function addItem(state, key, qty) {
   if (!(qty > 0)) return;
   state.bag[key] = (state.bag[key] || 0) + qty;

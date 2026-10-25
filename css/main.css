@@ -320,3 +320,75 @@ textarea.code {
 .field { min-height: var(--tap); padding: 0 8px; background: var(--ink); color: var(--cream); border: 2px solid var(--tan); border-radius: 4px; }
 .dev-panel input.field { flex: 0 1 80px; }
 .dev-panel select.field { max-width: 100%; }
+
+/* ---- sub-tabs: a row of small tabs at the top of a long page (Journal, zone pages) ---- */
+.subtabs {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 6px 0;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--ink);
+}
+.subtabs .subtab {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: var(--tap);
+  padding: 4px 6px;
+  background: var(--wood-dark);
+  color: var(--text);
+  border: 3px solid var(--ink);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 15px;
+  cursor: pointer;
+  touch-action: manipulation;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.subtabs .subtab[aria-selected="true"] {
+  background: #5a4a30;
+  border-color: var(--orange);
+  color: var(--cream);
+  font-weight: bold;
+}
+.subtabs .subtab .dot {
+  position: absolute; top: 3px; right: 3px; /* in the corner, so the label keeps its width */
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--orange);
+  border: 2px solid var(--ink);
+  vertical-align: middle;
+}
+.subtabs .subtab .dot[hidden] { display: none; }
+.subpane[hidden] { display: none; }
+
+/* ---- fold-away sections (dom.js fold): tap the summary line to open ---- */
+details.fold { margin: 4px 0; border-top: 2px solid var(--wood-dark); }
+details.fold > summary {
+  min-height: var(--tap);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+  color: var(--pale);
+  touch-action: manipulation;
+}
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before { content: '▸'; color: var(--orange); width: 1em; }
+details.fold[open] > summary::before { content: '▾'; }
+.fold-body { padding-bottom: 8px; }
+
+/* ---- zone page: workers who aren't picked are one tappable line each ---- */
+.worker-line {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  min-height: var(--tap); margin: 0 0 6px; padding: 4px 10px;
+  background: var(--wood-dark); color: var(--text); border: 2px solid var(--ink); border-radius: 6px;
+  font: inherit; text-align: left; cursor: pointer; touch-action: manipulation;
+}
+.worker-line-text { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

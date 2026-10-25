@@ -55,6 +55,20 @@ function findNode(data, { zone, skill, node }) {
   return (nodes && indexed(nodes).get(node)) || null;
 }
 
+// Crafting is a player task (Rob, 2026-10-24): while the player works a station (state.crafting.working),
+// the player's own job (harvesting, tracking, digging) waits, and it goes on by itself once the worked
+// queues run out. Pets are not affected.
+export function playerCrafting(state) {
+  return state.crafting.working.length > 0;
+}
+
+// The player takes up a job: they leave the stations (the queues wait, paused, until the player works
+// one again or queues something new). Assisted stations keep running.
+export function leaveStations(state) {
+  state.crafting.paused = true;
+  state.crafting.working = [];
+}
+
 // Is this a harvesting task (not tracking or digging)?
 export function isHarvestTask(data, task) {
   return !!task && skillById(data, task.skill)?.type === 'harvest';
@@ -256,6 +270,7 @@ export function dropStaleTask(data, w) {
 export function advance(state, ms, ctx) {
   for (const [workerId, w] of Object.entries(state.workers)) {
     if (!w.task || isPet(state, workerId) || !isHarvestTask(ctx.data, w.task)) continue;
+    if (playerCrafting(state)) continue; // the player is at a station
     if (dropStaleTask(ctx.data, w)) continue;
     w.progressMs += ms;
     // Re-read the duration after each action: a Mastery star can change it (the profile refreshes then).
@@ -274,6 +289,7 @@ export const commands = {
     if (!w) throw new Error('Nobody is there to do that.');
     const check = nodeCheck(state, ctx.data, zone, skill, node);
     if (!check.ok) throw new Error(check.reason);
+    if (worker === 'player') leaveStations(state);
     const t = w.task;
     if (t && t.zone === zone && t.skill === skill && t.node === node) return;
     w.task = { zone, skill, node };

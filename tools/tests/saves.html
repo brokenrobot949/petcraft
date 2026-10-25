@@ -120,7 +120,7 @@ async function run() {
   const late = {}; // the newest old save, reused below
 
   // ---- 1. every old version upgrades without loss ----
-  for (let v = 1; v <= SCHEMA_VERSION; v++) {
+  for (let v = 1; v < SCHEMA_VERSION; v++) {
     await pause();
     let old;
     try {
@@ -158,8 +158,8 @@ async function run() {
     }
     const again = parseSave(JSON.stringify(game.getState()));
     check(`v${v}: the upgraded game saves and loads again`, !!again.state, again.error || '');
-    if (v === SCHEMA_VERSION) late.state = game.getState();
-    if (v === SCHEMA_VERSION) late.oldText = text;
+    if (v === SCHEMA_VERSION - 1) late.state = game.getState();
+    if (v === SCHEMA_VERSION - 1) late.oldText = text;
   }
 
   // ---- 2. damaged saves, backup slot, storage errors ----
@@ -252,7 +252,7 @@ async function run() {
     check('export -> import gives the same game', !!back.state && JSON.stringify(back.state) === text, back.error || `${(code.length / 1024).toFixed(0)} KB code`);
     check('import of a code with line breaks and spaces works', !!importCode(`  ${code.slice(0, 50)}\n${code.slice(50)}  `).state);
     check('import of a cut-off code is refused politely', !!importCode(code.slice(0, code.length - 400)).error);
-    check('import of the raw old (Phase 9) save JSON works', !!importCode(late.oldText).state);
+    check('import of the raw old (newest old version) save JSON works', !!importCode(late.oldText).state);
     // autosave churn: many writes in a row never lose the save
     clearKeys();
     const g = createGame(data, structuredClone(late.state), { clock: () => late.state.meta.lastSavedAt });

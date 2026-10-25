@@ -32,7 +32,7 @@ These were agreed in planning and should not change without Rob's say-so.
 | Pet role | Bulk idle harvesting at any unlocked tier. Evolved pets can assist a crafting station. |
 | Active pets | 2 active; the Stable holds the rest. |
 | Upkeep | One energy bar per pet. Rest refills it slowly, food quickly. Auto-rest and auto-feed. |
-| Crafting | Each station keeps its own queue, but the player works only one station at a time (two from Cottage tier 3); adult pets posted as assistants keep more stations running. Queues run offline. Optional Focus timing tap for quality. (Changed by Rob, 2026-10-23.) |
+| Crafting | Each station keeps its own queue, but the player works only one station at a time (two from Cottage tier 3); adult pets posted as assistants keep more stations running. Queues run offline. Working a station is a player task: while the player crafts, their own harvesting, tracking or digging waits, and goes on by itself when the queues are done; pets keep harvesting. Optional Focus timing tap for quality. (Changed by Rob, 2026-10-23 and 2026-10-24.) |
 | Evolution | Player picks the branch. Branches unlock from what the pet has done (callings). Final stage needs Bond 3 and an Alchemy catalyst. |
 | Quality | Sets stat growth and innate Gift talents. Shown with palette and aura, not new sprites. |
 | Taming | Tracking finds a monster; a crafted trap and bait catch it. Replaces separate pet search and trapping. |

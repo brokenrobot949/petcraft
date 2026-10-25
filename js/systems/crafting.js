@@ -1,6 +1,8 @@
 // Crafting stations and their queues (docs/design.md "Crafting"). Four stations (data/recipes.json)
 // each keep their own queue, but the player works only workSlots stations at a time (1, or 2 from
-// Cottage tier 3: balance.crafting.workSlotsByCottageTier), alongside harvesting and offline too.
+// Cottage tier 3: balance.crafting.workSlotsByCottageTier), offline too. Crafting is a player task (Rob,
+// 2026-10-24): while the player works a station their own job waits (harvest.playerCrafting); taking up a job
+// leaves the stations (crafting.paused) until the player works one again or queues something new.
 // state.crafting.working lists them; the other queues wait, paused. When a worked queue runs empty
 // the player moves on to the next station with work waiting (data order) and the leftover time
 // carries over, so nothing sits idle while something is queued. An adult pet assistant (Phase 8,
@@ -20,6 +22,7 @@ import { isUpgrade, equip } from './tools.js';
 import { addRenownXp } from './renown.js';
 import { assistValid } from './pets.js';
 import { branchDef } from './petstats.js';
+import { leaveStations } from './harvest.js';
 
 export const id = 'crafting';
 
@@ -37,6 +40,7 @@ export function init(state, ctx) {
   if (!Array.isArray(state.crafting.working)) state.crafting.working = [];
   if (!state.crafting.known) state.crafting.known = {};
   if (!state.crafting.assists) state.crafting.assists = {};
+  if (typeof state.crafting.paused !== 'boolean') state.crafting.paused = false;
   for (const [sid, petId] of Object.entries(state.crafting.assists)) {
     if (!stationDef(data, sid) || !assistValid(state, data, sid, petId)) delete state.crafting.assists[sid];
   }
@@ -102,9 +106,13 @@ function nextWaiting(state, data) {
 }
 
 // Keeps state.crafting.working to busy stations without an assistant, at most workSlots, filling
-// free slots in data order.
+// free slots in data order. While the player has left the stations (paused), none are worked.
 function normalizeWorking(state, data) {
   const c = state.crafting;
+  if (c.paused) {
+    c.working = [];
+    return;
+  }
   const slots = workSlots(state, data);
   c.working = c.working.filter((sid, i, a) => a.indexOf(sid) === i && !assistantOf(state, sid) && busy(state, data, sid)).slice(0, slots);
   while (c.working.length < slots) {
@@ -267,11 +275,10 @@ function advanceStation(state, ctx, stationId, st, ms) {
 
 // Stop the tick when a worked station is about to finish a tool (it may be equipped at once, which
 // changes how fast the workers harvest from that moment on), and when a worked queue runs empty
-// while another waits (the player moves there, and what it makes may be a tool).
+// (the player moves to the next station or back to their job, and what it makes may be a tool).
 export function nextBoundaryMs(state, ctx) {
   const { data } = ctx;
   let next = Infinity;
-  const waiting = !!nextWaiting(state, data);
   const assisted = Object.keys(state.crafting.assists);
   for (const stationId of [...state.crafting.working, ...assisted]) {
     const st = state.crafting.stations[stationId];
@@ -279,7 +286,8 @@ export function nextBoundaryMs(state, ctx) {
     const recipe = batch && recipeDef(data, batch.recipe);
     if (!recipe || !stationDef(data, stationId)) continue;
     if (data.items.items[recipe.output]?.tool) next = Math.min(next, itemMs(state, data, recipe) - st.progressMs);
-    if (waiting && isWorking(state, stationId)) next = Math.min(next, stationTimeLeft(state, data, stationId).total);
+    // A worked queue running empty: the player moves on, or (nothing waiting) goes back to their job.
+    if (isWorking(state, stationId)) next = Math.min(next, stationTimeLeft(state, data, stationId).total);
   }
   return next;
 }
@@ -338,6 +346,7 @@ export const commands = {
       inputs: { ...recipe.inputs }, made: {},
     });
     st.notice = false;
+    state.crafting.paused = false; // queueing is choosing to craft: the player goes to the stations
     normalizeWorking(state, data); // a free working slot picks this station up
   },
   // Work at this station now. With every working slot taken, the station worked longest pauses.
@@ -350,8 +359,13 @@ export const commands = {
     if (helper) throw new Error(`${helper.name} already keeps the ${def.name} running.`);
     if (!busy(state, data, station)) throw new Error(`Queue something at the ${def.name} first.`);
     const c = state.crafting;
+    c.paused = false;
     c.working.push(station);
     while (c.working.length > workSlots(state, data)) c.working.shift();
+  },
+  // Step away from the stations: the queues wait and the player goes back to their job (if any).
+  'crafting/pause': (state) => {
+    leaveStations(state);
   },
   // Cancel a queued batch; materials for the items not made yet come back.
   'crafting/cancel': (state, { station, index }, ctx) => {

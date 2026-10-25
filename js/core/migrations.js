@@ -90,6 +90,13 @@ const MIGRATIONS = {
     s.version = 8;
     return s;
   },
+  // 8 -> 9 (after Phase 10, Rob 2026-10-24): crafting is a player task. crafting.paused = the player left the
+  // stations for a harvest, tracking or digging job (the queues wait). Old saves keep crafting as they were.
+  8: (s) => {
+    s.crafting.paused = false;
+    s.version = 9;
+    return s;
+  },
 };
 
 export function migrate(save) {

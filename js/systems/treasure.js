@@ -6,7 +6,7 @@
 import { random, randomInt, chance } from '../core/rng.js';
 import { addItem, removeItem } from './bag.js';
 import { earnCoins } from './coins.js';
-import { zoneUnlocked, isHarvestTask, mapItemFor } from './harvest.js';
+import { zoneUnlocked, isHarvestTask, mapItemFor, playerCrafting, leaveStations } from './harvest.js';
 import { canDig } from './petstats.js';
 
 export const id = 'treasure';
@@ -66,7 +66,7 @@ export function mapList(state, data) {
 // The current dig finishing: the tick stops there so the next task starts on time.
 export function nextBoundaryMs(state, ctx) {
   const t = state.workers.player.task;
-  if (t?.skill !== 'treasure') return Infinity;
+  if (t?.skill !== 'treasure' || playerCrafting(state)) return Infinity;
   const left = digMs(state, ctx.data) - (state.treasure.progress[t.zone] || 0);
   return left > EPS ? left : Infinity;
 }
@@ -125,7 +125,7 @@ function stopDigging(w, leftMs) {
 
 export function advance(state, ms, ctx) {
   const w = state.workers.player;
-  if (w.task?.skill !== 'treasure') return;
+  if (w.task?.skill !== 'treasure' || playerCrafting(state)) return; // digging waits while the player crafts
   const zoneId = w.task.zone;
   const p = state.treasure.progress;
   let left = ms;
@@ -160,6 +160,7 @@ export const commands = {
     const w = state.workers[worker];
     if (!w) throw new Error('Nobody is there to do that.');
     if (worker !== 'player' && !canDig(ctx.data, state.pets.list[worker])) throw new Error('Only Scout pets know how to dig.');
+    if (worker === 'player') leaveStations(state);
     if (w.task?.skill === 'treasure' && w.task.zone === zoneId) return;
     if (isHarvestTask(ctx.data, w.task)) w.resume = w.task;
     w.task = { zone: zoneId, skill: 'treasure', node: 'dig' };
