@@ -95,17 +95,19 @@ function pickDistinct(pet, list, n) {
 }
 
 // Gift talents for the pet's quality (rolled once; a save from before Phase 8 gets them on load) and
-// a personal favorite dish (a meal up to personalDishMaxTier).
+// a personal favorite dish (a cooked meal up to personalDishMaxTier; a favorite that isn't one is rerolled).
 function rollBirthTraits(data, pet) {
   const want = data.balance.pets.qualities[pet.quality]?.gifts || 0;
   if (pet.gifts.length < want && data.talents) {
     const pool = (data.talents.pools.gift || []).filter((t) => talentDef(data, t) && !holds(pet, t));
     pet.gifts.push(...pickDistinct(pet, pool, want - pet.gifts.length));
   }
-  if (!pet.favorite || !itemDef(data, pet.favorite)) {
+  if (!pet.favorite || itemDef(data, pet.favorite)?.category !== 'meal' || !canAutoFeed(data, pet.favorite)) {
     const maxTier = data.balance.pets.bond.personalDishMaxTier;
+    const kitchen = new Set((data.recipes?.recipes || []).filter((r) => r.station === 'kitchen').map((r) => r.output));
     const meals = Object.entries(data.items.items)
-      .filter(([, d]) => d.category === 'meal' && d.food && (d.tier || 1) <= maxTier)
+      .filter(([itemId, d]) => d.category === 'meal' && d.food && (d.tier || 1) <= maxTier && kitchen.has(itemId)
+        && canAutoFeed(data, itemId))
       .map(([itemId]) => itemId)
       .sort();
     pet.favorite = meals.length ? meals[Math.floor(random(pet) * meals.length)] : null;
@@ -192,8 +194,8 @@ export function isFavoriteDish(data, pet, key) {
   return !!dish && archetypeOf(data, pet.archetype)?.dish === dish;
 }
 
-// Can auto-feed use this item? Only cooked food (balance.pets.energy.autoFeedCategories: meals and
-// tonics). Raw food can still be hand-fed; pets that gather it would otherwise never need to rest.
+// Can a pet eat this item? Only cooked food (balance.pets.energy.autoFeedCategories: meals and
+// tonics), by hand or on its own (Rob, 2026-10-26). Raw food is for cooking.
 export function canAutoFeed(data, key) {
   return isFood(data, key) && data.balance.pets.energy.autoFeedCategories.includes(itemDef(data, key).category);
 }
@@ -203,11 +205,11 @@ export function pantryAllows(state, itemId) {
   return state.pantry[itemId] !== false;
 }
 
-// All food in the bag, for hand-feeding: [{ id (bag key), item, label, food, count, auto, on }], smallest
-// first. auto: auto-feed can use it; on: its pantry toggle.
+// Cooked food in the bag, for hand-feeding: [{ id (bag key), item, label, food, count, auto, on }], smallest
+// first. auto: auto-feed can use it (always, now that pets eat only cooked food); on: its pantry toggle.
 export function foodList(state, data) {
   return Object.entries(state.bag)
-    .filter(([id, n]) => n > 0 && isFood(data, id))
+    .filter(([id, n]) => n > 0 && canAutoFeed(data, id))
     .map(([id, count]) => ({
       id, item: itemDef(data, id), label: itemLabel(data, id), food: foodValue(data, id), count,
       auto: canAutoFeed(data, id), on: pantryAllows(state, id),
@@ -604,6 +606,7 @@ export const commands = {
   'pets/feed': (state, { pet: petId, item }, ctx) => {
     const pet = needPet(state, petId);
     if (!isFood(ctx.data, item)) throw new Error("Pets can't eat that.");
+    if (!canAutoFeed(ctx.data, item)) throw new Error('Pets only eat cooked meals and tonics. Cook it in the Kitchen first.');
     if (!state.bag[item]) throw new Error(`You don't have any ${itemLabel(ctx.data, item)}.`);
     if (pet.energy >= petMaxEnergy(ctx.data, pet) - EPS) throw new Error(`${pet.name} is full of energy.`);
     eat(state, ctx, pet, item, false);

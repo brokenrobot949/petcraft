@@ -101,6 +101,9 @@ Phase 10: no schema change (still v8). Contract in docs/architecture.md "Phase 1
   from pets.json suggestedNames (balance.pets.randomNameListChance) or two nameParts joined ("Bram" + "kin"). Used
   when hatching the first egg, hatching from the Nest and renaming; a caught pet still named after its species gets
   a "Give the <species> a name" button in the zone's Recent results. UI only, no schema change.
+  0.11.4 (Rob, 2026-10-26): pets eat only cooked food (meals and tonics), by hand too; raw food is gone from the
+  Feed list and pets/feed refuses it. Favorite dishes are always cooked Kitchen meals (a favorite that is not one is
+  rerolled on load). Core checks: 255.
   Lead calls Rob may want to know: five of the eight adult catalysts need Mistfen materials (Renown 10, week 2-3),
   so a pet on those branches can't become an adult before then (the day 8-10 target needs Boulder, Gem or Fang
   first); Renown ranks now cost about the same each (no big late jumps); the music tracks are Claude's picks.
@@ -220,7 +223,7 @@ Known issues:
 - Pacing after Phase 10: see Status. Harvest skills reach 60 around day 20 since pets share XP (0.11.2), craft skills around day 25-30 (Mastery stars carry
   on after that); many raw materials still pile up in the tens of thousands (simulator: ~50 items flagged).
 - Pets rest under 1% of the time (simulator 0.1%): auto-feed keeps them topped up with cheap meals. Left as is
-  (a design question for Rob: make meals cost more, or accept that fed pets never rest). Auto-feed uses cooked meals and tonics only (Rob, 2026-10-19).
+  (a design question for Rob: make meals cost more, or accept that fed pets never rest). Pets eat cooked meals and tonics only (auto-feed: Rob, 2026-10-19; hand-feeding too: 2026-10-26).
 - Some commissions ask for meals made with Garden crops; a player without a Garden yet can reroll them.
 - A brand-new player gets a Great Commission only once their skills meet one template's needs (the board
   keeps trying every minute).

@@ -547,7 +547,7 @@ function buildPantry(st, d) {
   const list = pantryList(st, d);
   const panel = el('div.panel', {},
     el('h2', {}, 'Pantry'),
-    el('p.small.muted', {}, 'Pets eat cooked meals and tonics on their own when their energy runs low. Raw food can be hand-fed from a pet\'s page.'));
+    el('p.small.muted', {}, 'Pets eat only cooked meals and tonics: on their own when their energy runs low, or by hand from a pet\'s page.'));
   if (!list.length) {
     panel.append(el('p', {}, 'No cooked food yet. Cook a meal in the Kitchen, or brew a tonic in the Alchemy Lab.'));
     return panel;
@@ -932,7 +932,7 @@ function buildPage(st, day, pet) {
       ? `Favorite dish: ${itemLabel(d, pet.favorite)}`
       : 'Favorite dish: not found yet (try feeding different meals)'),
     el('h3.pet-sub-h', {}, 'Feed'),
-    foods.length ? el('div.pet-feed-list', {}, feedRows) : el('p.small.muted', {}, 'No food in your bag. Forage berries, fish or hunt in Meadowfold.'),
+    foods.length ? el('div.pet-feed-list', {}, feedRows) : el('p.small.muted', {}, 'No cooked food in your bag. Cook a meal in the Kitchen, or brew a tonic in the Alchemy Lab.'),
     el('div.toggle-row', {},
       el('span', {}, 'Auto-feed'),
       autoBtn),

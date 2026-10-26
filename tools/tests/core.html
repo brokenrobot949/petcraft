@@ -22,7 +22,7 @@ import { qualityOdds, itemMs, queueSlots } from '../../js/systems/crafting.js';
 import { tierCost, upgradeCheck, canUpgradeAny, petCapacity } from '../../js/systems/buildings.js';
 import { petRestPerHour } from '../../js/systems/petstats.js';
 import { offlineCapMs } from '../../js/core/time.js';
-import { pantryList } from '../../js/systems/pets.js';
+import { pantryList, foodList, foodValue } from '../../js/systems/pets.js';
 import { actionMs, zoneUnlocked } from '../../js/systems/harvest.js';
 import { xpToNext } from '../../js/systems/skills.js';
 import { recipeCheck } from '../../js/systems/crafting.js';
@@ -179,11 +179,19 @@ try {
   check('energy stays near the feed line', fp.energy > 0 && fp.energy <= petMaxEnergy(data, fp));
   threw = false;
   gf.dispatch('dev/petEnergy', { pet: fid, energy: 1e9 });
-  try { gf.dispatch('pets/feed', { pet: fid, item: 'berries' }); } catch { threw = true; }
+  try { gf.dispatch('pets/feed', { pet: fid, item: 'rabbit_roast' }); } catch { threw = true; }
   check('hand-feeding a full pet is refused', threw);
   gf.dispatch('dev/petEnergy', { pet: fid, energy: 10 });
-  gf.dispatch('pets/feed', { pet: fid, item: 'berries' });
-  check('hand-feeding restores energy', near(fp.energy, 10 + data.items.items.berries.food, 1e-9));
+  threw = false;
+  try { gf.dispatch('pets/feed', { pet: fid, item: 'berries' }); } catch { threw = true; }
+  check('hand-feeding raw food is refused', threw && fp.energy === 10 && !foodList(fs, data).some((e) => e.id === 'berries'));
+  gf.dispatch('pets/feed', { pet: fid, item: 'rabbit_roast' });
+  check('hand-feeding restores energy', near(fp.energy, 10 + foodValue(data, 'rabbit_roast'), 1e-9));
+  {
+    const kitchen = new Set(data.recipes.recipes.filter((r) => r.station === 'kitchen').map((r) => r.output));
+    const pets = Array.from({ length: 40 }, (_, i) => { const g = freshGame(9000 + i); g.dispatch('pets/hatchStarter', { archetype: 'wild', name: 'F' }); return Object.values(g.getState().pets.list)[0]; });
+    check('every favorite dish is a cooked Kitchen meal', pets.every((p) => p.favorite && data.items.items[p.favorite].category === 'meal' && kitchen.has(p.favorite)));
+  }
   gf.dispatch('pets/setAutoFeed', { pet: fid, on: false });
   gf.dispatch('dev/petEnergy', { pet: fid, energy: 5 });
   const b0 = fs.bag.rabbit_roast;
