@@ -60,7 +60,7 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 10 done (2026-10-24), plus Rob's follow-ups (0.10.1, 0.11.0, 0.11.2, 0.11.3). All eleven phases built.
+Phase: 10 done (2026-10-24), plus Rob's follow-ups (0.10.1, 0.11.0-0.11.6). All eleven phases built.
 Next: Rob's final playtest; then fixes from it. Open design calls are listed under Known issues.
 Phase 10: no schema change (still v8). Contract in docs/architecture.md "Phase 10: tune and ship".
   Tuning (balance.json; simulator v5 + tools/sim/worker.js and lab.js, 3 seeds): renown.xpCurve {375, 0.5, 60}
@@ -106,6 +106,8 @@ Phase 10: no schema change (still v8). Contract in docs/architecture.md "Phase 1
   rerolled on load). Core checks: 255.
   0.11.5 (Rob, 2026-10-27): the recipe picker has a Sort chip (Ready first / Lowest level first / Highest level
   first; one chip that steps on each tap, since three do not fit 360px). Remembered per device, per station.
+  0.11.6 (Rob, 2026-10-27): the Mossbrook Market has Sell and Buy sub-tabs (Buy holds the shop and recipe scrolls).
+    The last one used is remembered per device; the Garden's and Buildings' "go to the market" buttons open Buy.
   Lead calls Rob may want to know: five of the eight adult catalysts need Mistfen materials (Renown 10, week 2-3),
   so a pet on those branches can't become an adult before then (the day 8-10 target needs Boulder, Gem or Fang
   first); Renown ranks now cost about the same each (no big late jumps); the music tracks are Claude's picks.

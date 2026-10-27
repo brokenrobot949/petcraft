@@ -216,7 +216,7 @@ function gardenSection(body) {
   body.append(el('h3', {}, `Plots (${plotCount(s, d)})`));
   if (!seeds.length && plots.some((p) => !p.seed)) {
     body.append(el('p.small.muted', {}, 'You have no seeds. Seeds are sold in the Mossbrook market.'),
-      el('button.btn.wide', { type: 'button', onclick: () => openMossbrook(app, 'market') }, 'Open the Mossbrook market'));
+      el('button.btn.wide', { type: 'button', onclick: () => openMossbrook(app, 'market', 'buy') }, 'Open the Mossbrook market'));
   }
   for (const p of plots) {
     if (!p.seed) {
@@ -275,7 +275,7 @@ function seedPicker(plot) {
   if (!seeds.length) {
     const close = overlay('No seeds',
       el('p', {}, 'You have no seeds. Seeds are sold in the Mossbrook market.'),
-      el('button.btn.wide', { type: 'button', onclick: () => { close(); openMossbrook(app, 'market'); } }, 'Open the Mossbrook market'));
+      el('button.btn.wide', { type: 'button', onclick: () => { close(); openMossbrook(app, 'market', 'buy'); } }, 'Open the Mossbrook market'));
     return;
   }
   const close = overlay('Plant a seed', el('div.gd-seed-list', {}, seeds.map((sd) =>
@@ -299,7 +299,7 @@ function confirmClear(p) {
 function hints(check) {
   const out = [];
   if (check.needsBlueprint) {
-    out.push(el('button.btn.wide', { type: 'button', onclick: () => openMossbrook(app, 'market') }, 'Buy blueprints in Mossbrook'));
+    out.push(el('button.btn.wide', { type: 'button', onclick: () => openMossbrook(app, 'market', 'buy') }, 'Buy blueprints in Mossbrook'));
   }
   return out;
 }

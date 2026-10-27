@@ -1,6 +1,8 @@
-// The Mossbrook sheet: Commission Board, Market (sell, buy, scrolls) and the daily Merchant.
+// The Mossbrook sheet: Commission Board, Market (Sell and Buy sub-tabs; Buy holds the shop and recipe scrolls)
+// and the daily Merchant.
 // The UI only reads state and selectors, and changes things with game.dispatch.
 import { el, toast } from './dom.js';
+import { getPref, setPref } from './device.js';
 import { itemIcon } from './icons.js';
 import { itemLabel } from '../systems/bag.js';
 import {
@@ -9,6 +11,7 @@ import {
 import { stationDef } from '../systems/crafting.js';
 
 const TABS = [['board', 'Board'], ['market', 'Market'], ['merchant', 'Merchant']];
+const SIDES = [['sell', 'Sell'], ['buy', 'Buy']]; // the Market's sub-tabs; the last pick is remembered per device
 
 let current = null; // { backdrop, unsub, setTab }
 let picker = null; // the open quantity picker overlay
@@ -27,9 +30,10 @@ function closePicker() {
   picker = null;
 }
 
-export function openMossbrook(app, startTab = 'board') {
+// side ('sell' or 'buy') picks the Market sub-tab; left out, the Market opens where the player last left it.
+export function openMossbrook(app, startTab = 'board', side = null) {
   if (current) {
-    current.setTab(startTab);
+    current.setTab(startTab, side);
     return;
   }
   const game = app.game;
@@ -51,6 +55,9 @@ export function openMossbrook(app, startTab = 'board') {
 
   let tab = tabs().includes(startTab) ? startTab : 'board';
   function tabs() { return TABS.map((t) => t[0]); }
+  const sides = SIDES.map((t) => t[0]);
+  let marketSide = sides.includes(side) ? side : getPref('marketSide', 'sell');
+  if (!sides.includes(marketSide)) marketSide = 'sell';
 
   const body = el('div.hs-body');
   const purse = el('b'); // the player's coins, always in view while shopping
@@ -58,18 +65,32 @@ export function openMossbrook(app, startTab = 'board') {
     type: 'button', role: 'tab', 'data-tab': id, onclick: () => setTab(id),
   }, name));
   const seg = el('div.mb-segs', { role: 'tablist' }, segButtons);
+  const sideButtons = SIDES.map(([id, name]) => el('button.subtab', {
+    type: 'button', role: 'tab', 'data-side': id, onclick: () => setSide(id),
+  }, name));
+  const sideBar = el('div.subtabs.mb-sides', { role: 'tablist', 'aria-label': 'Market' }, sideButtons);
   const foot = el('div.hs-foot', {}, el('button.btn.wide', { type: 'button', onclick: closeMossbrook }, 'Close'));
   const backdrop = el('div.sheet-backdrop.home-sheet-backdrop', { onclick: (e) => e.target === backdrop && closeMossbrook() },
     el('div.sheet.home-sheet.mb-sheet', { role: 'dialog', 'aria-modal': 'true' },
       el('div.mb-head', {}, el('h2', {}, 'Mossbrook'), el('span.mb-purse', { 'aria-label': 'Your coins' }, coinImg(), purse)),
-      seg, body, foot));
+      seg, sideBar, body, foot));
   document.body.append(backdrop);
 
   let lastKey = null;
-  function setTab(id) {
+  function setTab(id, newSide = null) {
     if (!tabs().includes(id)) id = 'board';
     if (id !== tab) body.scrollTop = 0;
     tab = id;
+    if (sides.includes(newSide)) setSide(newSide);
+    lastKey = null;
+    closePicker();
+    render();
+  }
+
+  function setSide(id) {
+    if (id !== marketSide) body.scrollTop = 0;
+    marketSide = id;
+    setPref('marketSide', id);
     lastKey = null;
     closePicker();
     render();
@@ -80,21 +101,22 @@ export function openMossbrook(app, startTab = 'board') {
     const d = data;
     const common = `${tab}|${s.coins}|${s.renown.rank}`;
     if (tab === 'board') return `${common}|${JSON.stringify([boardList(s, d), greatCommission(s, d), rerollInfo(s, d)])}`;
-    if (tab === 'market') {
-      return `${common}|${JSON.stringify([sellList(s, d).map((e) => [e.key, e.count]), shopList(s, d).map((e) => e.have), scrollList(s, d).map((e) => e.known)])}`;
-    }
+    if (tab === 'market' && marketSide === 'sell') return `${common}|sell|${JSON.stringify(sellList(s, d).map((e) => [e.key, e.count]))}`;
+    if (tab === 'market') return `${common}|buy|${JSON.stringify([shopList(s, d).map((e) => e.have), scrollList(s, d).map((e) => e.known)])}`;
     return `${common}|${JSON.stringify(merchantList(s, data).map((m) => [m.index, m.left]))}`;
   }
 
   function render() {
     purse.textContent = state().coins.toLocaleString();
     for (const b of segButtons) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
+    sideBar.hidden = tab !== 'market';
+    for (const b of sideButtons) b.setAttribute('aria-selected', String(b.dataset.side === marketSide));
     if (picker) return; // don't rebuild under an open quantity picker
     const key = keyFor();
     if (key === lastKey) return;
     lastKey = key;
     const scroll = body.scrollTop;
-    body.replaceChildren(...(tab === 'board' ? boardView() : tab === 'market' ? marketView() : merchantView()));
+    body.replaceChildren(...(tab === 'board' ? boardView() : tab === 'market' ? (marketSide === 'sell' ? sellView() : buyView()) : merchantView()));
     body.scrollTop = scroll;
     if (tab === 'board' && !state().village.seen) run('village/seen');
   }
@@ -158,9 +180,9 @@ export function openMossbrook(app, startTab = 'board') {
 
   // ---- Market ----
 
-  function marketView() {
+  function sellView() {
     const s = state();
-    const out = [el('h3.mb-h', {}, 'Sell')];
+    const out = [];
     const sell = sellList(s, data);
     if (!sell.length) out.push(el('p.small.muted', {}, 'Nothing in your bag that the market buys yet.'));
     for (const cat of data.items.categories) {
@@ -176,7 +198,12 @@ export function openMossbrook(app, startTab = 'board') {
       }
     }
 
-    out.push(el('h3.mb-h', {}, 'Buy'));
+    return out;
+  }
+
+  function buyView() {
+    const s = state();
+    const out = [el('h3.mb-h', {}, 'Shop')];
     for (const e of shopList(s, data)) {
       const isSeed = !!e.def?.seed;
       out.push(el('button.hs-row.mb-row' + (e.locked ? '.locked' : ''), {

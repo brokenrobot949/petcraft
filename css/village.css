@@ -76,3 +76,6 @@ button.gd-plot { cursor: pointer; touch-action: manipulation; }
 .mb-head h2 { margin: 0; }
 .mb-purse { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 2px solid var(--ink); border-radius: 6px; background: var(--wood-dark); }
 .mb-purse b { font-weight: normal; color: var(--cream); font-size: 18px; }
+/* Market Sell / Buy sub-tabs sit above the scrolling list, so they need no sticky background. */
+.subtabs.mb-sides { position: static; background: none; padding: 0; margin: 0 0 8px; }
+.subtabs.mb-sides[hidden] { display: none; }
