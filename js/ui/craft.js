@@ -261,12 +261,13 @@ function openPicker(stationId) {
 
   // Recipes you can make now come first, then ones short of materials, then locked ones (each group
   // keeps the data order). Chips narrow the list: "Can make" and one per kind of output (Tools,
-  // Parts...). The choice is remembered per device, per station.
+  // Parts...). The Sort chip can order it by recipe level instead (lowest or highest first). The choices are
+  // remembered per device, per station.
   function showList() {
     const st = state();
     const d = data();
     const pref = `pickerFilter.${stationId}`;
-    const filter = getPref(pref, { canMake: false, category: null });
+    const filter = { canMake: false, category: null, sort: 'ready', ...getPref(pref, {}) };
     const rank = (chk) => (chk.reason.startsWith('Needs') ? 2 : chk.max < 1 ? 1 : 0);
     const all = recipesFor(d, stationId).map((r, i) => {
       const chk = recipeCheck(st, d, r.id, 1);
@@ -284,11 +285,26 @@ function openPicker(stationId) {
       chips.push(chip('All', !filter.category, () => set({ category: null })));
       for (const c of cats) chips.push(chip(c.name, filter.category === c.id, () => set({ category: filter.category === c.id ? null : c.id })));
     }
+    // One chip that steps through the orders on each tap (three chips don't fit a 360px row).
+    const sorts = [['ready', 'Ready first'], ['levelUp', 'Lowest level first'], ['levelDown', 'Highest level first']];
+    const at = Math.max(0, sorts.findIndex(([sortId]) => sortId === filter.sort));
+    const sortChip = el('button.chip', {
+      type: 'button',
+      'aria-label': `Sort: ${sorts[at][1]}. Tap to change.`,
+      onclick: () => set({ sort: sorts[(at + 1) % sorts.length][0] }),
+    }, `Sort: ${sorts[at][1]}`);
+    const level = (e) => e.r.level || 1;
+    const order = {
+      ready: (a, b) => a.rank - b.rank || a.i - b.i,
+      levelUp: (a, b) => level(a) - level(b) || a.i - b.i,
+      levelDown: (a, b) => level(b) - level(a) || a.i - b.i,
+    };
     const shown = all
       .filter((e) => (!filter.canMake || e.rank === 0) && (!filter.category || e.category === filter.category))
-      .sort((a, b) => a.rank - b.rank || a.i - b.i);
+      .sort(order[filter.sort] || order.ready);
     box.replaceChildren(
       el('div.picker-filters', {}, chips),
+      el('div.picker-filters', {}, sortChip),
       ...(shown.length ? shown.map((e) => recipeRow(e.r)) : [el('p.small.muted', {}, 'Nothing here you can make right now.')]));
   }
 

@@ -104,6 +104,8 @@ Phase 10: no schema change (still v8). Contract in docs/architecture.md "Phase 1
   0.11.4 (Rob, 2026-10-26): pets eat only cooked food (meals and tonics), by hand too; raw food is gone from the
   Feed list and pets/feed refuses it. Favorite dishes are always cooked Kitchen meals (a favorite that is not one is
   rerolled on load). Core checks: 255.
+  0.11.5 (Rob, 2026-10-27): the recipe picker has a Sort chip (Ready first / Lowest level first / Highest level
+  first; one chip that steps on each tap, since three do not fit 360px). Remembered per device, per station.
   Lead calls Rob may want to know: five of the eight adult catalysts need Mistfen materials (Renown 10, week 2-3),
   so a pet on those branches can't become an adult before then (the day 8-10 target needs Boulder, Gem or Fang
   first); Renown ranks now cost about the same each (no big late jumps); the music tracks are Claude's picks.
