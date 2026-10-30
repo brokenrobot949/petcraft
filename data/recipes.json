@@ -172,6 +172,16 @@
     { "id": "abyssal_pearl", "station": "alchemyLab", "level": 35, "seconds": 60, "inputs": { "mist_pearl": 1, "marsh_eel": 3, "river_opal": 1 }, "output": "abyssal_pearl", "qty": 1 },
     { "id": "rushing_tonic", "station": "alchemyLab", "level": 32, "seconds": 50, "inputs": { "rock_bass": 3, "marsh_reed": 3, "willow_sap": 1 }, "output": "rushing_tonic", "qty": 1 },
     { "id": "hunters_musk", "station": "alchemyLab", "level": 30, "seconds": 45, "inputs": { "boar_tusk": 2, "bone": 3, "mountain_sage": 2 }, "output": "hunters_musk", "qty": 1 },
-    { "id": "pathfinder_oil", "station": "alchemyLab", "level": 36, "seconds": 60, "inputs": { "feathers": 3, "silver_sprig": 1, "ghost_orchid": 1, "willow_sap": 1 }, "output": "pathfinder_oil", "qty": 1 }
+    { "id": "pathfinder_oil", "station": "alchemyLab", "level": 36, "seconds": 60, "inputs": { "feathers": 3, "silver_sprig": 1, "ghost_orchid": 1, "willow_sap": 1 }, "output": "pathfinder_oil", "qty": 1 },
+    { "id": "pine_ball", "station": "workbench", "level": 3, "seconds": 30, "inputs": { "pine_plank": 2, "plant_fiber": 4 }, "output": "pine_ball", "qty": 1 },
+    { "id": "chew_stick", "station": "workbench", "level": 4, "seconds": 30, "inputs": { "tool_handle": 1, "stone": 6 }, "output": "chew_stick", "qty": 1 },
+    { "id": "pond_float", "station": "workbench", "level": 5, "seconds": 30, "inputs": { "pine_plank": 2, "river_shell": 2, "fiber_string": 1 }, "output": "pond_float", "qty": 1 },
+    { "id": "scratching_log", "station": "workbench", "level": 6, "seconds": 30, "inputs": { "pine_log": 10, "fiber_string": 2 }, "output": "scratching_log", "qty": 1 },
+    { "id": "hay_pile", "station": "workbench", "level": 12, "seconds": 45, "inputs": { "plant_fiber": 30, "meadow_herb": 10 }, "output": "hay_pile", "qty": 1 },
+    { "id": "rope_tug", "station": "workbench", "level": 14, "seconds": 45, "inputs": { "fiber_string": 6, "sinew_string": 2 }, "output": "rope_tug", "qty": 1 },
+    { "id": "wind_chime", "station": "forge", "level": 12, "seconds": 45, "inputs": { "iron_bar": 2, "copper_nails": 6, "fiber_string": 1 }, "output": "wind_chime", "qty": 1 },
+    { "id": "rock_garden", "station": "workbench", "level": 20, "seconds": 60, "inputs": { "stone": 40, "cedar_plank": 2 }, "output": "rock_garden", "qty": 1 },
+    { "id": "paper_lantern", "station": "workbench", "level": 24, "seconds": 60, "inputs": { "cedar_plank": 2, "fiber_string": 4, "pine_sap": 4 }, "output": "paper_lantern", "qty": 1 },
+    { "id": "feather_wand", "station": "workbench", "level": 30, "seconds": 60, "inputs": { "willow_plank": 1, "feathers": 6, "fiber_string": 2 }, "output": "feather_wand", "qty": 1 }
   ]
 }

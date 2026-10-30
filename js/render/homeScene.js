@@ -13,7 +13,7 @@ import { loadSprites, createActor } from './sprites.js';
 import { createPolish } from './polish.js';
 import { createEmotes, emoteFor, actorTarget } from './emotes.js';
 import { petStatus } from '../systems/pets.js';
-import { trickInfo } from '../systems/wishes.js';
+import { trickInfo, atHome, likesYard } from '../systems/wishes.js';
 import { trickPose } from './tricks.js';
 import { petRole } from '../systems/petstats.js';
 import { upgradeCheck, buildingTier } from '../systems/buildings.js';
@@ -516,6 +516,35 @@ export async function createHomeScene(host, game, options = {}) {
   }
 
   // Keep the cast equal to the player plus every pet that is home (not out working).
+  // ---- the Pet Yard's toys (Phase 13): small pictures beside the Stable, one per placed toy ----
+  const toySprites = new Map(); // itemId -> Sprite
+  function syncToys(state) {
+    const want = state.yard?.toys || [];
+    for (const [id, sp] of [...toySprites]) if (!want.includes(id)) { sp.destroy(); toySprites.delete(id); }
+    want.forEach((id) => {
+      if (toySprites.has(id)) return;
+      const tex = bank.texture(`item.${id}`);
+      if (!tex) return;
+      const sp = new Sprite(tex);
+      sp.anchor.set(0.5, 1);
+      world.addChild(sp);
+      toySprites.set(id, sp);
+    });
+    layoutToys(want);
+  }
+  function layoutToys(want = game.getState().yard?.toys || []) {
+    const stable = buildings.get('stable');
+    if (!stable) return;
+    want.forEach((id, i) => {
+      const sp = toySprites.get(id);
+      const off = hcfg.yardToyOffsets[i % hcfg.yardToyOffsets.length];
+      if (!sp || !off) return;
+      sp.scale.set(scale * hcfg.yardToyScale);
+      sp.position.set(Math.round(stable.x + off[0] * scale), Math.round(stable.y + off[1] * scale));
+      sp.zIndex = sp.y;
+    });
+  }
+
   function syncAgents() {
     if (destroyed) return;
     const state = game.getState();
@@ -525,11 +554,12 @@ export async function createHomeScene(host, game, options = {}) {
       const a = agents.get(id);
       if (a.wild) continue; // wild visitors from the ending scene are not pets in the save
       // Rebuilt when the pet leaves, goes out working, evolves (a different sprite role) or its post changes.
-      if (!pets[id] || petRole(pets[id]) !== a.roleId || a.post !== postOf(state, id) || petStatus(state, id) === 'working') removeAgent(id);
+      if (!pets[id] || petRole(pets[id]) !== a.roleId || a.post !== postOf(state, id) || ['working', 'trip'].includes(petStatus(state, id))) removeAgent(id);
     }
     for (const id of Object.keys(pets)) {
-      if (!agents.has(id) && petStatus(state, id) !== 'working') addAgent(id, petRole(pets[id]), postOf(state, id));
+      if (!agents.has(id) && !['working', 'trip'].includes(petStatus(state, id))) addAgent(id, petRole(pets[id]), postOf(state, id));
     }
+    syncToys(state);
   }
 
   function layout() {
@@ -537,6 +567,7 @@ export async function createHomeScene(host, game, options = {}) {
     scale = w >= hcfg.wideMinWidthPx ? hcfg.pixelScaleWide : hcfg.pixelScale; // whole numbers only
     polish.resize(w, app.screen.height, scale);
     for (const p of pieces) { sizePiece(p); layoutMarker(p); }
+    layoutToys();
     for (const a of agents.values()) {
       a.actor.view.scale.set(scale * a.k);
       if (a.actor.view.hitArea) petHitArea(a);
@@ -915,6 +946,7 @@ export async function createHomeScene(host, game, options = {}) {
   sizeWatch.observe(host);
 
   let wishMs = 0;
+  let toyMs = 0;
   let wishTurn = 0;
   let clock = 0;
   app.ticker.add((ticker) => {
@@ -976,6 +1008,18 @@ export async function createHomeScene(host, game, options = {}) {
       }
       updateHop(a, ms);
       a.actor.update(ticker);
+    }
+    // A pet at home with a toy it loves plays now and then (a happy bubble, a hop).
+    toyMs += ms;
+    if (toyMs >= cfg.emotes.toyEveryMs) {
+      toyMs = 0;
+      const players = [...agents.values()].filter((a) => !a.isPlayer && !a.wild && !a.sleeping && !a.post && !a.trick && state.pets.list[a.id]
+        && atHome(state, state.pets.list[a.id]) && likesYard(state, data, state.pets.list[a.id]));
+      if (players.length) {
+        const a = rand.pick(players);
+        emotes.show(a.id, 'joy', actorTarget(a, () => agents.get(a.id) !== a));
+        if (a.hopMs < 0) a.hopMs = 0;
+      }
     }
     // A thought bubble over one pet with a wish now and then (taking turns).
     wishMs += ms;

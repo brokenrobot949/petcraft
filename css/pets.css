@@ -242,3 +242,16 @@ button.pet-row:active { background: #5a4a30; border-color: var(--orange); }
   border: 2px solid var(--ink); border-radius: 6px;
 }
 .pet-branch .btn, .pet-talent .btn { min-height: var(--tap); }
+
+/* ---- Phase 13: the Pet Yard and day trips ---- */
+.yard-spots { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin: 8px 0; }
+.yard-spot {
+  min-height: 96px; padding: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  background: #4a7432; color: var(--text); border: 3px solid var(--ink); border-radius: 6px; font: inherit; text-align: center;
+  cursor: pointer; touch-action: manipulation; overflow-wrap: anywhere;
+}
+.yard-spot.empty { background: transparent; border-style: dashed; cursor: default; }
+.yard-bag .pet-row { align-items: center; gap: 8px; }
+.yard-bag .grow { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.trip-last { margin-top: 10px; }

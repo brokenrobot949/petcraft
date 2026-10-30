@@ -56,6 +56,19 @@ export function wishCard(game, petId, { note, onPlay, live }) {
       type: 'button',
       onclick: () => (ok ? onPlay() : toast(`${pet.name} already played today. Come back tomorrow!`)),
     }, 'Play now'));
+  } else if (pet.wish.kind === 'toy') {
+    const have = (st.bag[pet.wish.item] || 0) > 0;
+    buttons.push(have
+      ? el('button.btn', {
+        type: 'button',
+        onclick: () => { if (act(game, 'yard/place', { item: pet.wish.item })) note(grantedLine(game, pet), true); },
+      }, 'Place it')
+      : el('button.btn.soft-off', { type: 'button', 'aria-disabled': 'true', onclick: () => toast(`Make a ${itemLabel(d, pet.wish.item)} first (Craft tab).`) }, 'Make it first'));
+  } else if (pet.wish.kind === 'trip') {
+    buttons.push(el('button.btn', {
+      type: 'button',
+      onclick: () => document.getElementById(`trip-${petId}`)?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'center' }),
+    }, 'Plan a trip'));
   } else if (pet.wish.kind === 'trick') {
     buttons.push(el('button.btn', {
       type: 'button',

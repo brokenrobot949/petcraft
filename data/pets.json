@@ -235,9 +235,12 @@
         "outing": "Wished to see {zone}, and spent an hour there.",
         "buddy": "Wished to work with {buddy}, and did.",
         "play": "Wished for a game, and got one.",
-        "trick": "Wished for a trick lesson, and had one."
+        "trick": "Wished for a trick lesson, and had one.",
+        "toy": "Wished for a {item}, and found one in the Pet Yard.",
+        "trip": "Wished to see {zone}, and went on a day trip there."
       },
       "trick": "Learned a trick: {trick}.",
+      "postcard": "Postcard from {zone}: \"{text}\"",
       "retired": "Retired to the Elder Grove.",
       "undated": "Before the scrapbook"
     }

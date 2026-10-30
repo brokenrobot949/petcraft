@@ -138,6 +138,7 @@ export function retireInfo(state, data, petId) {
   if (pet.form !== 'adult' && pet.form !== 'mythic') out.reason = 'Only fully grown pets (adults and mythics) can retire.';
   else if (pet.level < b.retireLevel) out.reason = `Retires at level ${b.retireLevel}.`;
   else if (petHearts(data, pet).hearts < b.retireHearts) out.reason = `Needs Bond heart ${b.retireHearts} to retire.`;
+  else if (pet.trip) out.reason = 'Away on a day trip. Retire them when they are back.';
   else if (Object.keys(state.pets.list).length <= 1) out.reason = `${pet.name} is your only pet. Keep them close for now!`;
   else out.can = true;
   return out;

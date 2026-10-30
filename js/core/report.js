@@ -7,13 +7,14 @@
 //   nest: { ready: n }, bestiary: [{ entry, quality }], mastery: { skill: stars (the new total) }, story: [entryId] }
 // pets[id] also has gifts: { itemId: n } (Heart 4 gifts), digs (Scout digs, also counted in treasure),
 // talentReady (a talent pick came up) and favorite (its favorite dish, if found while away).
+// Phase 13: trips ([{ zone, items }] day trips that ended) and wishes (wishes that came true).
 // Tracking actions count in workers.player (actions, xp.taming).
 // pets[id].level / .hearts are set only when the pet reached a new level / heart while away.
 export function createReport(ms) {
   const summary = { ms, workers: {}, levelUps: {}, pets: {}, stations: {}, equipped: [], buffsEnded: [], renown: { xp: 0, rank: null }, achievements: [], garden: {},
     taming: { found: [], results: [], lureEnded: false }, treasure: { digs: 0, coins: 0, items: {} }, nest: { ready: 0 }, bestiary: [], mastery: {}, story: [] };
   const worker = (id) => summary.workers[id] || (summary.workers[id] = { actions: 0, items: {}, xp: {}, petXp: 0 });
-  const pet = (id) => summary.pets[id] || (summary.pets[id] = { workMs: 0, restMs: 0, ate: {}, level: null, hearts: null, gifts: {}, digs: 0, talentReady: false, favorite: null });
+  const pet = (id) => summary.pets[id] || (summary.pets[id] = { workMs: 0, restMs: 0, ate: {}, level: null, hearts: null, gifts: {}, digs: 0, talentReady: false, favorite: null, trips: [], wishes: 0 });
   function add(e) {
     if (e.type === 'harvest') {
       const w = worker(e.worker);
@@ -83,6 +84,10 @@ export function createReport(ms) {
       summary.mastery[e.skill] = Math.max(summary.mastery[e.skill] || 0, e.stars);
     } else if (e.type === 'story') {
       summary.story.push(e.entry);
+    } else if (e.type === 'tripDone') {
+      pet(e.pet).trips.push({ zone: e.zone, items: e.items });
+    } else if (e.type === 'wishGranted') {
+      pet(e.pet).wishes += 1;
     }
   }
   return { summary, add };

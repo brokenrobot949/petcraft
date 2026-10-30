@@ -51,7 +51,7 @@
     "speed": { "base": 0.8, "perLevel": 0.02, "affinityBonus": 0.25, "bondPerHeart": 0.02 },
     "stamina": { "maxPerLevel": 0.01, "drainCutPerLevel": 0.005 },
     "luck": { "rarePerLevel": 0.0005 },
-    "bond": { "hearts": [40, 120, 250, 450, 700], "pat": 10, "workMinutesPerPoint": 30, "favoriteDish": 2, "personalDish": 5, "personalDishMaxTier": 3 },
+    "bond": { "hearts": [40, 120, 250, 450, 700], "pat": 10, "workMinutesPerPoint": 45, "favoriteDish": 2, "personalDish": 5, "personalDishMaxTier": 3 },
     "evolve": { "adultHearts": 3, "adultStrengthMult": 2 },
     "talents": { "pickLevels": [5, 10, 15, 20, 25, 30], "choices": 2 },
     "heartGifts": { "minHearts": 4, "chancePerBondPoint": 0.1 },
@@ -75,7 +75,9 @@
     "leaf": { "leaves": 7, "spawnMs": 650, "fallMs": 1700, "goodAt": 4, "perfectAt": 6 },
     "peekaboo": { "rounds": 5, "bushes": 4, "showMs": 1200, "pauseMs": 450, "goodAt": 3, "perfectAt": 5 },
     "wishes": { "firstMs": 7200000, "waitMs": 28800000, "workMs": 3600000, "bond": 15, "mood": "cheered", "giftChance": 0.1 },
-    "tricks": { "sessions": 3 }
+    "tricks": { "sessions": 3 },
+    "yard": { "spotsByStableTier": [1, 2, 3, 4, 5], "msPerBond": 3600000 },
+    "trips": { "hours": [1, 4, 8], "workFrac": 0.2, "energyFracPerHour": 0.1, "xpMult": 1, "mapChancePerHour": 0.03, "postcardsKept": 10 }
   },
   "buildings": {
     "maxTier": 5,
@@ -288,9 +290,11 @@
         "maxZ": 8
       }
     },
-    "emotes": { "showMs": 1900, "popMs": 220, "fadeMs": 400, "bobMs": 900, "bobPx": 1, "aboveHeadPx": 1, "gapMs": 3000, "maxOnScreen": 4, "wishEveryMs": 9000 },
+    "emotes": { "showMs": 1900, "popMs": 220, "fadeMs": 400, "bobMs": 900, "bobPx": 1, "aboveHeadPx": 1, "gapMs": 3000, "maxOnScreen": 4, "wishEveryMs": 9000, "toyEveryMs": 11000 },
     "home": {
       "trickEveryMs": [8000, 16000],
+      "yardToyOffsets": [[-22, 8], [22, 8], [-34, 18], [34, 18], [0, 22]],
+      "yardToyScale": 0.75,
       "trickMs": 900,
       "restFrame": 0,
       "assistHopEveryMs": 1400,

@@ -3783,6 +3783,86 @@
       "frameWidth": 14,
       "frameHeight": 14
     },
+    "item.pine_ball": {
+      "group": "items",
+      "label": "Pine Ball (toy)",
+      "layout": "icon",
+      "src": "Items/Food/Seed1.png",
+      "frameWidth": 8,
+      "frameHeight": 8
+    },
+    "item.chew_stick": {
+      "group": "items",
+      "label": "Chew Stick (toy)",
+      "layout": "icon",
+      "src": "Items/Weapons/Bone/Sprite.png",
+      "frameWidth": 7,
+      "frameHeight": 12
+    },
+    "item.pond_float": {
+      "group": "items",
+      "label": "Pond Float (toy)",
+      "layout": "icon",
+      "src": "Items/Food/Nut.png",
+      "frameWidth": 15,
+      "frameHeight": 15
+    },
+    "item.scratching_log": {
+      "group": "items",
+      "label": "Scratching Log (toy)",
+      "layout": "icon",
+      "src": "Items/Weapons/Club/Sprite.png",
+      "frameWidth": 8,
+      "frameHeight": 14
+    },
+    "item.hay_pile": {
+      "group": "items",
+      "label": "Hay Pile (toy)",
+      "layout": "icon",
+      "src": "Items/Resource/Grass.png",
+      "frameWidth": 16,
+      "frameHeight": 16
+    },
+    "item.rope_tug": {
+      "group": "items",
+      "label": "Rope Tug (toy)",
+      "layout": "icon",
+      "src": "Items/Weapons/Whip/Sprite.png",
+      "frameWidth": 9,
+      "frameHeight": 13
+    },
+    "item.wind_chime": {
+      "group": "items",
+      "label": "Wind Chime (toy)",
+      "layout": "icon",
+      "src": "Items/Object/Hourglass.png",
+      "frameWidth": 16,
+      "frameHeight": 16
+    },
+    "item.rock_garden": {
+      "group": "items",
+      "label": "Rock Garden (toy)",
+      "layout": "icon",
+      "src": "Items/Resource/Rock.png",
+      "frameWidth": 16,
+      "frameHeight": 16
+    },
+    "item.paper_lantern": {
+      "group": "items",
+      "label": "Paper Lantern (toy)",
+      "layout": "icon",
+      "src": "Items/Object/Dice 6.png",
+      "frameWidth": 16,
+      "frameHeight": 16
+    },
+    "item.feather_wand": {
+      "group": "items",
+      "label": "Feather Wand (toy)",
+      "layout": "icon",
+      "src": "Items/Weapons/MagicWand/Sprite.png",
+      "frameWidth": 5,
+      "frameHeight": 16
+    },
     "prop.sanctuary.1": {
       "group": "props",
       "label": "Sanctuary stage 1: ruins with a rebuilt gate",

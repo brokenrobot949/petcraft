@@ -145,7 +145,8 @@ export function createDevPanel(app) {
     el('button.btn.wide', { type: 'button', onclick: petCmd('dev/clearPlay', () => ({})) }, 'Allow another game, lesson and nap Bond today'),
     el('div.row', {},
       el('button.btn', { type: 'button', onclick: petCmd('dev/wishNow', () => ({})) }, 'New wish now'),
-      el('button.btn', { type: 'button', onclick: petCmd('dev/wishAlmost', () => ({})) }, 'Wish almost done')),
+      el('button.btn', { type: 'button', onclick: petCmd('dev/wishAlmost', () => ({})) }, 'Wish almost done'))
+    el('button.btn.wide', { type: 'button', onclick: petCmd('dev/tripAlmost', () => ({})) }, 'Trip home in a minute'),
     el('div.row', {},
       el('button.btn', { type: 'button', onclick: petCmd('dev/petReadyToEvolve', () => ({})) }, 'Ready to evolve'),
       el('button.btn', { type: 'button', onclick: petCmd('dev/petCalling', () => ({})) }, 'Fill callings')),

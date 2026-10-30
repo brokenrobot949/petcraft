@@ -268,6 +268,37 @@ export function completeAction(state, ctx, workerId, profile = null) {
   return { xp: petXp, rare: rareItem };
 }
 
+// Nodes in a zone the player can work now (pets on day trips gather from these): [{ skill, node }].
+export function workableNodes(state, data, zoneId) {
+  const zone = zoneById(data, zoneId);
+  const out = [];
+  for (const [skill, nodes] of Object.entries(zone?.harvest || {})) {
+    for (const node of nodes) if (nodeCheck(state, data, zoneId, skill, node.id).ok) out.push({ skill, node });
+  }
+  return out;
+}
+
+// A day trip's bag (Phase 13): `seconds` of plain work spread over the zone's workable nodes, rolled from
+// `stream` (main drops and by-products, no rares or maps). Returns { items, xp } (xp: the skill XP it is worth).
+export function tripLoot(state, data, stream, zoneId, seconds) {
+  const nodes = workableNodes(state, data, zoneId);
+  const items = {};
+  let xp = 0;
+  let left = seconds;
+  while (nodes.length && left > 0) {
+    const { skill, node } = nodes[Math.floor(random(stream) * nodes.length)];
+    const task = { zone: zoneId, skill, node: node.id };
+    left -= baseActionMs(data, task) / 1000;
+    xp += actionXp(data, task, node);
+    for (const d of node.drops) {
+      if (d.chance < 1 && !chance(stream, d.chance)) continue;
+      const qty = randomInt(stream, d.qty[0], d.qty[1]);
+      if (qty > 0) items[d.item] = (items[d.item] || 0) + qty;
+    }
+  }
+  return { items, xp };
+}
+
 // Clears a worker's harvest task if its zone or node vanished from the data (or its skill did). Returns true if it did.
 export function dropStaleTask(data, w) {
   if (w.task && isHarvestTask(data, w.task) && !findNode(data, w.task)) {

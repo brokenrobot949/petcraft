@@ -1,4 +1,5 @@
-// Balance simulator policy v5 (adds Phase 9: Grand Projects, scenes, Elder Grove, Heartgrove/Starmetal, mythics).
+// Balance simulator policy v6 (v5 added Phase 9: Grand Projects, scenes, Elder Grove, Heartgrove/Starmetal, mythics;
+// v6 adds pet life, Phases 11-13: play, naps, wishes, tricks, toys in the Pet Yard, day trips).
 // What a sensible player does during one check-in (about 3 minutes).
 // It only sends commands through game.dispatch and only reads state through the game's own
 // selectors. No DOM, no window: a Node runner can import this file as it is.
@@ -17,7 +18,8 @@ import { skillLevel } from '../../js/systems/skills.js';
 import { nodeCheck, zoneUnlocked, toolFor } from '../../js/systems/harvest.js';
 import { stationList, recipeCheck, recipeDef, recipesFor, itemMs, itemXp, makesQuality, stationTier, workSlots, isWorking } from '../../js/systems/crafting.js';
 import { buffOf, buffSpeed } from '../../js/systems/buffs.js';
-import { petList, canPatToday, needsStarter, canAutoFeed, evolveInfo, assistInfo } from '../../js/systems/pets.js';
+import { petList, canPatToday, needsStarter, canAutoFeed, evolveInfo, assistInfo, canPlayToday, napInfo } from '../../js/systems/pets.js';
+import { trickInfo, yardSpots, tripZones, tripInfo, atHome } from '../../js/systems/wishes.js';
 import { canDig, talentDef } from '../../js/systems/petstats.js';
 import { localDay } from '../../js/core/time.js';
 import { buildingList, upgradeCheck } from '../../js/systems/buildings.js';
@@ -47,6 +49,8 @@ const BUY_TRAP_MARGIN = 50; // buy a Pine Trap / bait in Mossbrook when coins co
 const DIG_BUDGET_MS = 10 * 3600000; // digging happens at the last check-in of the day (overnight); maps beyond what 10 h can dig are sold
 const DIG_FROM_HOUR = 0;            // dig at every check-in (maps no longer outpace digging)
 const NO_USE_CATEGORIES = new Set(['map', 'egg', 'relic', 'trap', 'bait', 'lure']); // never sold as plain surplus
+const WISH_PATIENCE_MS = 2 * 86400000; // a wish the policy can't grant within 2 days is let go
+const PLAY_RESULT = 'good';           // the simulated player plays a decent game
 const STARTER = { archetype: 'sprout', name: 'Sim' };
 
 export function createPolicy(data) {
@@ -968,7 +972,7 @@ export function createPolicy(data) {
     if (!(lvl < (plan.gates[st.skill] || 0) || lvl === lowest)) return;
     let best = null;
     for (const r of recipesFor(data, st.id)) {
-      if (items[r.output]?.tool) continue; // spare tools are no use
+      if (items[r.output]?.tool || items[r.output]?.category === 'toy') continue; // spare tools and toys are no use
       if (!recipeCheck(state, data, r.id, 1).ok) continue;
       let max = data.balance.crafting.maxBatch;
       for (const [i, per] of Object.entries(r.inputs)) {
@@ -1033,6 +1037,67 @@ export function createPolicy(data) {
     if (best) act(game, 'buffs/use', { item: best.key });
   }
 
+  // ---- pet life (Phases 11-13) ----
+  const wishSeen = new Map(); // petId -> { key, since }
+  let tripsSent = 0;
+  let toysMade = 0;
+  function petLife(game, info, day) {
+    let state = game.getState();
+    for (const p of petList(state)) {
+      if (p.trip) continue;
+      if (canPlayToday(state, p.id, day)) act(game, 'pets/play', { pet: p.id, result: PLAY_RESULT });
+      const t = trickInfo(data, p);
+      if (p.teachDay !== day && t.canLearn) act(game, 'pets/teach', { pet: p.id, trick: t.current ? t.current.def.id : t.choices[0].id });
+      if (napInfo(game.getState(), data, p.id, day).can) act(game, 'pets/tuckIn', { pet: p.id });
+    }
+    // Toys: make one each pet kind loves (cheapest first) while the yard has room, then place them.
+    state = game.getState();
+    const kinds = new Set(petList(state).map((p) => p.archetype));
+    const owned = new Set([...(state.yard.toys || []), ...Object.keys(state.bag).filter((k) => state.bag[k] > 0 && items[k]?.category === 'toy')]);
+    const queued = new Set(Object.values(state.crafting.stations).flatMap((s) => s.queue.map((b) => recipeDef(data, b.recipe)?.output)));
+    if ((state.yard.toys || []).length < yardSpots(state, data)) {
+      const toys = data.recipes.recipes.filter((r) => items[r.output]?.category === 'toy' && kinds.has(items[r.output].likes) && !owned.has(r.output) && !queued.has(r.output));
+      const covered = new Set([...owned].map((k) => items[k]?.likes));
+      const r = toys.filter((x) => !covered.has(items[x.output].likes)).find((x) => recipeCheck(state, data, x.id, 1).ok);
+      if (r && act(game, 'crafting/start', { recipe: r.id, qty: 1 })) toysMade++;
+    }
+    state = game.getState();
+    for (const k of Object.keys(state.bag)) {
+      if (!(state.bag[k] > 0) || items[k]?.category !== 'toy' || state.yard.toys.includes(k)) continue;
+      if (game.getState().yard.toys.length >= yardSpots(game.getState(), data)) break;
+      act(game, 'yard/place', { item: k });
+    }
+    // Wishes: feed a wished dish if there is one; a wish it can't grant for a while is let go.
+    state = game.getState();
+    for (const p of petList(state)) {
+      const w = p.wish;
+      if (!w) { wishSeen.delete(p.id); continue; }
+      const key = JSON.stringify(w);
+      const seen = wishSeen.get(p.id);
+      if (!seen || seen.key !== key) wishSeen.set(p.id, { key, since: info.now });
+      if (w.kind === 'taste') {
+        const dish = Object.keys(state.bag).find((k) => state.bag[k] > 0 && parseKey(k).id === w.item);
+        if (dish && act(game, 'pets/feed', { pet: p.id, item: dish })) continue;
+      }
+      if (info.now - wishSeen.get(p.id).since > WISH_PATIENCE_MS) act(game, 'pets/letWishGo', { pet: p.id });
+    }
+  }
+
+  // Day trips (after the pets are arranged and posted, so only pets left in the Stable go): a rested pet goes to
+  // the best zone it can visit (or the one it wishes for), for the longest trip that is back by the next check-in.
+  function sendTrips(game, info) {
+    const state = game.getState();
+    const zones = tripZones(state, data);
+    if (!zones.length) return;
+    const zone = zones.sort((a, b) => zoneTier[b] - zoneTier[a])[0];
+    for (const p of petList(state)) {
+      if (!atHome(state, p) || assistInfo(state, data, p.id).can) continue; // station helpers stay home
+      const wished = p.wish?.kind === 'trip' && zones.includes(p.wish.zone) ? p.wish.zone : zone;
+      const hours = [...data.balance.petLife.trips.hours].sort((a, b) => b - a).find((h) => h * 3600000 <= Math.max(info.horizonMs, 3600000) && tripInfo(state, data, p.id, wished, h).can);
+      if (hours && act(game, 'pets/trip', { pet: p.id, zone: wished, hours })) tripsSent++;
+    }
+  }
+
   // ---- one check-in's decisions ----
   // info: { now (ms), horizonMs (game time until the next check-in, after the offline cap) }
   function run(game, info) {
@@ -1042,6 +1107,7 @@ export function createPolicy(data) {
     state = game.getState();
     const day = localDay(info.now);
     for (const p of petList(state)) if (canPatToday(state, p.id, day)) act(game, 'pets/pat', { pet: p.id });
+    petLife(game, info, day);
     watchScenes(game);
 
     sellSurplus(game, analyse(game.getState()), coinGoal(game.getState()) + stageCoinsLeft(game.getState()));
@@ -1068,6 +1134,7 @@ export function createPolicy(data) {
     steerCallings(game);
     tame(game, info);
     scoutDigs(game);
+    sendTrips(game, info);
     // Last: the job (harvest, tracking, digging) is set, so working the stations now makes that job wait
     // until the queues are done (crafting is a player task).
     chooseStations(game, plan2);
@@ -1086,5 +1153,7 @@ export function createPolicy(data) {
     get eldersRetired() { return eldersRetired; },
     get heirsPlaced() { return heirsPlaced; },
     get deliveries() { return deliveries; },
+    get tripsSent() { return tripsSent; },
+    get toysMade() { return toysMade; },
   };
 }

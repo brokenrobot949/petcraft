@@ -95,6 +95,11 @@ export function mountShell(app) {
       else if (e.type === 'masteryStar') toast(`${d.skills.skills.find((s) => s.id === e.skill)?.name || e.skill} Mastery: ${e.stars} star${e.stars === 1 ? '' : 's'}!`, 3000);
       else if (e.type === 'retired') toast(`${e.name} has retired to the Elder Grove.`, 3000);
       else if (e.type === 'groveOpened') toast('The Elder Grove has opened on your homestead', 3500);
+      else if (e.type === 'tripDone') {
+        const name = app.game.getState().pets.list[e.pet]?.name || 'Your pet';
+        const lines = d.trips?.lines?.back || ['{name} is back from {zone}.'];
+        toast(lines[Math.floor(Math.random() * lines.length)].replace('{name}', name).replace('{zone}', d.zones.zones.find((z) => z.id === e.zone)?.name || e.zone), 3000);
+      }
     }
   });
 

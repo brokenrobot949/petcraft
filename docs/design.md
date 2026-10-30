@@ -247,7 +247,7 @@ Catalysts use tier 3–4 materials, so most adults appear around Stonecrag and M
 
 ## Pet life (proposed, 2026-10-30)
 
-Rob's picks for deepening the player and pet relationship. **Status: Phase 11 built (2026-10-30): play at home, naps, the scrapbook and emote reactions. Phase 12 built (2026-10-30): wishes (all but Toy and Trip), Leaf catch and Peekaboo, taught tricks. Toys, day trips, Toy and Trip wishes and the Bond retune (Phase 13) are not built yet.** All numbers are starting values for `balance.json`. Nothing here decays, expires or punishes absence.
+Rob's picks for deepening the player and pet relationship. **Status: Phase 11 built (2026-10-30): play at home, naps, the scrapbook and emote reactions. Phase 12 built (2026-10-30): wishes, Leaf catch and Peekaboo, taught tricks. Phase 13 built (2026-10-30): toys and the Pet Yard, day trips with postcards, Toy and Trip wishes, work Bond 1 per 45 min. Decor (benches, flower beds) is not built.** All numbers are starting values for `balance.json`. Nothing here decays, expires or punishes absence.
 
 Seven features: pet wishes, play at home, toys and the Pet Yard, day trips, the pet scrapbook, emote reactions and taught tricks.
 

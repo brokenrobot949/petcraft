@@ -64,7 +64,30 @@
         "I'm ready for a lesson. Are you?",
         "Let's practice something fun together."
       ]
+    },
+    {
+      "id": "toy",
+      "weight": 2,
+      "need": "Put a {item} in the Pet Yard.",
+      "lines": [
+        "I want a {item}.",
+        "A {item} would make the yard perfect.",
+        "Could we have a {item} by the Stable?",
+        "I dreamed about a {item} last night."
+      ]
+    },
+    {
+      "id": "trip",
+      "weight": 2,
+      "need": "Send {name} on a day trip to {zone}.",
+      "lines": [
+        "I've always wanted to see {zone}.",
+        "Could I take a little trip to {zone}?",
+        "I wonder what {zone} looks like up close.",
+        "Pack my bag, I'm dreaming of {zone}."
+      ]
     }
+
   ],
   "granted": [
     "{name} beams from ear to ear. Wish come true.",

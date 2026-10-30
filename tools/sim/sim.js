@@ -296,11 +296,13 @@ export function runSim(data, opts = {}) {
     mapsSold: policy.mapsSold, petsReleased: policy.petsReleased,
     evolved: policy.evolveCounts, talentPicked: policy.talentPicked, assistsPosted: policy.assistsPosted, petDigsSent: policy.petDigsSent,
     eldersRetired: policy.eldersRetired, heirsPlaced: policy.heirsPlaced, deliveries: policy.deliveries,
+    tripsSent: policy.tripsSent, toysMade: policy.toysMade,
     dispatches: policy.dispatches,
     renownBySource: { ...renownSrc },
     petWorkMs: pets.work,
     petRestMs: pets.rest,
     final: finalSummary(game.getState(), data),
+    finalStats: { ...game.getState().stats },
   };
   result.flags = computeFlags(result, data);
   if (opts.keepState) result.state = game.getState(); // e.g. a late-game save for performance checks
@@ -403,6 +405,8 @@ function computeFlags(r, data) {
   }
   flags.push({ kind: 'info', text: `Taming level ${lastSnap.tamingLevel} after ${snaps.length} days; ${lastSnap.tamed} pets tamed, ${lastSnap.digs} digs, ${lastSnap.hatched} eggs hatched, ${lastSnap.pets} pets owned at the end.` });
   flags.push({ kind: 'info', text: `Evolution after ${snaps.length} days: ${lastSnap.juveniles} juveniles and ${lastSnap.adults} adults now (${r.evolved.juvenile} + ${r.evolved.adult} evolutions sent); ${lastSnap.talentPicks} talents picked; ${r.assistsPosted} assistant posts, ${lastSnap.assistants} assistants at the end; ${lastSnap.petGifts} pet gifts; ${lastSnap.petDigs} pet digs.` });
+  const st = r.finalStats || {};
+  flags.push({ kind: 'info', text: `Pet life: ${st.plays || 0} games, ${st.naps || 0} naps, ${st.wishesGranted || 0} wishes granted, ${st.tricksLearned || 0} tricks learned, ${r.toysMade} toys made (${st.toysPlaced || 0} placed), ${r.tripsSent} day trips sent (${st.trips || 0} back).` });
   if (lastSnap.adults === 0) flags.push({ kind: 'pace', text: 'No pet reached the adult form in this run.' });
   if (lastSnap.juveniles + lastSnap.adults === 0) flags.push({ kind: 'pace', text: 'No pet evolved at all in this run.' });
   if (r.mapsSold > 0) flags.push({ kind: 'pile', text: `Maps pile up beyond what digging can use: ${lastSnap.mapsFound} found, ${lastSnap.digs} dug, ${r.mapsSold} sold off (the policy keeps only what a 10 h overnight dig covers). Maps arrive far faster than a player can dig them.` });

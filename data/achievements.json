@@ -98,6 +98,10 @@
     { "id": "wishmaker", "name": "Wishmaker", "desc": "Grant 25 pet wishes.", "group": "pets", "renown": 120, "title": "Wishmaker", "when": { "kind": "stat", "stat": "wishesGranted", "n": 25 } },
     { "id": "good_trick", "name": "Good Trick!", "desc": "Teach a pet a trick.", "group": "pets", "renown": 30, "title": null, "when": { "kind": "stat", "stat": "tricksLearned", "n": 1 } },
     { "id": "trick_school", "name": "Trick School", "desc": "Teach your pets 10 tricks.", "group": "pets", "renown": 100, "title": null, "when": { "kind": "stat", "stat": "tricksLearned", "n": 10 } },
-    { "id": "star_of_the_show", "name": "Star of the Show", "desc": "Teach one pet all 5 tricks.", "group": "pets", "renown": 150, "title": "Showstopper", "when": { "kind": "stat", "stat": "trickMasters", "n": 1 } }
+    { "id": "star_of_the_show", "name": "Star of the Show", "desc": "Teach one pet all 5 tricks.", "group": "pets", "renown": 150, "title": "Showstopper", "when": { "kind": "stat", "stat": "trickMasters", "n": 1 } },
+    { "id": "day_tripper", "name": "Day Tripper", "desc": "A pet comes back from a day trip.", "group": "pets", "renown": 30, "title": null, "when": { "kind": "stat", "stat": "trips", "n": 1 } },
+    { "id": "postcards_home", "name": "Postcards Home", "desc": "Your pets come back from 25 day trips.", "group": "pets", "renown": 120, "title": "Wanderer", "when": { "kind": "stat", "stat": "trips", "n": 25 } },
+    { "id": "playground", "name": "Playground", "desc": "Put a toy in the Pet Yard.", "group": "pets", "renown": 30, "title": null, "when": { "kind": "stat", "stat": "toysPlaced", "n": 1 } },
+    { "id": "toy_box", "name": "Toy Box", "desc": "Put toys in the Pet Yard 10 times.", "group": "pets", "renown": 80, "title": null, "when": { "kind": "stat", "stat": "toysPlaced", "n": 10 } }
   ]
 }

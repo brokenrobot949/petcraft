@@ -180,6 +180,11 @@ export const commands = {
     const p = devPet(state, pet);
     if (p.wish && p.wish.progressMs != null) p.wish.progressMs = Math.max(p.wish.progressMs, ctx.data.balance.petLife.wishes.workMs - 60000);
   },
+  // Phase 13: a pet on a trip comes home in a minute.
+  'dev/tripAlmost': (state, { pet }) => {
+    const p = devPet(state, pet);
+    if (p.trip) p.trip.msLeft = Math.min(p.trip.msLeft, 60000);
+  },
 };
 
 function openSanctuary(state, ctx) {

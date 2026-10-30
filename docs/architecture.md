@@ -1051,3 +1051,49 @@ Rob's picks, 2026-10-30 (design.md "Pet life" 1, 2 and 7). Toy and Trip wishes c
 `petLife.moods.cheered` {speed 0.05, ms 2 h}; `petLife.wishes` {firstMs 2 h, waitMs 8 h, workMs 1 h, bond 15,
 mood 'cheered', giftChance 0.1}; `petLife.tricks.sessions` 3; `petLife.leaf`, `petLife.peekaboo` (game timing and
 scoring); `render.emotes.wishEveryMs`; `render.home.trickEveryMs`, `render.home.trickMs`.
+
+## Phase 13: toys and the Pet Yard, day trips, Bond retune (no schema bump)
+
+Rob's picks, 2026-10-30 (design.md "Pet life" 3 and 4; Bond option (b)).
+
+### State (filled by `pets.init`, still schema v10)
+- `state.yard.toys`: placed toy item ids (one of each; unknown items dropped on load). Per pet: `trip` (null or
+  `{ zone, hours, msLeft }`), `yardMs` (time toward the next yard Bond point), `lastTrip` (`{ zone, hours, items, xp,
+  line }` for the page). `stats.trips` (trips back), `stats.toysPlaced`.
+
+### Rules
+- Toys: 10 items, `category: "toy"`, `likes: <archetype>` (items.json), recipes at the Workbench (Wind Chime at the
+  Forge). Pet Yard spots `petLife.yard.spotsByStableTier`. `yard/place { item }` (from the bag, free spot, one of each)
+  grants every Toy wish for it; `yard/take { item }` returns it to the bag. A pet at home (`wishes.atHome`: stabled, not
+  an assistant, not on a trip) with a liked toy placed gets +1 Bond per `yard.msPerBond` (whether it counts is decided
+  at the start of each step).
+- Day trips: `pets/trip { pet, zone, hours }` (`wishes.tripInfo`: at home, `hours` in `trips.hours`, a zone in
+  `tripZones` = unlocked with a node the player can work, energy >= `tripCost` = max energy x `energyFracPerHour` x
+  hours, paid on leaving). Away: no rest, no yard Bond; feed / play / teach / tuck in / setActive / assist / release /
+  retire refuse; status 'trip'. `pets.nextBoundaryMs` stops at the return. `finishTrip`: `harvest.tripLoot` rolls
+  `hours x 3600 x trips.workFrac` seconds of plain work over the zone's workable nodes from the pet's stream (main drops
+  and by-products; no rares), a map with `mapChancePerHour x hours`, pet XP = that work's skill XP x xpPerSkillXp x
+  `xpMult` (after xp talents), a postcard (data/trips.json, scrapbook `{ k: 'postcard', zone, line }`, the latest
+  `postcardsKept` kept). A Trip wish for that zone comes true.
+- Wishes: Toy (a liked toy not in the yard, owned or makeable, with at least one spot) and Trip (a trip zone; only with
+  2+ pets) now roll too.
+- Bond retune (Rob, option b): `pets.bond.workMinutesPerPoint` 30 -> 45.
+
+### Events (Phase 13)
+`tripStart { pet, zone, hours }`, `tripDone { pet, zone, items, xp, line }`, `toyPlaced { item }`, `toyTaken { item }`.
+"While you were away" lists trips that ended and wishes that came true (report.js `pets[id].trips`, `.wishes`).
+
+### UI and render
+- `js/ui/petyard.js`: `yardPanel` (Pets roster), `tripPanel` (pet page: zone and hours chips remembered per device,
+  countdown while away, last trip with its postcard). Wish card: Place it / Make it first, Plan a trip.
+- Home scene: toys drawn by the Stable (`render.home.yardToyOffsets`, `yardToyScale`); pets on trips leave the scene;
+  a pet at home with a liked toy plays now and then (`render.emotes.toyEveryMs`: a happy bubble and a hop).
+- Achievements: Day Tripper, Postcards Home (title "Wanderer"), Playground, Toy Box. Test mode: `dev/tripAlmost`.
+- Simulator policy v6: plays, naps, teaches tricks, feeds wished dishes, lets a wish go after 2 days, makes a toy each
+  pet kind loves and places it, sends pets left in the Stable (not would-be assistants) on the longest trip that is
+  back by the next check-in. Toys are not used as XP filler.
+
+### balance.json additions (Phase 13)
+`petLife.yard` {spotsByStableTier [1..5], msPerBond 1 h}; `petLife.trips` {hours [1, 4, 8], workFrac 0.2,
+energyFracPerHour 0.1, xpMult 1, mapChancePerHour 0.03, postcardsKept 10}; `render.home.yardToyOffsets`,
+`render.home.yardToyScale`, `render.emotes.toyEveryMs`; `pets.bond.workMinutesPerPoint` 45.

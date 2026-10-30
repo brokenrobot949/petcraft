@@ -46,6 +46,8 @@ import { groveOpen, retireInfo, legacyValue, legacyLines } from '../../js/system
 import { masteryStars, masteryProgress } from '../../js/systems/skills.js';
 import { trapOptions } from '../../js/systems/taming.js';
 import { petStage, petRole, talentDef } from '../../js/systems/petstats.js';
+import { yardSpots, tripZones, tripCost } from '../../js/systems/wishes.js';
+import { petStatus } from '../../js/systems/pets.js';
 
 registerCommands(devCommands); // test mode commands are dev-only (tools/dev)
 const out = document.getElementById('out');
@@ -141,7 +143,7 @@ try {
   const share = data.balance.pets.playerXpShare;
   check('pet work gives the player its share of skill XP', shareXp > 0 && near(playerXp, shareXp, 1e-6 * shareXp) && near(shareXp, petBaseXp * share / data.balance.pets.xpPerSkillXp, 1e-6 * shareXp),
     `${playerXp.toFixed(1)} player XP, share ${share}`);
-  check('work earns Bond (+1 per 30 min)', pet.bond === 6, `bond ${pet.bond}`);
+  check('work earns Bond (+1 per workMinutesPerPoint)', pet.bond === Math.floor(worked / (data.balance.pets.bond.workMinutesPerPoint * 60000)), `bond ${pet.bond}`);
   runChunks(g, 1.2 * H, 60000);
   check('rests about 1 h, wakes full, works again', woke && !pet.resting, `rested ${(rested / H).toFixed(2)} h`);
   check('rest took about 1 h', near(rested / H, petMaxEnergy(data, pet) / 100, 0.02));
@@ -1424,6 +1426,90 @@ try {
   check('one heart, one trick', threw);
   check('Phase 12 state is valid', [wL.getState(), gw.getState(), oL.getState(), gd.getState(), gt.getState()].every((x) => validateState(x) === null),
     [wL.getState(), gw.getState(), oL.getState(), gd.getState(), gt.getState()].map((x) => validateState(x)).filter(Boolean).join(', '));
+  }
+
+  // ---- Phase 13: toys and the Pet Yard, day trips ----
+  {
+  const Y = data.balance.petLife.yard;
+  const T = data.balance.petLife.trips;
+  const samePet = (a, b) => near(a.energy, b.energy, 1e-6) && JSON.stringify({ ...undated(a), energy: 0 }) === JSON.stringify({ ...undated(b), energy: 0 });
+  // Two Wild pets: Pip works, Rex rests in the Stable.
+  const twoPets = (seed) => {
+    const gx = freshGame(seed);
+    gx.dispatch('pets/hatchStarter', { archetype: 'wild', name: 'Pip' });
+    gx.dispatch('dev/addPet', { archetype: 'wild', name: 'Rex' });
+    const [a, b] = gx.getState().pets.active;
+    gx.dispatch('pets/stable', { pet: b });
+    return [gx, a, b];
+  };
+
+  // The yard: one spot per Stable tier, one of each toy, take it back.
+  const [gy, ya, yb] = twoPets(1301);
+  const sy = () => gy.getState();
+  check('the Pet Yard has a spot per Stable tier', yardSpots(sy(), data) === Y.spotsByStableTier[0]);
+  gy.dispatch('dev/grant', { item: 'pine_ball', qty: 2 });
+  gy.dispatch('dev/grant', { item: 'chew_stick', qty: 1 });
+  sy().pets.list[yb].wish = { kind: 'toy', item: 'pine_ball', line: 0 };
+  const bondY = sy().pets.list[yb].bond;
+  gy.dispatch('pets/play', { pet: ya, result: 'okay' }); // (unrelated pet; the toy wish is Rex's)
+  gy.dispatch('yard/place', { item: 'pine_ball' });
+  check('placing a toy takes it from the bag and grants a Toy wish', sy().yard.toys.join() === 'pine_ball' && sy().bag.pine_ball === 1
+    && sy().pets.list[yb].wish === null && near(sy().pets.list[yb].bond - bondY, data.balance.petLife.wishes.bond, 1e-9) && !!sy().achievements.done.playground);
+  threw = false;
+  try { gy.dispatch('yard/place', { item: 'chew_stick' }); } catch { threw = true; }
+  check('a full yard takes no more toys', threw && sy().bag.chew_stick === 1);
+  gy.dispatch('dev/setBuilding', { building: 'stable', tier: 2 });
+  threw = false;
+  try { gy.dispatch('yard/place', { item: 'pine_ball' }); } catch { threw = true; }
+  check('one of each toy', threw);
+  // A liked toy: the stabled pet gains Bond by the hour; the working pet doesn't.
+  const bondRex = sy().pets.list[yb].bond;
+  const bondPip = sy().pets.list[ya].bond;
+  sy().pets.list[ya].workMs = 0;
+  runChunks(gy, 3 * Y.msPerBond + 1000, 7000);
+  check('a stabled pet near a toy it loves gains Bond by the hour', near(sy().pets.list[yb].bond - bondRex, 3, 1e-9) && sy().pets.list[ya].bond === bondPip,
+    `${sy().pets.list[yb].bond - bondRex}`);
+  gy.dispatch('yard/take', { item: 'pine_ball' });
+  check('taking a toy back returns it to the bag', sy().yard.toys.length === 0 && sy().bag.pine_ball === 2);
+
+  // Day trips: only stabled pets, energy paid up front, back after the hours with a bag, XP and a postcard.
+  const tripTwin = () => {
+    const [gx, a, b] = twoPets(1302);
+    gx.getState().pets.list[b].wish = { kind: 'trip', zone: 'meadowfold', line: 0 };
+    return [gx, a, b];
+  };
+  const [tL, ta, tb] = tripTwin();
+  const [tO] = tripTwin();
+  check('a pet can visit a zone it could work in', tripZones(tL.getState(), data).includes('meadowfold'));
+  threw = false;
+  try { tL.dispatch('pets/trip', { pet: ta, zone: 'meadowfold', hours: 1 }); } catch { threw = true; }
+  check('a working pet can\'t go on a trip', threw);
+  const petT = () => tL.getState().pets.list[tb];
+  const e0 = petT().energy;
+  const bag0 = { ...tL.getState().bag };
+  for (const gx of [tL, tO]) gx.dispatch('pets/trip', { pet: tb, zone: 'meadowfold', hours: 4 });
+  check('leaving costs energy', near(e0 - petT().energy, tripCost(data, petT(), 4), 1e-9) && petStatus(tL.getState(), tb) === 'trip');
+  threw = false;
+  try { tL.dispatch('pets/setActive', { pet: tb, slot: 1 }); } catch { threw = true; }
+  check('a pet on a trip can\'t be put to work', threw);
+  runChunks(tL, 4 * H + 2000, 997);
+  tO.catchUp(4 * H + 2000);
+  const back = petT();
+  const got = Object.keys(back.lastTrip?.items || {});
+  check('back from the trip with a bag, XP and a postcard', !back.trip && got.length > 0 && got.every((k) => (tL.getState().bag[k] || 0) > (bag0[k] || 0))
+    && back.book.some((e) => e.k === 'postcard' && e.zone === 'meadowfold') && tL.getState().stats.trips === 1 && back.lastTrip.xp > 0);
+  check('a Trip wish comes true on the way home', back.wish?.kind !== 'trip' && back.book.some((e) => e.k === 'wish' && e.kind === 'trip'));
+  check('trips: live ticks and catch-up agree', samePet(back, tO.getState().pets.list[tb]) && sortedJson(tL.getState().bag) === sortedJson(tO.getState().bag));
+  // The scrapbook keeps only the latest postcards.
+  for (let i = 0; i < T.postcardsKept + 3; i++) {
+    tL.dispatch('dev/petEnergy', { pet: tb, energy: 999 });
+    tL.dispatch('pets/trip', { pet: tb, zone: 'meadowfold', hours: 1 });
+    tL.advance(H + 1000);
+  }
+  check('only the latest postcards are kept', petT().book.filter((e) => e.k === 'postcard').length === T.postcardsKept && petT().book[0].k === 'home');
+  check('work Bond is 1 per 45 minutes (Rob, option b)', data.balance.pets.bond.workMinutesPerPoint === 45);
+  check('Phase 13 state is valid', [gy.getState(), tL.getState()].every((x) => validateState(x) === null),
+    [gy.getState(), tL.getState()].map((x) => validateState(x)).filter(Boolean).join(', '));
   }
 } catch (err) {
   failed++;

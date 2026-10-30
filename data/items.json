@@ -308,6 +308,16 @@
     "map_stonecrag": { "name": "Stonecrag Map", "category": "map", "tier": 3, "sell": 15, "map": { "zone": "stonecrag" }, "desc": "A scrap of map marking a patient dig site tucked among the rocks of Stonecrag." },
     "map_mistfen": { "name": "Mistfen Map", "category": "map", "tier": 4, "sell": 20, "map": { "zone": "mistfen" }, "desc": "A scrap of map marking a dig site hidden in the misty pools of Mistfen." },
     "map_emberfall": { "name": "Emberfall Map", "category": "map", "tier": 5, "sell": 25, "map": { "zone": "emberfall" }, "desc": "A scrap of map marking a warm dig site hidden in the glowing caldera of Emberfall." },
-    "heartgrove_map": { "name": "Heartgrove Map", "category": "map", "tier": 6, "sell": 30, "map": { "zone": "heartgrove" }, "desc": "A scrap of map marking a quiet dig site beneath the silver trees of the Heartgrove." }
+    "heartgrove_map": { "name": "Heartgrove Map", "category": "map", "tier": 6, "sell": 30, "map": { "zone": "heartgrove" }, "desc": "A scrap of map marking a quiet dig site beneath the silver trees of the Heartgrove." },
+    "pine_ball": { "name": "Pine Ball", "category": "toy", "tier": 1, "sell": 30, "likes": "wild", "desc": "A round ball of woven pine strips that bounces in every direction but the one you expect." },
+    "chew_stick": { "name": "Chew Stick", "category": "toy", "tier": 1, "sell": 30, "likes": "stone", "desc": "A tough little stick with a stone knob, perfect for gnawing on a lazy afternoon." },
+    "pond_float": { "name": "Pond Float", "category": "toy", "tier": 1, "sell": 35, "likes": "tide", "desc": "A bobbing float of plank and shell that drifts round and round the water trough." },
+    "scratching_log": { "name": "Scratching Log", "category": "toy", "tier": 1, "sell": 35, "likes": "sprout", "desc": "A fat pine log wrapped in string, made for scratching, climbing and napping on." },
+    "hay_pile": { "name": "Hay Pile", "category": "toy", "tier": 2, "sell": 60, "likes": "sprout", "desc": "A soft heap of dried grass and herbs to dive into, roll in and hide inside." },
+    "rope_tug": { "name": "Rope Tug", "category": "toy", "tier": 2, "sell": 60, "likes": "stone", "desc": "A thick knotted rope for tugging. Stone pets never, ever let go first." },
+    "wind_chime": { "name": "Wind Chime", "category": "toy", "tier": 2, "sell": 80, "likes": "tide", "desc": "Little iron bells that ring like falling water whenever the breeze comes by." },
+    "rock_garden": { "name": "Rock Garden", "category": "toy", "tier": 3, "sell": 120, "likes": "stone", "desc": "A neat cedar tray of sorted pebbles, just right for sorting all over again." },
+    "paper_lantern": { "name": "Paper Lantern", "category": "toy", "tier": 3, "sell": 120, "likes": "sprout", "desc": "A warm glowing lantern that Sprout pets curl up beside when the evening comes." },
+    "feather_wand": { "name": "Feather Wand", "category": "toy", "tier": 4, "sell": 160, "likes": "wild", "desc": "A willow wand with a bundle of feathers that flutters just out of reach." }
   }
 }

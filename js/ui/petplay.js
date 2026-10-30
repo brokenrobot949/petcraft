@@ -121,7 +121,7 @@ export function openPetSheet(game, petId, openPage) {
     const max = petMaxEnergy(data, pet);
     portrait = el('div.pet-portrait.pet-sheet-face', {}, faceIcon(petRole(pet), 64, pet.name));
     noteEl = el('p.pet-note', { 'aria-live': 'polite' }, noteText);
-    const status = pet.nap ? 'Napping' : { resting: 'Resting', stabled: 'In the Stable', idle: 'Not working', working: 'Working' }[petStatus(st, petId)];
+    const status = pet.nap ? 'Napping' : { resting: 'Resting', stabled: 'In the Stable', idle: 'Not working', working: 'Working', trip: 'Away on a day trip' }[petStatus(st, petId)];
     const mood = moodText(data, pet);
     const wish = wishText(st, data, pet);
     body.append(

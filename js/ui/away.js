@@ -22,6 +22,7 @@ export function showAwaySummary(app, summary, { awayMs }) {
   const state = game.getState();
   const skillName = (id) => data.skills.skills.find((s) => s.id === id)?.name || id;
   const itemName = (key) => itemLabel(data, key);
+  const zoneName = (id) => data.zones.zones.find((z) => z.id === id)?.name || id;
   const body = [el('p', {}, `You were away ${formatDuration(awayMs)}.`)];
 
   if (summary.ms < awayMs - 1000) {
@@ -34,7 +35,7 @@ export function showAwaySummary(app, summary, { awayMs }) {
   const petsInfo = summary.pets || {};
   const sectionIds = new Set();
   for (const [id, w] of Object.entries(summary.workers || {})) if (w.actions > 0) sectionIds.add(id);
-  for (const [id, p] of Object.entries(petsInfo)) if (p.workMs > 0 || p.restMs > 0) sectionIds.add(id);
+  for (const [id, p] of Object.entries(petsInfo)) if (p.workMs > 0 || p.restMs > 0 || p.trips?.length || p.wishes > 0) sectionIds.add(id);
   // The player first, then pets in the order they appear.
   const ordered = [...sectionIds].sort((a, b) => (a === 'player' ? -1 : b === 'player' ? 1 : 0));
   let anyWork = false;
@@ -60,6 +61,11 @@ export function showAwaySummary(app, summary, { awayMs }) {
         if (ate.length) extra.push(el('p.small', {}, `Ate ${ate.join(', ')}`));
         const gifts = Object.entries(info.gifts || {}).map(([id, n]) => `${n} ${itemName(id)}`);
         if (gifts.length) extra.push(el('p.away-levelup', {}, `Brought you ${gifts.join(', ')}`));
+        for (const t of info.trips || []) {
+          const got = Object.entries(t.items || {}).map(([id, n]) => `${n} ${itemName(id)}`);
+          extra.push(el('p.away-levelup', {}, `Back from a day trip to ${zoneName(t.zone)}${got.length ? ` with ${got.join(', ')}` : ''}`));
+        }
+        if (info.wishes > 0) extra.push(el('p.away-levelup', {}, info.wishes === 1 ? 'A wish came true!' : `${info.wishes} wishes came true!`));
         if (info.digs > 0) extra.push(el('p.small', {}, `Dug up ${info.digs} treasure${info.digs === 1 ? '' : 's'}`));
         if (info.talentReady) extra.push(el('p.away-levelup', {}, 'Has a new talent to choose'));
         if (info.favorite) extra.push(el('p.away-levelup', {}, `Loves ${itemName(info.favorite)}!`));
@@ -92,7 +98,6 @@ export function showAwaySummary(app, summary, { awayMs }) {
         el('div.away-item', {}, itemIcon24(key, itemName(key)), el('span.grow', {}, itemName(key)), el('b', {}, `+${n.toLocaleString()}`)))));
   }
   // Taming, treasure and eggs (Phase 7).
-  const zoneName = (id) => data.zones.zones.find((z) => z.id === id)?.name || id;
   const species = (id) => data.pets.archetypes.find((a) => a.id === id)?.species || id;
   const tm = summary.taming || {};
   const tmLines = [];

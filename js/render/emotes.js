@@ -44,6 +44,9 @@ export function emoteFor(e, data) {
       return { id: e.pet, kind: 'heart', force: true };
     case 'petTaught':
       return { id: e.pet, kind: e.learned ? 'star' : 'happy', force: true };
+    // Phase 13
+    case 'tripDone':
+      return { id: e.pet, kind: 'happy', force: true };
     default:
       return null;
   }

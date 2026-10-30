@@ -60,11 +60,22 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 12 done (2026-10-30, 0.13.0): pet wishes and tricks. Phase 11 (pet life at home) and Phases 0-10 plus Rob's
-follow-ups (0.10.1-0.11.6) built earlier.
-Next: Rob's phone test of Phases 11-12, then Phase 13 (toys and the Pet Yard, day trips,
-Bond retune: work Bond 1 per 45 min, Rob's option (b)). Plan in docs/handoff.md "Pet life phases"; design in
-docs/design.md "Pet life". Open design calls are listed under Known issues.
+Phase: 13 done (2026-10-30, 0.14.0): toys and the Pet Yard, day trips, Bond retune. All three pet life phases (11-13)
+are built; Phases 0-10 plus Rob's follow-ups (0.10.1-0.11.6) earlier.
+Next: Rob's phone test of Phases 11-13 (pet life), then fixes. Design in docs/design.md "Pet life".
+Open design calls are listed under Known issues.
+Phase 13 (yard and trips): no schema bump (pets.init fills per-pet yardMs and lastTrip; trip and state.yard were in v10).
+  Contract in docs/architecture.md "Phase 13". 10 toys (items.json category "toy", likes an archetype; Workbench, Wind
+  Chime at the Forge; art: Claude's picks from the pack, recastable). Pet Yard on the Pets roster: spots = Stable tier;
+  a pet resting in the Stable with a toy it loves gets +1 Bond an hour; toys drawn by the Stable on Home, pets there
+  play now and then. Day trips (js/ui/petyard.js, pet page): a stabled pet goes to a zone for 1/4/8 h, pays 10% of max
+  energy an hour on leaving, comes back (offline too) with 20% of the same time's plain work as items
+  (harvest.tripLoot), XP, sometimes a map, and a postcard (data/trips.json, Haiku; latest 10 in the scrapbook).
+  Toy and Trip wishes. Bond retune (Rob, option b): work Bond 1 per 45 min. "While you were away" lists trips and
+  granted wishes. 4 achievements. Core checks: 309. Save checks: 172. Simulator policy v6 plays all pet life
+  (3 seeds, 90 days): regular player ending day 57-62 (was 63-67), light 64-66; first adult day 10-12.4 (target
+  8-10, two seeds just late; was about 14 on two seeds); first elder day 40-44, but day 77 on seed 12345 (heart 5
+  comes slower with 45-minute work Bond). Per 90 days: about 1050 games, 520 naps, 230 wishes, 120 tricks, 2800 trips.
 Phase 12 (wishes and tricks): no schema bump (pets.init fills the new per-pet wishMs and teachDay). Contract in
   docs/architecture.md "Phase 12". Wishes (js/systems/wishes.js helpers; rolled, counted and granted in pets.js):
   one per pet, a new one may appear 8 h of game time after the last (first one 2 h after hatching), only kinds the
@@ -297,3 +308,8 @@ Known issues:
 - Held tools use the full item pictures (SpriteInHand files are head-only fragments) with a
   code-made wind-up and bounce, drawn behind the body; the rod and bow are small and may need tuning in balance.render.zone.
 - Tab icons and app icon are still placeholder pack sprites.
+- Phase 13 weak art: toys reuse pack pictures (Pine Ball a seed, Chew Stick a bone, Pond Float a nut, Scratching Log
+  a club, Hay Pile grass, Rope Tug the whip also used for Sinew, Wind Chime an hourglass, Rock Garden a rock, Paper
+  Lantern a die, Feather Wand a magic wand cut to 16 px). No music-note bubble in the pack: toy play shows "joy".
+- Day trips bring back a lot early on (a 4 h trip in Meadowfold: about 900 items), since they follow the pets' work
+  rate. The simulated player sends about 30 trips a day, which helps the ending come earlier (day 57-62).

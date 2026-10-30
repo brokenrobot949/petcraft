@@ -1,0 +1,78 @@
+{
+  "postcards": {
+    "meadowfold": [
+      "Chased a butterfly all the way to the far fence.",
+      "A rabbit showed me where the sweetest berries grow.",
+      "The breeze tickled my ears on the big green hill.",
+      "I splashed my paws in the pond and got a little wet.",
+      "Pine needles smell wonderful when the sun is out.",
+      "I rolled in clover until I was dizzy and happy.",
+      "A kind old pine let me sit in its shade.",
+      "Dandelion fluff floated past my nose all afternoon."
+    ],
+    "whisperwood": [
+      "Found a mushroom that glowed like a little moon.",
+      "A brook hummed its quiet song over the smooth stones.",
+      "Oak leaves whispered above me, so I whispered back.",
+      "A shy deer and I shared a quiet moment by the oaks.",
+      "The mushrooms lit up one by one as the dusk came.",
+      "Soft moss under my paws, like the coziest blanket.",
+      "Everything here speaks softly, so I did too.",
+      "The ferns tickled my belly as I wandered slowly."
+    ],
+    "stonecrag": [
+      "Napped on a warm rock next to a snoring boar.",
+      "The goats here have the funniest little beards.",
+      "Tiny flecks of iron ore sparkled in the warm rock.",
+      "Mountain sage smells so good I sneezed twice!",
+      "The rocks were warm enough to toast a whole loaf.",
+      "A goat stared at me, then went back to chewing.",
+      "The sun was so bright I squinted all day long.",
+      "I climbed a little way up the hill and looked down."
+    ],
+    "mistfen": [
+      "Watched the fireflies drift over the lilies.",
+      "A heron stood so still I almost thought it was a reed.",
+      "The eels were far too lazy to play with me today.",
+      "Willow branches trailed in the water like curtains.",
+      "The mist hugged me gently, cool and damp.",
+      "Bog lilies floated by, pink and gently bobbing.",
+      "Reeds whispered in the wind all around the marsh.",
+      "Fireflies blinked on my nose, one at a time!"
+    ],
+    "emberfall": [
+      "Warmed my toes by a flickering fire bloom.",
+      "The ground hummed under my paws, like a sleepy song.",
+      "Ash trees stood tall and gray along the rim.",
+      "I watched the lava glow from far, far away.",
+      "The fire blooms flickered in colors I had never seen.",
+      "Warm air wrapped around me like a cozy scarf.",
+      "Glowing rocks ticked and cooled, one by one.",
+      "From the safe edge, the whole bowl looked like sunset!"
+    ],
+    "heartgrove": [
+      "Every creature here said hello.",
+      "The silver trees chimed softly when the wind passed.",
+      "A bird sang a song I had never heard before.",
+      "A bunny and a fox shared one sunny patch of moss.",
+      "The silver leaves caught the light like tiny mirrors.",
+      "I felt warm and welcome in the middle of the grove.",
+      "Every kind of creature gathers here to rest.",
+      "I left a little petal for my friends back home!"
+    ]
+  },
+  "lines": {
+    "leave": [
+      "{name} sets off for {zone} with a happy hop.",
+      "{name} waves goodbye and heads out to {zone}.",
+      "{name} is off on a day trip to {zone}!",
+      "Off goes {name}, eager to see {zone}."
+    ],
+    "back": [
+      "{name} is back from {zone} with stories to tell.",
+      "{name} bounds home from {zone}, full of news!",
+      "{name} trots back from {zone}, looking pleased.",
+      "Welcome home, {name}. Tell me what you saw in {zone}."
+    ]
+  }
+}

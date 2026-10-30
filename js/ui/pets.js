@@ -22,6 +22,7 @@ import { retireInfo, heirEggList } from '../systems/elders.js';
 import { randomName, randomNameButton, renameSheet } from './petname.js';
 import { playButtons, playHelp, moodText, startPlay } from './petplay.js';
 import { wishCard, tricksPanel } from './petwish.js';
+import { yardPanel, yardKey, tripPanel } from './petyard.js';
 import { scrapbookPanel } from './scrapbook.js';
 
 export const id = 'pets';
@@ -169,6 +170,7 @@ function statusInfo(st, pet) {
     const t = st.workers[pet.id]?.task;
     return { text: t ? `${skillName(t.skill)} at ${zoneName(t.zone)}` : 'Working', rest: false };
   }
+  if (status === 'trip') return { text: `On a day trip to ${zoneName(pet.trip.zone)}`, rest: false };
   if (pet.nap) return { text: 'Napping', rest: true };
   if (status === 'resting') return { text: 'Resting', rest: true };
   if (status === 'stabled') return { text: 'In the Stable, resting up', rest: true };
@@ -243,7 +245,7 @@ function petKey(st, p, day) {
   return [
     p.id, p.name, p.level, p.form, petHearts(d, p).hearts, petStatus(st, p.id), t ? `${t.zone}/${t.skill}` : '',
     canPatToday(st, p.id, day) ? 1 : 0, canPlayToday(st, p.id, day) ? 1 : 0, p.nap ? 1 : 0, napInfo(st, d, p.id, day).can ? 1 : 0,
-    p.mood?.kind || '-', (p.book || []).length, p.wish ? `${p.wish.kind}${p.wish.line}` : '-', p.teachDay ?? '-', JSON.stringify(p.tricks || {}), p.autoFeed ? 1 : 0, petProgress(d, p).capped ? 1 : 0,
+    p.mood?.kind || '-', (p.book || []).length, p.wish ? `${p.wish.kind}${p.wish.line}` : '-', p.teachDay ?? '-', JSON.stringify(p.tricks || {}), p.trip ? p.trip.zone : '-', p.lastTrip ? `${p.lastTrip.zone}${p.lastTrip.line}` : '-', p.autoFeed ? 1 : 0, petProgress(d, p).capped ? 1 : 0,
     p.branch || '-', (p.talents || []).length, (p.gifts || []).length, (p.offer || []).join('+'), p.favoriteKnown ? 1 : 0,
     evolveKey(st, p), p.heirloom || '-', retireKey(st, p), Object.keys(st.crafting.assists || {}).filter((s) => st.crafting.assists[s] === p.id).join('+'),
   ].join(':');
@@ -259,7 +261,8 @@ function structKey(st, day) {
     + `;${heirEggList(st).map((h) => `${h.archetype}${h.quality}`).join(',')}`;
   const eggs = eggList(st, d).map((e) => `${e.key}x${e.count}`).join(',');
   const room = `${petCapacity(st, d)}/${freePetSpaces(st, d)}/${Object.keys(st.taming.traps).length}/${buildingTier(st, 'nest')}`;
-  return `${ui.page ? `pet:${ui.page}` : 'roster'}#${st.pets.active.join(',')}#${pantry}#${pets}#${nest}#${eggs}#${room}`;
+  const yard = yardKey(st, d);
+  return `${ui.page ? `pet:${ui.page}` : 'roster'}#${yard}#${st.pets.active.join(',')}#${pantry}#${pets}#${nest}#${eggs}#${room}`;
 }
 
 function render() {
@@ -390,6 +393,7 @@ function buildRoster(st, day) {
     out.push(el('h2', {}, 'Stable'));
     for (const p of stabled) out.push(petCard(st, p, day));
   }
+  out.push(yardPanel(app.game));
   out.push(buildNest(st, d));
   out.push(buildPantry(st, d));
   return out;
@@ -920,6 +924,7 @@ function buildPage(st, day, pet) {
     else if (status === 'working') leftText.textContent = `About ${fmtHours(workHoursLeft(d, p))} of work left`;
     else if (status === 'resting') leftText.textContent = 'Resting until full';
     else if (status === 'stabled') leftText.textContent = 'Resting in the Stable';
+    else if (status === 'trip') leftText.textContent = 'Away on a day trip';
     else leftText.textContent = 'Not working right now';
   });
   const foods = foodList(st, d);
@@ -1005,6 +1010,7 @@ function buildPage(st, day, pet) {
     bondText,
     el('p.small.muted', {}, `Pat and play with ${pet.name} each day, and let them work, to grow your bond. A pat gives ${b.bond.pat}, a game up to ${d.balance.petLife.play.bond.perfect}, and every ${b.bond.workMinutesPerPoint} minutes of work gives 1.`)));
   out.push(tricksPanel(app.game, pid, { note: noteFn, portrait: () => refs.portrait }));
+  out.push(tripPanel(app.game, pid, { note: (text) => setNote(text), live }));
 
   // Stats
   const affinity = arch?.affinity || [];

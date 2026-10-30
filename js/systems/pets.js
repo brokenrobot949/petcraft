@@ -11,12 +11,14 @@
 // each pet's scrapbook (written here as things happen; dated with ctx.now, display only).
 // Since Phase 12: wishes (one at a time; a new one may appear after balance.petLife.wishes.waitMs of game time,
 // rolled only from what the player can grant now: js/systems/wishes.js) and tricks (one lesson a day).
+// Since Phase 13: the Pet Yard (a liked toy gives a pet at home Bond by the hour) and day trips (a stabled pet goes
+// to a zone for a few hours, offline too, and comes back with a small bag, XP and a postcard).
 // Random rolls: harvest and gifts from the pet's worker stream; talent offers, gift talents and the
 // favorite dish from the pet's own stream (pet.rng).
 import { deriveSeed, random, chance, randomInt } from '../core/rng.js';
 import { petSeed, newPetLife } from '../core/state.js';
 import { addItem, removeItem, itemDef, itemLabel, parseKey } from './bag.js';
-import { actionProfile, completeAction, dropStaleTask } from './harvest.js';
+import { actionProfile, completeAction, dropStaleTask, tripLoot, mapItemFor } from './harvest.js';
 import {
   HOUR_MS, archetypeOf, petLevelCap, petXpToNext, petHearts, petMaxEnergy, petDrainPerHour,
   petRestPerHour, petFeedThreshold, petStage, branchDef, talentDef, effectValue, canDig, petSpecies, mythicDef,
@@ -25,7 +27,7 @@ import { sanctuaryBonus } from './sanctuary.js';
 import { petCapacity, buildingTier } from './buildings.js';
 import { mapCount, digMs, finishDig, pickLoot } from './treasure.js';
 import { recordPet } from './bestiary.js';
-import { wishOptions, wishValid, wishWorkCounts, trickInfo } from './wishes.js';
+import { wishOptions, wishValid, wishWorkCounts, trickInfo, atHome, likesYard, yardSpots, isToy, tripInfo, tripCost } from './wishes.js';
 
 export const id = 'pets';
 
@@ -42,8 +44,9 @@ export function init(state, ctx) {
   if (!state.stats.evolved) state.stats.evolved = { juvenile: 0, adult: 0 };
   if (state.stats.talentPicks == null) state.stats.talentPicks = 0;
   if (state.stats.petGifts == null) state.stats.petGifts = 0;
-  for (const k of ['plays', 'perfectPlays', 'naps', 'wishesGranted', 'lessons', 'tricksLearned', 'trickMasters']) if (state.stats[k] == null) state.stats[k] = 0;
+  for (const k of ['plays', 'perfectPlays', 'naps', 'wishesGranted', 'lessons', 'tricksLearned', 'trickMasters', 'trips', 'toysPlaced']) if (state.stats[k] == null) state.stats[k] = 0;
   if (!state.yard) state.yard = { toys: [] };
+  state.yard.toys = state.yard.toys.filter((t, i, a) => isToy(data, t) && a.indexOf(t) === i);
   while (p.active.length < b.activeSlots) p.active.push(null);
   for (const pet of Object.values(p.list)) {
     for (const [k, v] of Object.entries(newPetLife())) if (pet[k] === undefined) pet[k] = v;
@@ -77,6 +80,8 @@ export function init(state, ctx) {
     if (pet.bookFill) fillOldBook(state, data, pet);
     // Wishes and tricks (Phase 12): a wish that no longer makes sense is let go; unknown tricks are dropped.
     if (pet.wish && !wishValid(state, data, pet)) pet.wish = null;
+    if (pet.trip && !(data.zones.zones.some((z) => z.id === pet.trip.zone) && pet.trip.msLeft >= 0)) pet.trip = null;
+    if (!(pet.yardMs >= 0)) pet.yardMs = 0;
     if (!pet.wish && !(pet.wishMs >= 0)) pet.wishMs = data.balance.petLife.wishes.firstMs;
     for (const t of Object.keys(pet.tricks)) if (!data.tricks?.tricks.some((x) => x.id === t) || !(pet.tricks[t] > 0)) delete pet.tricks[t];
   }
@@ -218,16 +223,18 @@ export function napInfo(state, data, petId, day) {
   const n = data.balance.petLife.nap;
   const out = { can: false, reason: '', bond: pet && pet.napDay !== day ? n.wakeBond : 0 };
   if (!pet) return out;
-  if (pet.nap) out.reason = `${pet.name} is already napping.`;
+  if (pet.trip) out.reason = `${pet.name} is away on a day trip.`;
+  else if (pet.nap) out.reason = `${pet.name} is already napping.`;
   else if (pet.energy > petMaxEnergy(data, pet) * n.maxEnergyFrac + EPS) out.reason = `${pet.name} isn't tired yet. Tuck them in when their energy is below ${Math.round(n.maxEnergyFrac * 100)}%.`;
   else out.can = true;
   return out;
 }
 
-// What the pet is doing now: 'working' | 'resting' | 'idle' (active, no task) | 'stabled'.
+// What the pet is doing now: 'working' | 'resting' | 'idle' (active, no task) | 'stabled' | 'trip' (away on a day trip).
 export function petStatus(state, petId) {
   const pet = state.pets.list[petId];
   if (!pet) return null;
+  if (pet.trip) return 'trip';
   if (!isActive(state, petId)) return 'stabled';
   if (pet.resting) return 'resting';
   return state.workers[petId]?.task ? 'working' : 'idle';
@@ -489,6 +496,8 @@ function rollWish(state, ctx, pet) {
   const choice = list[Math.floor(random(pet) * list.length)];
   const wish = { kind: def.id, line: Math.floor(random(pet) * def.lines.length) };
   if (def.id === 'taste') wish.item = choice;
+  if (def.id === 'toy') wish.item = choice;
+  if (def.id === 'trip') wish.zone = choice;
   if (def.id === 'outing') wish.zone = choice;
   if (def.id === 'buddy') wish.buddy = choice;
   if (def.id === 'outing' || def.id === 'buddy') wish.progressMs = 0;
@@ -574,6 +583,7 @@ function stopDigging(w) {
 // One pet's time: rest, idle recovery, or work (harvesting or digging) broken into steps at each event.
 function advancePet(state, ctx, pet, ms, zoneOf = {}) {
   const { data } = ctx;
+  if (pet.trip) return { workMs: 0, restMs: 0 }; // away on a day trip: advance() counts it down
   const b = data.balance.pets;
   const max = petMaxEnergy(data, pet);
   const active = isActive(state, pet.id);
@@ -699,6 +709,8 @@ export function nextBoundaryMs(state, ctx) {
   }
   // A mood running out changes the pet's speed.
   for (const pet of Object.values(state.pets.list)) if (pet.mood && pet.mood.msLeft > EPS) next = Math.min(next, pet.mood.msLeft);
+  // A day trip ending (it may grant a Trip wish: Bond and a mood).
+  for (const pet of Object.values(state.pets.list)) if (pet.trip && pet.trip.msLeft > EPS) next = Math.min(next, pet.trip.msLeft);
   // A new wish appearing, and an Outing or Buddy wish coming true (no sooner than its work left, so the
   // Bond and mood it gives land on a step's end).
   const zoneOf = taskZones(state);
@@ -733,8 +745,21 @@ export function advance(state, ms, ctx) {
     }
     const mood = pet.mood;
     const hadWish = !!pet.wish;
+    const yard = atHome(state, pet) && likesYard(state, ctx.data, pet); // a liked toy in the Pet Yard (Phase 13)
     const { workMs, restMs } = advancePet(state, ctx, pet, ms, zoneOf);
     if (workMs > 0 || restMs > 0) ctx.emit?.({ type: 'petTime', pet: pet.id, workMs, restMs });
+    if (yard) {
+      const per = ctx.data.balance.petLife.yard.msPerBond;
+      pet.yardMs += ms;
+      while (pet.yardMs >= per - EPS) {
+        pet.yardMs = Math.max(0, pet.yardMs - per);
+        addBond(state, ctx, pet, 1);
+      }
+    }
+    if (pet.trip) {
+      pet.trip.msLeft -= ms;
+      if (pet.trip.msLeft <= EPS) finishTrip(state, ctx, pet);
+    }
     if (!hadWish && !pet.wish) {
       pet.wishMs -= ms;
       if (pet.wishMs <= EPS) rollWish(state, ctx, pet);
@@ -748,6 +773,46 @@ export function advance(state, ms, ctx) {
       }
     }
   }
+}
+
+// ---- day trips (Phase 13) ----
+
+// Back from a trip: a small bag from the zone (balance.petLife.trips.workFrac of the same time's plain work there),
+// pet XP, maybe a map, and a postcard for the scrapbook (data/trips.json; the latest postcardsKept are kept).
+// Rolled from the pet's own stream. A Trip wish for this zone comes true.
+function finishTrip(state, ctx, pet) {
+  const { data } = ctx;
+  const cfg = data.balance.petLife.trips;
+  const { zone, hours } = pet.trip;
+  pet.trip = null;
+  const loot = tripLoot(state, data, pet, zone, hours * 3600 * cfg.workFrac);
+  const items = loot.items;
+  const map = mapItemFor(data, zone);
+  if (map && chance(pet, Math.min(1, cfg.mapChancePerHour * hours))) items[map] = (items[map] || 0) + 1;
+  for (const [itemId, qty] of Object.entries(items)) addItem(state, itemId, qty);
+  const xp = earnedXp(data, pet, loot.xp * data.balance.pets.xpPerSkillXp * cfg.xpMult);
+  addPetXp(state, ctx, pet, xp);
+  const cards = data.trips?.postcards?.[zone] || [];
+  const line = cards.length ? Math.floor(random(pet) * cards.length) : null;
+  if (line != null) {
+    addToBook(ctx, pet, { k: 'postcard', zone, line });
+    const kept = pet.book.filter((e) => e.k === 'postcard');
+    for (let i = 0; i < kept.length - cfg.postcardsKept; i++) pet.book.splice(pet.book.indexOf(kept[i]), 1);
+  }
+  state.stats.trips += 1;
+  pet.lastTrip = { zone, hours, items, xp: Math.round(xp), line };
+  ctx.emit?.({ type: 'tripDone', pet: pet.id, zone, items, xp, line });
+  if (pet.wish?.kind === 'trip' && pet.wish.zone === zone) grantWish(state, ctx, pet);
+}
+
+// A Toy wish for this toy comes true for every pet wishing for it.
+function grantToyWishes(state, ctx, itemId) {
+  for (const pet of Object.values(state.pets.list)) if (pet.wish?.kind === 'toy' && pet.wish.item === itemId) grantWish(state, ctx, pet);
+}
+
+// A pet away on a trip can't do this.
+function notAway(pet, what) {
+  if (pet.trip) throw new Error(` is away on a day trip. `);
 }
 
 // ---- commands ----
@@ -791,6 +856,7 @@ export const commands = {
   // Hand-feed one item. Feeding a resting pet wakes it up.
   'pets/feed': (state, { pet: petId, item }, ctx) => {
     const pet = needPet(state, petId);
+    notAway(pet, 'Feed them when they are home.');
     if (!isFood(ctx.data, item)) throw new Error("Pets can't eat that.");
     if (!canAutoFeed(ctx.data, item)) throw new Error('Pets only eat cooked meals and tonics. Cook it in the Kitchen first.');
     if (!state.bag[item]) throw new Error(`You don't have any ${itemLabel(ctx.data, item)}.`);
@@ -814,6 +880,7 @@ export const commands = {
   'pets/teach': (state, { pet: petId, trick = null }, ctx) => {
     const { data } = ctx;
     const pet = needPet(state, petId);
+    notAway(pet, 'Teach them when they are home.');
     if (pet.teachDay === ctx.day) throw new Error(`${pet.name} already had a lesson today. Come back tomorrow!`);
     const info = trickInfo(data, pet);
     let id = info.current?.def.id || null;
@@ -840,6 +907,7 @@ export const commands = {
   // Once per pet per local day: Bond by result and the play mood.
   'pets/play': (state, { pet: petId, result }, ctx) => {
     const pet = needPet(state, petId);
+    notAway(pet, 'Play when they are home.');
     const cfg = ctx.data.balance.petLife.play;
     if (!Object.prototype.hasOwnProperty.call(cfg.bond, result)) throw new Error('That game result is unknown.');
     if (pet.playDay === ctx.day) throw new Error(`${pet.name} already played today. Come back tomorrow!`);
@@ -866,6 +934,37 @@ export const commands = {
     state.stats.naps += 1;
     ctx.emit?.({ type: 'petNap', pet: petId });
   },
+  // Send a stabled pet on a day trip (balance.petLife.trips.hours): the energy is paid when it leaves; it keeps its
+  // Stable space and comes back by itself, offline too.
+  'pets/trip': (state, { pet: petId, zone, hours }, ctx) => {
+    const pet = needPet(state, petId);
+    const info = tripInfo(state, ctx.data, petId, zone, hours);
+    if (!info.can) throw new Error(info.reason);
+    pet.energy = Math.max(0, pet.energy - tripCost(ctx.data, pet, hours));
+    pet.nap = null;
+    pet.resting = false;
+    pet.trip = { zone, hours, msLeft: hours * HOUR_MS };
+    ctx.emit?.({ type: 'tripStart', pet: petId, zone, hours });
+  },
+  // The Pet Yard: place a toy from the bag in a free spot (one of each toy), or take one back.
+  'yard/place': (state, { item }, ctx) => {
+    const { data } = ctx;
+    if (!isToy(data, item)) throw new Error("That isn't a toy.");
+    if (state.yard.toys.includes(item)) throw new Error(`There's a ${itemLabel(data, item)} in the Pet Yard already.`);
+    if (state.yard.toys.length >= yardSpots(state, data)) throw new Error('The Pet Yard is full. Upgrade the Stable for another spot, or take a toy back.');
+    if (!removeItem(state, item, 1)) throw new Error(`You don't have a ${itemLabel(data, item)}.`);
+    state.yard.toys.push(item);
+    state.stats.toysPlaced += 1;
+    ctx.emit?.({ type: 'toyPlaced', item });
+    grantToyWishes(state, ctx, item);
+  },
+  'yard/take': (state, { item }, ctx) => {
+    const i = state.yard.toys.indexOf(item);
+    if (i < 0) throw new Error("That toy isn't in the Pet Yard.");
+    state.yard.toys.splice(i, 1);
+    addItem(state, item, 1);
+    ctx.emit?.({ type: 'toyTaken', item });
+  },
   'pets/setAutoFeed': (state, { pet: petId, on }) => {
     needPet(state, petId).autoFeed = !!on;
   },
@@ -877,7 +976,7 @@ export const commands = {
   // Put a pet in an active slot. A pet already there moves to the Stable. An assistant leaves its
   // station to go out working.
   'pets/setActive': (state, { pet: petId, slot }) => {
-    needPet(state, petId);
+    notAway(needPet(state, petId), 'They can work when they are back.');
     const p = state.pets;
     if (!Number.isInteger(slot) || slot < 0 || slot >= p.active.length) throw new Error('There is no such slot.');
     const from = p.active.indexOf(petId);
@@ -892,6 +991,7 @@ export const commands = {
   // Return a pet to the wild. It leaves a few materials behind (pets.json archetype `release`).
   'pets/release': (state, { pet: petId }, ctx) => {
     const pet = needPet(state, petId);
+    notAway(pet, 'Wait until they are back.');
     const p = state.pets;
     if (Object.keys(p.list).length <= 1) throw new Error(`${pet.name} is your only pet. Keep them close!`);
     const i = p.active.indexOf(petId);
@@ -957,6 +1057,7 @@ export const commands = {
       unpost(state, petId);
       return;
     }
+    notAway(pet, 'They can help when they are back.');
     const info = assistInfo(state, ctx.data, petId);
     if (!info.can) throw new Error(info.reason);
     if (info.station !== station) throw new Error(`${pet.name} can only help at one kind of station.`);

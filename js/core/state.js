@@ -68,7 +68,7 @@ export function newTamingState(seed) {
 // the next one may appear), a day trip, tricks ({ trickId: lessons done }) and the day of its last lesson.
 // Fields added after v10 (wishMs, teachDay) are filled by pets.init, so no schema bump is needed.
 export function newPetLife() {
-  return { playDay: null, nap: null, napDay: null, mood: null, book: [], wish: null, wishMs: null, trip: null, tricks: {}, teachDay: null };
+  return { playDay: null, nap: null, napDay: null, mood: null, book: [], wish: null, wishMs: null, trip: null, tricks: {}, teachDay: null, yardMs: 0, lastTrip: null };
 }
 
 // A pet's own random stream (v7): talent offers, gift talents and its favorite dish.
