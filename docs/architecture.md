@@ -1005,3 +1005,49 @@ wishes and tricks are Phase 12, toys and day trips Phase 13. The one schema bump
 `petLife`: `play.bond` {okay 5, good 8, perfect 12}, `play.mood` 'playful', `moods.playful` {speed 0.05, ms 2 h},
 `nap` {maxEnergyFrac 0.5, restMult 2, wakeBond 2}, `book.maxEntries` 40, `fetch` (game timing and scoring).
 `render.emotes` (bubble timing and rationing).
+
+## Phase 12: pet wishes and tricks (no schema bump)
+
+Rob's picks, 2026-10-30 (design.md "Pet life" 1, 2 and 7). Toy and Trip wishes come with Phase 13.
+
+### State (filled by `pets.init`, still schema v10)
+- Per pet: `wish` (null or `{ kind, line, item? | zone? | buddy?, progressMs? }`), `wishMs` (game time until the next
+  wish may appear; counts only while there is no wish), `tricks` (`{ trickId: lessons done }`), `teachDay`.
+  `state.newPetLife()` has both new fields; `createPet` starts `wishMs` at `wishes.firstMs`.
+- `stats.wishesGranted`, `stats.lessons`, `stats.tricksLearned`, `stats.trickMasters` (a pet that knows every trick).
+
+### Rules
+- Wishes (`js/systems/wishes.js` read-only helpers; `pets.js` rolls, counts, grants). When `wishMs` runs out the pet
+  rolls one wish from its own stream (`pet.rng`): a kind from `data/wishes.json` weighted by `weight`, among the kinds
+  `wishOptions` says the player can grant now (Taste: a Kitchen meal they can cook, skill and scrolls aside from
+  materials; Outing: an unlocked zone other than where the pet works, needs 2+ zones; Buddy: any other pet; Play;
+  Trick: `trickInfo(...).canLearn`). Nothing to wish for: try again after `waitMs`. A wish never expires.
+- Granting (`grantWish`): Bond `wishes.bond`, mood `wishes.mood` ("cheered"), a scrapbook `{ k: 'wish', kind, ... }`,
+  `giftChance` of one treasure loot roll (the wish's zone, else the pet's work zone, else tier 1), `wishMs = waitMs`.
+  Taste: `pets/feed` with that dish (any quality; allowed at full energy). Play: `pets/play`. Trick: `pets/teach`.
+  Outing / Buddy: `wishes.workMs` of the pet's work time (harvest or digging) in the zone / in the same zone as the
+  buddy (buddy zones taken at the start of each `advance`). `pets/letWishGo` costs nothing.
+- Live = catch-up: `pets.nextBoundaryMs` stops the tick where a wish may appear and no later than an Outing / Buddy
+  wish could come true, so its Bond and mood land on a step's end; `advancePet` steps to the exact moment. A mood a
+  grant just gave isn't counted down in the step that gave it. A wish whose buddy left is let go at the next tick.
+- Tricks: `pets/teach { pet, trick? }` once per local day (`teachDay`); one trick per Bond heart, one at a time
+  (`trick` picks a new one); `tricks.sessions` lessons learn it (scrapbook `{ k: 'trick', trick }`). Can't fail.
+
+### Events (Phase 12)
+`petWish { pet, kind }`, `wishGranted { pet, kind, gift }`, `wishLetGo { pet }`, `petTaught { pet, trick, n, learned }`.
+
+### UI and render
+- `js/ui/petwish.js`: `wishCard` (line, how to grant, progress bar, Feed / Play now / Go to Tricks, Let it go),
+  `tricksPanel` (learned chips, Teach, pick a new trick, Show me a trick), `playTrick` (CSS `.trick-*` on the portrait).
+- `js/ui/petgames.js`: `leafGame`, `peekabooGame` (balance.petLife.leaf / .peekaboo; words in pets.json lines).
+  `petplay.startPlay` picks one of the three games at random.
+- Roster card dot, "Wish:" line in the Home pet sheet. Scenes: a thought bubble over one wishing pet every
+  `render.emotes.wishEveryMs` (taking turns); Home pets do a known trick every `render.home.trickEveryMs`
+  (`js/render/tricks.js` `trickPose`, `trickMs` long) and at once after a lesson.
+- Achievements (kind `stat`): Wish Come True, Wishmaker (title), Good Trick!, Trick School, Star of the Show (title
+  "Showstopper"). Test mode: `dev/wishNow`, `dev/wishAlmost`; `dev/clearPlay` also allows another lesson.
+
+### balance.json additions (Phase 12)
+`petLife.moods.cheered` {speed 0.05, ms 2 h}; `petLife.wishes` {firstMs 2 h, waitMs 8 h, workMs 1 h, bond 15,
+mood 'cheered', giftChance 0.1}; `petLife.tricks.sessions` 3; `petLife.leaf`, `petLife.peekaboo` (game timing and
+scoring); `render.emotes.wishEveryMs`; `render.home.trickEveryMs`, `render.home.trickMs`.

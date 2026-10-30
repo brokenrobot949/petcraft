@@ -8,10 +8,15 @@ import { faceIcon } from './icons.js';
 import { localDay } from '../core/time.js';
 import { getPet, canPatToday, canPlayToday, napInfo, petStatus } from '../systems/pets.js';
 import { petRole, petHearts, petMaxEnergy, petSpecies } from '../systems/petstats.js';
+import { leafGame, peekabooGame } from './petgames.js';
+import { wishText } from '../systems/wishes.js';
 
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const fmt = (text, vars) => text.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
 const reducedMotion = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+
+// Play picks one of the three games at random (Phase 12: Leaf catch and Peekaboo in js/ui/petgames.js).
+const GAMES = [(...a) => fetchGame(...a), (...a) => leafGame(...a), (...a) => peekabooGame(...a)];
 
 function act(game, type, payload) {
   try {
@@ -57,9 +62,7 @@ export function playButtons(game, petId, note) {
       type: 'button',
       disabled: !playOk,
       'aria-label': playOk ? `Play with ${pet.name}` : `${pet.name} played today`,
-      onclick: () => fetchGame(game, petId, (result) => {
-        if (act(game, 'pets/play', { pet: petId, result })) note(fmt(pick(lines.played[result]), { name: pet.name }), true);
-      }),
+      onclick: () => startPlay(game, petId, note),
     }, playOk ? 'Play' : 'Played'),
     el(`button.btn.pet-nap${nap.can ? '' : '.soft-off'}`, {
       type: 'button',
@@ -70,6 +73,15 @@ export function playButtons(game, petId, note) {
         if (act(game, 'pets/tuckIn', { pet: petId })) note(fmt(pick(lines.tuckedIn), { name: pet.name }), false);
       },
     }, pet.nap ? 'Napping' : 'Tuck in'));
+}
+
+// Plays one of the games, then sends the result (once a day; the system checks).
+export function startPlay(game, petId, note) {
+  const pet = getPet(game.getState(), petId);
+  if (!pet) return;
+  pick(GAMES)(game, petId, (result) => {
+    if (act(game, 'pets/play', { pet: petId, result })) note(fmt(pick(game.data.pets.lines.played[result]), { name: pet.name }), true);
+  });
 }
 
 // One line on what the buttons do (shown under them).
@@ -89,7 +101,7 @@ export function openPetSheet(game, petId, openPage) {
     if (!pet) return 'gone';
     const day = localDay(Date.now());
     return [pet.name, canPatToday(st, petId, day), canPlayToday(st, petId, day), napInfo(st, data, petId, day).can, !!pet.nap,
-      pet.mood?.kind, Math.ceil((pet.mood?.msLeft || 0) / 60000), petHearts(data, pet).hearts, Math.round(pet.energy), petStatus(st, petId)].join(':');
+      pet.mood?.kind, Math.ceil((pet.mood?.msLeft || 0) / 60000), pet.wish?.kind, pet.wish?.line, petHearts(data, pet).hearts, Math.round(pet.energy), petStatus(st, petId)].join(':');
   };
   // A command redraws the sheet before the button's note callback runs, so the note goes straight into the
   // freshly built elements (and is kept for later redraws).
@@ -111,13 +123,15 @@ export function openPetSheet(game, petId, openPage) {
     noteEl = el('p.pet-note', { 'aria-live': 'polite' }, noteText);
     const status = pet.nap ? 'Napping' : { resting: 'Resting', stabled: 'In the Stable', idle: 'Not working', working: 'Working' }[petStatus(st, petId)];
     const mood = moodText(data, pet);
+    const wish = wishText(st, data, pet);
     body.append(
       el('div.pet-sheet-head', {}, portrait,
         el('div', {},
           el('p.small.muted', {}, `${petSpecies(data, pet)} - Level ${pet.level}`),
           el('p.small', {}, `Bond: ${h.hearts} of ${h.max} hearts - Energy ${Math.round(pet.energy)} / ${Math.round(max)}`),
           el('p.small', {}, status),
-          mood && el('p.small.pet-mood', {}, mood))),
+          mood && el('p.small.pet-mood', {}, mood),
+          wish && el('p.small.pet-wish-line', {}, `Wish: "${wish.line}"`))),
       noteEl,
       playButtons(game, petId, note),
       el('p.small.muted', {}, playHelp(data, pet)));

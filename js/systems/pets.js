@@ -9,6 +9,8 @@
 // Since Phase 11 (pet life): play once a day (Bond and a "playful" mood), tuck a tired pet in for a nap
 // (rests faster, Bond on waking once a day), moods (a short speed boost that runs out in game time), and
 // each pet's scrapbook (written here as things happen; dated with ctx.now, display only).
+// Since Phase 12: wishes (one at a time; a new one may appear after balance.petLife.wishes.waitMs of game time,
+// rolled only from what the player can grant now: js/systems/wishes.js) and tricks (one lesson a day).
 // Random rolls: harvest and gifts from the pet's worker stream; talent offers, gift talents and the
 // favorite dish from the pet's own stream (pet.rng).
 import { deriveSeed, random, chance, randomInt } from '../core/rng.js';
@@ -23,6 +25,7 @@ import { sanctuaryBonus } from './sanctuary.js';
 import { petCapacity, buildingTier } from './buildings.js';
 import { mapCount, digMs, finishDig, pickLoot } from './treasure.js';
 import { recordPet } from './bestiary.js';
+import { wishOptions, wishValid, wishWorkCounts, trickInfo } from './wishes.js';
 
 export const id = 'pets';
 
@@ -39,7 +42,7 @@ export function init(state, ctx) {
   if (!state.stats.evolved) state.stats.evolved = { juvenile: 0, adult: 0 };
   if (state.stats.talentPicks == null) state.stats.talentPicks = 0;
   if (state.stats.petGifts == null) state.stats.petGifts = 0;
-  for (const k of ['plays', 'perfectPlays', 'naps']) if (state.stats[k] == null) state.stats[k] = 0;
+  for (const k of ['plays', 'perfectPlays', 'naps', 'wishesGranted', 'lessons', 'tricksLearned', 'trickMasters']) if (state.stats[k] == null) state.stats[k] = 0;
   if (!state.yard) state.yard = { toys: [] };
   while (p.active.length < b.activeSlots) p.active.push(null);
   for (const pet of Object.values(p.list)) {
@@ -72,6 +75,10 @@ export function init(state, ctx) {
     pet.energy = Math.min(pet.energy, petMaxEnergy(data, pet));
     if (pet.mood && !data.balance.petLife.moods[pet.mood.kind]) pet.mood = null;
     if (pet.bookFill) fillOldBook(state, data, pet);
+    // Wishes and tricks (Phase 12): a wish that no longer makes sense is let go; unknown tricks are dropped.
+    if (pet.wish && !wishValid(state, data, pet)) pet.wish = null;
+    if (!pet.wish && !(pet.wishMs >= 0)) pet.wishMs = data.balance.petLife.wishes.firstMs;
+    for (const t of Object.keys(pet.tricks)) if (!data.tricks?.tricks.some((x) => x.id === t) || !(pet.tricks[t] > 0)) delete pet.tricks[t];
   }
   // Exactly the active pets have worker entries.
   const active = new Set(p.active.filter(Boolean));
@@ -380,6 +387,7 @@ export function createPet(state, ctx, { archetype, quality, name, mythic = false
   const species = mythic ? mythicDef(data, archetype)?.species : archetypeOf(data, archetype).species;
   const pet = {
     ...newPetLife(),
+    wishMs: data.balance.petLife.wishes.firstMs,
     id: petId,
     name: cleanName(name, data) || species,
     archetype,
@@ -464,6 +472,59 @@ function wake(state, ctx, pet) {
   ctx.emit?.({ type: 'petWoke', pet: pet.id, napped: true, bond });
 }
 
+// ---- wishes (Phase 12) ----
+
+// The wish timer ran out: one wish the player can grant right now (wishes.wishOptions), weighted by kind,
+// from the pet's own stream. With nothing to wish for, it tries again after another wait.
+function rollWish(state, ctx, pet) {
+  const { data } = ctx;
+  pet.wishMs = data.balance.petLife.wishes.waitMs;
+  const opts = wishOptions(state, data, pet);
+  const kinds = (data.wishes?.kinds || []).filter((k) => opts[k.id]?.length && k.weight > 0);
+  const total = kinds.reduce((s, k) => s + k.weight, 0);
+  if (!total) return;
+  let r = random(pet) * total;
+  const def = kinds.find((k) => (r -= k.weight) < 0) || kinds[kinds.length - 1];
+  const list = opts[def.id];
+  const choice = list[Math.floor(random(pet) * list.length)];
+  const wish = { kind: def.id, line: Math.floor(random(pet) * def.lines.length) };
+  if (def.id === 'taste') wish.item = choice;
+  if (def.id === 'outing') wish.zone = choice;
+  if (def.id === 'buddy') wish.buddy = choice;
+  if (def.id === 'outing' || def.id === 'buddy') wish.progressMs = 0;
+  pet.wish = wish;
+  ctx.emit?.({ type: 'petWish', pet: pet.id, kind: def.id });
+}
+
+// A wish comes true: Bond, the "cheered" mood, a scrapbook line and maybe a small gift (a treasure loot
+// roll for the zone it was about, or the one the pet works in). The next wish comes after the wait.
+function grantWish(state, ctx, pet) {
+  const { data } = ctx;
+  const cfg = data.balance.petLife.wishes;
+  const w = pet.wish;
+  pet.wish = null;
+  pet.wishMs = cfg.waitMs;
+  state.stats.wishesGranted += 1;
+  addBond(state, ctx, pet, cfg.bond);
+  setMood(ctx, pet, cfg.mood);
+  const entry = { k: 'wish', kind: w.kind };
+  if (w.item) entry.item = w.item;
+  if (w.zone) entry.zone = w.zone;
+  if (w.buddy) entry.buddy = state.pets.list[w.buddy]?.name || null;
+  addToBook(ctx, pet, entry);
+  let gift = null;
+  if (chance(pet, cfg.giftChance)) {
+    const zone = w.zone || state.workers[pet.id]?.task?.zone;
+    const tier = data.zones.zones.find((z) => z.id === zone)?.tier || 1;
+    const pick = pickLoot(pet, data, tier);
+    if (pick) {
+      gift = { item: pick.item, qty: randomInt(pet, pick.qty[0], pick.qty[1]) };
+      addItem(state, gift.item, gift.qty);
+    }
+  }
+  ctx.emit?.({ type: 'wishGranted', pet: pet.id, kind: w.kind, gift });
+}
+
 function eat(state, ctx, pet, itemId, auto) {
   const { data } = ctx;
   const hall = itemDef(data, itemId)?.category === 'meal' ? sanctuaryBonus(state, data, 'mealStrength') : 0; // the Feast Hall
@@ -511,7 +572,7 @@ function stopDigging(w) {
 }
 
 // One pet's time: rest, idle recovery, or work (harvesting or digging) broken into steps at each event.
-function advancePet(state, ctx, pet, ms) {
+function advancePet(state, ctx, pet, ms, zoneOf = {}) {
   const { data } = ctx;
   const b = data.balance.pets;
   const max = petMaxEnergy(data, pet);
@@ -536,6 +597,7 @@ function advancePet(state, ctx, pet, ms) {
   }
 
   const pointMs = b.bond.workMinutesPerPoint * 60000;
+  const wishNeed = data.balance.petLife.wishes.workMs; // Outing and Buddy wishes: this much work
   // Per-action values change only when the pet levels up (or gains a heart, for speed): see actionProfile.
   let prof = null;
   let seenLevel = -1;
@@ -589,7 +651,9 @@ function advancePet(state, ctx, pet, ms) {
     const toFeed = pet.autoFeed && pet.energy > threshold + EPS ? (pet.energy - threshold) / drain : Infinity;
     const toZero = drain > 0 ? pet.energy / drain : Infinity;
     const toBond = Math.max(0, pointMs - pet.workMs);
-    const t = Math.min(left, toAction, toFeed, toZero, toBond);
+    const wishWork = wishWorkCounts(pet, w.task, zoneOf);
+    const toWish = wishWork ? Math.max(0, wishNeed - pet.wish.progressMs) : Infinity;
+    const t = Math.min(left, toAction, toFeed, toZero, toBond, toWish);
     w.progressMs += t;
     pet.energy = Math.max(0, pet.energy - drain * t);
     pet.workMs += t;
@@ -599,6 +663,10 @@ function advancePet(state, ctx, pet, ms) {
       pet.workMs = Math.max(0, pet.workMs - pointMs);
       addBond(state, ctx, pet, 1);
       maybeGift(state, ctx, pet, w);
+    }
+    if (wishWork) {
+      pet.wish.progressMs += t;
+      if (pet.wish.progressMs >= wishNeed - EPS) grantWish(state, ctx, pet);
     }
     if (w.progressMs >= dur - EPS) {
       w.progressMs = Math.max(0, w.progressMs - dur);
@@ -631,15 +699,48 @@ export function nextBoundaryMs(state, ctx) {
   }
   // A mood running out changes the pet's speed.
   for (const pet of Object.values(state.pets.list)) if (pet.mood && pet.mood.msLeft > EPS) next = Math.min(next, pet.mood.msLeft);
+  // A new wish appearing, and an Outing or Buddy wish coming true (no sooner than its work left, so the
+  // Bond and mood it gives land on a step's end).
+  const zoneOf = taskZones(state);
+  for (const pet of Object.values(state.pets.list)) {
+    if (!pet.wish) {
+      if (pet.wishMs > EPS) next = Math.min(next, pet.wishMs);
+    } else if (wishWorkCounts(pet, state.workers[pet.id]?.task, zoneOf)) {
+      const left = ctx.data.balance.petLife.wishes.workMs - pet.wish.progressMs;
+      if (left > EPS) next = Math.min(next, left);
+    }
+  }
   return next;
 }
 
+// The zone each active pet with a task works in ({ petId: zone }), for Buddy wishes.
+function taskZones(state) {
+  const out = {};
+  for (const pid of state.pets.active) {
+    const zone = pid && state.workers[pid]?.task?.zone;
+    if (zone) out[pid] = zone;
+  }
+  return out;
+}
+
 export function advance(state, ms, ctx) {
+  const zoneOf = taskZones(state); // before anyone moves, so the order pets are stepped in doesn't matter
   for (const pet of Object.values(state.pets.list)) {
     if (!archetypeOf(ctx.data, pet.archetype)) continue;
-    const { workMs, restMs } = advancePet(state, ctx, pet, ms);
+    if (pet.wish && !wishValid(state, ctx.data, pet)) { // its buddy left (released or retired)
+      pet.wish = null;
+      pet.wishMs = ctx.data.balance.petLife.wishes.firstMs;
+    }
+    const mood = pet.mood;
+    const hadWish = !!pet.wish;
+    const { workMs, restMs } = advancePet(state, ctx, pet, ms, zoneOf);
     if (workMs > 0 || restMs > 0) ctx.emit?.({ type: 'petTime', pet: pet.id, workMs, restMs });
-    if (pet.mood) {
+    if (!hadWish && !pet.wish) {
+      pet.wishMs -= ms;
+      if (pet.wishMs <= EPS) rollWish(state, ctx, pet);
+    }
+    // A mood a granted wish just gave (at the end of this step) starts counting next step.
+    if (pet.mood && pet.mood === mood) {
       pet.mood.msLeft -= ms;
       if (pet.mood.msLeft <= EPS) {
         ctx.emit?.({ type: 'petMoodEnded', pet: pet.id, mood: pet.mood.kind });
@@ -693,10 +794,47 @@ export const commands = {
     if (!isFood(ctx.data, item)) throw new Error("Pets can't eat that.");
     if (!canAutoFeed(ctx.data, item)) throw new Error('Pets only eat cooked meals and tonics. Cook it in the Kitchen first.');
     if (!state.bag[item]) throw new Error(`You don't have any ${itemLabel(ctx.data, item)}.`);
-    if (pet.energy >= petMaxEnergy(ctx.data, pet) - EPS) throw new Error(`${pet.name} is full of energy.`);
+    const wished = pet.wish?.kind === 'taste' && parseKey(item).id === pet.wish.item; // a wished-for dish is always welcome
+    if (!wished && pet.energy >= petMaxEnergy(ctx.data, pet) - EPS) throw new Error(`${pet.name} is full of energy.`);
     eat(state, ctx, pet, item, false);
     pet.resting = false;
     pet.nap = null; // woken up for a snack: no nap Bond
+    if (wished) grantWish(state, ctx, pet);
+  },
+  // Let a wish go: no cost, a new one comes after the usual wait.
+  'pets/letWishGo': (state, { pet: petId }, ctx) => {
+    const pet = needPet(state, petId);
+    if (!pet.wish) throw new Error(`${pet.name} isn't wishing for anything right now.`);
+    pet.wish = null;
+    pet.wishMs = ctx.data.balance.petLife.wishes.waitMs;
+    ctx.emit?.({ type: 'wishLetGo', pet: petId });
+  },
+  // One trick lesson a day (balance.petLife.tricks.sessions lessons learn it). A pet can learn one trick per
+  // Bond heart, one at a time; `trick` picks a new one when none is being taught. It can't fail.
+  'pets/teach': (state, { pet: petId, trick = null }, ctx) => {
+    const { data } = ctx;
+    const pet = needPet(state, petId);
+    if (pet.teachDay === ctx.day) throw new Error(`${pet.name} already had a lesson today. Come back tomorrow!`);
+    const info = trickInfo(data, pet);
+    let id = info.current?.def.id || null;
+    if (id && trick && trick !== id) throw new Error(`${pet.name} is still learning ${info.current.def.name}.`);
+    if (!id) {
+      if (!info.choices.length) throw new Error(`${pet.name} knows every trick already.`);
+      if (!info.canStart) throw new Error(`${pet.name} can learn another trick at the next Bond heart.`);
+      if (!info.choices.some((t) => t.id === trick)) throw new Error('Choose a trick to teach first.');
+      id = trick;
+    }
+    pet.tricks[id] = (pet.tricks[id] || 0) + 1;
+    pet.teachDay = ctx.day;
+    state.stats.lessons += 1;
+    const learned = pet.tricks[id] >= info.sessions;
+    if (learned) {
+      state.stats.tricksLearned += 1;
+      addToBook(ctx, pet, { k: 'trick', trick: id });
+      if (trickInfo(data, pet).learned.length >= (data.tricks?.tricks.length || 0)) state.stats.trickMasters += 1;
+    }
+    ctx.emit?.({ type: 'petTaught', pet: petId, trick: id, n: pet.tricks[id], learned });
+    if (pet.wish?.kind === 'trick') grantWish(state, ctx, pet);
   },
   // Play a game with the pet (the UI runs it and sends how it went: 'okay' | 'good' | 'perfect').
   // Once per pet per local day: Bond by result and the play mood.
@@ -714,6 +852,7 @@ export const commands = {
       if (!pet.book.some((e) => e.k === 'play')) addToBook(ctx, pet, { k: 'play', result });
     }
     ctx.emit?.({ type: 'petPlayed', pet: petId, result, bond: cfg.bond[result] });
+    if (pet.wish?.kind === 'play') grantWish(state, ctx, pet);
   },
   // Tuck a tired pet in: it rests faster (balance.petLife.nap) until full, then goes back to what it was
   // doing. The first nap of a day gives Bond on waking.

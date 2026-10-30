@@ -136,6 +136,50 @@ button.pet-row:active { background: #5a4a30; border-color: var(--orange); }
   background: #e0475b; border: 2px solid var(--ink); border-radius: 50%; box-shadow: inset -3px -3px 0 rgba(0, 0, 0, 0.25);
 }
 
+/* ---- Phase 12: Leaf catch, Peekaboo, wishes, tricks ---- */
+.leaf-field { height: 220px; background: linear-gradient(#b9dde3, #9cc98a 85%); }
+.leaf {
+  position: absolute; top: 0; width: 48px; height: 48px; margin: 0; padding: 0; transform: translate(-50%, -50%);
+  display: flex; align-items: center; justify-content: center; background: none; border: 0; cursor: pointer; touch-action: manipulation;
+}
+.leaf.caught { transition: transform 0.3s, opacity 0.3s; transform: translate(-50%, -90%) scale(1.5); opacity: 0; }
+.peek-field { height: auto; padding: 36px 6px 10px; cursor: default; }
+.peek-row { display: grid; gap: 6px; align-items: end; }
+.peek-bush {
+  position: relative; min-height: 72px; padding: 0; display: flex; align-items: flex-end; justify-content: center;
+  background: none; border: 0; cursor: pointer; touch-action: manipulation;
+}
+.peek-bush > .item-icon { position: relative; z-index: 1; }
+.peek-face { position: absolute; left: 50%; bottom: 14px; transform: translate(-50%, 0); opacity: 0; transition: transform 0.2s, opacity 0.2s; }
+.peek-bush.peek .peek-face { opacity: 1; transform: translate(-50%, -26px); }
+.peek-bush.wiggle > .item-icon { animation: peek-wiggle 0.18s linear infinite alternate; }
+@keyframes peek-wiggle { from { transform: rotate(-7deg); } to { transform: rotate(7deg) translateY(-2px); } }
+
+.pet-wish { border-color: var(--pale); }
+.pet-wish-line { margin: 0 0 4px; font-style: italic; overflow-wrap: anywhere; }
+.pet-wish-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 8px; }
+.pet-wish-row .btn { min-height: 44px; }
+.pet-wish-dot {
+  display: inline-block; width: 12px; height: 12px; flex-shrink: 0; background: var(--pale); border: 2px solid var(--ink);
+  border-radius: 50%;
+}
+.pet-trick-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.pet-trick-chip { padding: 4px 10px; border: 2px solid var(--ink); border-radius: 12px; background: var(--wood); }
+.pet-trick-chip.learning { border-style: dashed; }
+.pet-trick-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-top: 8px; }
+.pet-trick-pick .btn { min-height: 44px; }
+.pet-portrait .item-icon { transform-origin: 50% 80%; }
+.trick-spin .item-icon { animation: trick-spin 0.9s ease-in-out; }
+.trick-hop .item-icon { animation: trick-hop 0.9s ease-out; }
+.trick-bow .item-icon { animation: trick-bow 0.9s ease-in-out; }
+.trick-roll .item-icon { animation: trick-roll 0.9s ease-in-out; transform-origin: 50% 50%; }
+.trick-dance .item-icon { animation: trick-dance 0.9s ease-in-out; }
+@keyframes trick-spin { 0% { transform: scaleX(1); } 25% { transform: scaleX(0) translateY(-6px); } 50% { transform: scaleX(-1) translateY(-8px); } 75% { transform: scaleX(0) translateY(-6px); } 100% { transform: scaleX(1); } }
+@keyframes trick-hop { 0%, 100% { transform: none; } 12% { transform: scale(1.12, 0.85); } 50% { transform: translateY(-34px) scale(0.95, 1.08); } 88% { transform: scale(1.12, 0.88); } }
+@keyframes trick-bow { 0%, 100% { transform: none; } 50% { transform: scale(1.1, 0.7); } }
+@keyframes trick-roll { 0% { transform: rotate(0); } 50% { transform: translate(8px, -6px) rotate(180deg); } 100% { transform: rotate(360deg); } }
+@keyframes trick-dance { 0%, 50%, 100% { transform: none; } 25% { transform: translate(-6px, -6px) rotate(-10deg); } 75% { transform: translate(6px, -6px) rotate(10deg); } }
+
 .pet-book { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .pet-book li { display: flex; gap: 10px; align-items: baseline; min-width: 0; }
 .pet-book-date { flex: 0 0 5.5em; }
@@ -146,6 +190,8 @@ button.pet-row:active { background: #5a4a30; border-color: var(--orange); }
   .egg-wobble .egg-crack { opacity: 1; }
   .pet-float-heart { animation: none; opacity: 1; bottom: 60%; }
   .fetch-pet.hop { animation: none; }
+  .peek-bush.wiggle > .item-icon { animation: none; outline: 3px solid var(--pale); }
+  .trick-spin .item-icon, .trick-hop .item-icon, .trick-bow .item-icon, .trick-roll .item-icon, .trick-dance .item-icon { animation: none; }
 }
 
 /* ---- capacity, Nest, release (Phase 7) ---- */

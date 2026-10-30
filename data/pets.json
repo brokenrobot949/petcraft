@@ -202,6 +202,19 @@
       "good": "Good catch!",
       "miss": "Missed it!"
     },
+    "leaf": {
+      "title": "Leaf catch!",
+      "help": "Tap the falling leaves before they land. {name} is cheering you on.",
+      "caught": "Caught one!",
+      "missed": "That one got away."
+    },
+    "peekaboo": {
+      "title": "Peekaboo!",
+      "help": "{name} is hiding. Tap the bush that wiggles!",
+      "found": "Found you!",
+      "missed": "Not there!",
+      "late": "Too slow, {name} moved!"
+    },
     "book": {
       "home": {
         "starter": "Hatched from the egg you chose in the ruins.",
@@ -216,7 +229,15 @@
       "favorite": "Found a favorite dish: {item}.",
       "rare": "First rare find: a {item} in {zone}.",
       "talent": "Learned a talent: {talent}.",
-      "play": "Played a perfect game of fetch!",
+      "play": "Played a perfect game!",
+      "wish": {
+        "taste": "Wished for a {item}, and got one.",
+        "outing": "Wished to see {zone}, and spent an hour there.",
+        "buddy": "Wished to work with {buddy}, and did.",
+        "play": "Wished for a game, and got one.",
+        "trick": "Wished for a trick lesson, and had one."
+      },
+      "trick": "Learned a trick: {trick}.",
       "retired": "Retired to the Elder Grove.",
       "undated": "Before the scrapbook"
     }

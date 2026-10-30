@@ -1297,6 +1297,134 @@ try {
   check('Phase 11 state is valid', [s9, gp.getState(), gn.getState(), gb.getState()].every((x) => x && validateState(x) === null),
     [s9, gp.getState(), gn.getState(), gb.getState()].map((x) => x && validateState(x)).filter(Boolean).join(', '));
   }
+
+  // ---- Phase 12: wishes and tricks ----
+  {
+  const W = data.balance.petLife.wishes;
+  // Same pet, live vs catch-up: dates aside, energy to a hair (float sums differ in the last digits).
+  const samePet = (a, b) => near(a.energy, b.energy, 1e-6) && JSON.stringify({ ...undated(a), energy: 0 }) === JSON.stringify({ ...undated(b), energy: 0 });
+  const lifeGame = (seed = 1201) => {
+    const gx = freshGame(seed);
+    gx.dispatch('pets/hatchStarter', { archetype: 'wild', name: 'Pip' });
+    return gx;
+  };
+  const hunt = (gx, id) => gx.dispatch('harvest/assign', { worker: id, zone: 'meadowfold', skill: 'hunting', node: data.zones.zones[0].harvest.hunting[0].id });
+
+  // A wish appears after the first wait, at the same moment live and offline.
+  const wishTwin = () => {
+    const gx = lifeGame(1202);
+    const id = gx.getState().pets.active[0];
+    hunt(gx, id);
+    return [gx, id];
+  };
+  const [wL, wid] = wishTwin();
+  const [wO] = wishTwin();
+  check('a new pet has no wish and waits for the first one', wL.getState().pets.list[wid].wish === null && wL.getState().pets.list[wid].wishMs === W.firstMs);
+  runChunks(wL, W.firstMs - 1000, 700);
+  check('no wish before the wait is over', wL.getState().pets.list[wid].wish === null);
+  runChunks(wL, 2000, 700);
+  wO.catchUp(W.firstMs + 1000);
+  const wishL = wL.getState().pets.list[wid].wish;
+  const wishO = wO.getState().pets.list[wid].wish;
+  check('a wish appears when the wait is over', !!wishL && !!data.wishes.kinds.find((k) => k.id === wishL.kind));
+  check('wishes: live ticks and catch-up give the same wish and pet', JSON.stringify(wishL) === JSON.stringify(wishO) && samePet(wL.getState().pets.list[wid], wO.getState().pets.list[wid]), `${JSON.stringify(wishL)} vs ${JSON.stringify(wishO)}`);
+
+  // Only wishes the player can grant: one pet, one zone, no hearts -> only Taste (a meal they can cook) or Play.
+  const gr = lifeGame(1203);
+  const pr = gr.getState().pets.active[0];
+  const kinds = new Set();
+  let tasteOk = true;
+  for (let i = 0; i < 40; i++) {
+    gr.dispatch('dev/wishNow', { pet: pr });
+    gr.advance(10);
+    const w = gr.getState().pets.list[pr].wish;
+    if (!w) continue;
+    kinds.add(w.kind);
+    if (w.kind === 'taste') tasteOk = tasteOk && data.recipes.recipes.some((r) => r.station === 'kitchen' && r.output === w.item && (r.level || 1) <= gr.getState().skills.cooking.level);
+  }
+  check('only grantable wishes roll (one pet, one zone, no hearts)', kinds.size > 0 && [...kinds].every((k) => k === 'taste' || k === 'play') && tasteOk, [...kinds].join(','));
+
+  // Letting a wish go costs nothing; the next one comes after the wait.
+  const gw = lifeGame(1204);
+  const pw = gw.getState().pets.active[0];
+  const petW = () => gw.getState().pets.list[pw];
+  petW().wish = { kind: 'play', line: 0 };
+  const bondW = petW().bond;
+  gw.dispatch('pets/letWishGo', { pet: pw });
+  check('letting a wish go costs nothing', petW().wish === null && petW().bond === bondW && petW().wishMs === W.waitMs);
+
+  // A Play wish comes true with a game: wish Bond on top of the game's, a scrapbook line, the achievement.
+  petW().wish = { kind: 'play', line: 1 };
+  gw.dispatch('pets/play', { pet: pw, result: 'okay' });
+  check('a Play wish comes true with a game', petW().wish === null && near(petW().bond - bondW, data.balance.petLife.play.bond.okay + W.bond, 1e-9)
+    && petW().book.some((e) => e.k === 'wish' && e.kind === 'play') && gw.getState().stats.wishesGranted === 1 && !!gw.getState().achievements.done.wish_come_true);
+
+  // A Taste wish: hand-feed the dish, even at full energy.
+  const dish = data.recipes.recipes.find((r) => r.station === 'kitchen' && data.items.items[r.output]?.category === 'meal').output;
+  petW().wish = { kind: 'taste', item: dish, line: 0 };
+  gw.dispatch('dev/grant', { item: dish, qty: 1, quality: 'fine' });
+  gw.dispatch('pets/feed', { pet: pw, item: `${dish}:fine` });
+  check('a Taste wish comes true by hand-feeding the dish (even when full)', petW().wish === null && petW().mood?.kind && gw.getState().stats.wishesGranted === 2);
+
+  // An Outing wish: one hour of work in the zone; live = catch-up (Bond, mood and gift land on a step's end).
+  const outTwin = () => {
+    const gx = lifeGame(1205);
+    const id = gx.getState().pets.active[0];
+    hunt(gx, id);
+    gx.getState().pets.list[id].wish = { kind: 'outing', zone: 'meadowfold', line: 0, progressMs: 0 };
+    return [gx, id];
+  };
+  const [oL, oid] = outTwin();
+  const [oO] = outTwin();
+  runChunks(oL, 3 * H, 333);
+  oO.catchUp(3 * H);
+  const poL = oL.getState().pets.list[oid];
+  const poO = oO.getState().pets.list[oid];
+  check('an Outing wish comes true after an hour of work there', poL.wish?.kind !== 'outing' && poL.book.some((e) => e.k === 'wish' && e.kind === 'outing' && e.zone === 'meadowfold'));
+  check('Outing wish: live ticks and catch-up agree', samePet(poL, poO) && sortedJson(oL.getState().bag) === sortedJson(oO.getState().bag),
+    `${poL.mood?.msLeft} vs ${poO.mood?.msLeft}`);
+
+  // A Buddy wish: only while both pets work in the same zone; a buddy that leaves ends the wish.
+  const gd = lifeGame(1206);
+  gd.dispatch('dev/addPet', { archetype: 'sprout', name: 'Bram' });
+  const [pa, pbud] = gd.getState().pets.active;
+  hunt(gd, pa);
+  const petA = () => gd.getState().pets.list[pa];
+  petA().wish = { kind: 'buddy', buddy: pbud, line: 0, progressMs: 0 };
+  runChunks(gd, H / 2, 1000);
+  check('a Buddy wish waits while the buddy is not working beside it', petA().wish?.progressMs === 0);
+  hunt(gd, pbud);
+  runChunks(gd, 2 * H, 1000);
+  check('a Buddy wish comes true after an hour side by side', petA().wish?.kind !== 'buddy' && petA().book.some((e) => e.k === 'wish' && e.kind === 'buddy' && e.buddy === 'Bram'));
+  petA().wish = { kind: 'buddy', buddy: pbud, line: 0, progressMs: 0 };
+  gd.dispatch('pets/release', { pet: pbud });
+  gd.advance(1000);
+  check('a Buddy wish ends when the buddy leaves', petA().wish === null && petA().wishMs > 0);
+
+  // Tricks: one per Bond heart, one lesson a day, learned after the set number of lessons.
+  const gt = lifeGame(1207);
+  const pt = gt.getState().pets.active[0];
+  const petT = () => gt.getState().pets.list[pt];
+  threw = false;
+  try { gt.dispatch('pets/teach', { pet: pt, trick: 'spin' }); } catch { threw = true; }
+  check('no tricks before the first Bond heart', threw);
+  gt.dispatch('dev/petBond', { pet: pt, bond: data.balance.pets.bond.hearts[0] });
+  petT().wish = { kind: 'trick', line: 0 };
+  gt.dispatch('pets/teach', { pet: pt, trick: 'spin' });
+  check('a lesson counts and grants a Trick wish', petT().tricks.spin === 1 && petT().wish === null && gt.getState().stats.lessons === 1);
+  threw = false;
+  try { gt.dispatch('pets/teach', { pet: pt, trick: 'spin' }); } catch { threw = true; }
+  check('one lesson a day', threw);
+  for (let i = 1; i < data.balance.petLife.tricks.sessions; i++) { gt.dispatch('dev/clearPlay', { pet: pt }); gt.dispatch('pets/teach', { pet: pt }); }
+  check('a trick is learned after its lessons', petT().tricks.spin === data.balance.petLife.tricks.sessions && petT().book.some((e) => e.k === 'trick' && e.trick === 'spin')
+    && gt.getState().stats.tricksLearned === 1 && !!gt.getState().achievements.done.good_trick);
+  gt.dispatch('dev/clearPlay', { pet: pt });
+  threw = false;
+  try { gt.dispatch('pets/teach', { pet: pt, trick: 'hop' }); } catch { threw = true; }
+  check('one heart, one trick', threw);
+  check('Phase 12 state is valid', [wL.getState(), gw.getState(), oL.getState(), gd.getState(), gt.getState()].every((x) => validateState(x) === null),
+    [wL.getState(), gw.getState(), oL.getState(), gd.getState(), gt.getState()].map((x) => validateState(x)).filter(Boolean).join(', '));
+  }
 } catch (err) {
   failed++;
   lines.push(`FAIL  crashed: ${err.stack || err}`);

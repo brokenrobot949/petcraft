@@ -3,7 +3,7 @@
 // the active pets at the spot for their current task and animates the work (the player's wind-up
 // and strike synced to the action progress, a pet's squash-and-stretch hop on each finished action),
 // and floats "+N <item>" pops when the simulation reports a harvest. Resting pets nap with floating "z"s.
-// Emote bubbles (js/render/emotes.js) pop up over workers: a rare find, a map, a level, tiredness.
+// Emote bubbles (js/render/emotes.js) pop up over workers: a rare find, a map, a level, tiredness, a wish.
 // Read-only: it never changes game state. Every number comes from data.balance.render.zone
 // (pets: render.zone.pets) and the zone's scene data. Render-only randomness uses Math.random.
 // createZoneScene(host, game, zoneId) -> { start(), stop(), destroy() }. It is created and destroyed
@@ -746,6 +746,8 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
   const sizeWatch = new ResizeObserver(() => { if (host.clientWidth && !destroyed) app.resize(); });
   sizeWatch.observe(host);
 
+  let wishMs = 0;
+  let wishTurn = 0;
   app.ticker.add((ticker) => {
     const state = game.getState();
     syncWorkers(state);
@@ -755,6 +757,16 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     }
     updateTaming(state, ticker.deltaMS, ticker);
     updatePops(ticker.deltaMS);
+    // A thought bubble over one pet with a wish now and then (Phase 12; taking turns).
+    wishMs += ticker.deltaMS;
+    if (wishMs >= data.balance.render.emotes.wishEveryMs) {
+      wishMs = 0;
+      const wishing = [...workers.entries()].filter(([id, m]) => m.mode !== 'away' && state.pets.list[id]?.wish);
+      if (wishing.length) {
+        const [id, m] = wishing[wishTurn++ % wishing.length];
+        emotes.show(id, 'thinking', actorTarget(m, () => workers.get(id) !== m || m.mode === 'away'));
+      }
+    }
     updateZs(ticker.deltaMS);
     emotes.update(ticker.deltaMS);
     polish.update(ticker.deltaMS);

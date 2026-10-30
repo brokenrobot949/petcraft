@@ -60,10 +60,23 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 11 done (2026-10-30, 0.12.0): pet life at home. Phases 0-10 plus Rob's follow-ups (0.10.1-0.11.6) built earlier.
-Next: Phase 12 (pet wishes, two more play games, taught tricks), then Phase 13 (toys and the Pet Yard, day trips,
+Phase: 12 done (2026-10-30, 0.13.0): pet wishes and tricks. Phase 11 (pet life at home) and Phases 0-10 plus Rob's
+follow-ups (0.10.1-0.11.6) built earlier.
+Next: Rob's phone test of Phases 11-12, then Phase 13 (toys and the Pet Yard, day trips,
 Bond retune: work Bond 1 per 45 min, Rob's option (b)). Plan in docs/handoff.md "Pet life phases"; design in
 docs/design.md "Pet life". Open design calls are listed under Known issues.
+Phase 12 (wishes and tricks): no schema bump (pets.init fills the new per-pet wishMs and teachDay). Contract in
+  docs/architecture.md "Phase 12". Wishes (js/systems/wishes.js helpers; rolled, counted and granted in pets.js):
+  one per pet, a new one may appear 8 h of game time after the last (first one 2 h after hatching), only kinds the
+  player can grant now: Taste (hand-feed a Kitchen meal they can cook, even at full energy), Outing (1 h of work in
+  another unlocked zone), Buddy (1 h working in the same zone as a named pet), Play, Trick. Granted: +15 Bond,
+  "cheered" +5% for 2 h, a scrapbook line, 10% a treasure-loot gift. Let it go at no cost. Wish card on the pet page,
+  a dot on the roster card, "Wish:" in the Home sheet, a thought bubble in both scenes; no tab badge. Tricks
+  (data/tricks.json: Spin, Hop, Bow, Roll, Dance): one per Bond heart, one lesson a day, 3 lessons learn it;
+  "Show me a trick" on the page (CSS), idle pets on Home do known tricks (js/render/tricks.js, code-made poses).
+  Play picks Fetch, Leaf catch or Peekaboo at random (js/ui/petgames.js). 5 achievements. Haiku wrote the wish and
+  trick lines. Test mode: "New wish now", "Wish almost done". Core checks: 293. Save checks: 172. Simulator runs
+  (wishes happen on their own; it grants Outing/Buddy ones by working; no policy for the rest yet: Phase 13).
 Phase 11 (pet life): save schema v10 (migration 9->10: per-pet playDay, nap, napDay, mood, book, wish, trip, tricks;
   state.yard). Contract in docs/architecture.md "Phase 11". Play once a day per pet (Fetch game, js/ui/petplay.js:
   +5/+8/+12 Bond, "playful" +5% work speed for 2 h of game time), tuck in a tired pet (<= 50% energy: naps rest 2x,

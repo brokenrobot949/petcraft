@@ -37,6 +37,13 @@ export function emoteFor(e, data) {
       return e.napped ? { id: e.pet, kind: 'happy' } : null;
     case 'petGift':
       return { id: e.pet, kind: 'joy' };
+    // Phase 12
+    case 'petWish':
+      return { id: e.pet, kind: 'thinking' };
+    case 'wishGranted':
+      return { id: e.pet, kind: 'heart', force: true };
+    case 'petTaught':
+      return { id: e.pet, kind: e.learned ? 'star' : 'happy', force: true };
     default:
       return null;
   }

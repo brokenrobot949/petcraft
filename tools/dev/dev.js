@@ -168,6 +168,17 @@ export const commands = {
     const p = devPet(state, pet);
     p.playDay = null;
     p.napDay = null;
+    p.teachDay = null;
+  },
+  // Phase 12: a new wish on the next tick (the current one is let go), or an Outing / Buddy wish a minute from done.
+  'dev/wishNow': (state, { pet }) => {
+    const p = devPet(state, pet);
+    p.wish = null;
+    p.wishMs = 1;
+  },
+  'dev/wishAlmost': (state, { pet }, ctx) => {
+    const p = devPet(state, pet);
+    if (p.wish && p.wish.progressMs != null) p.wish.progressMs = Math.max(p.wish.progressMs, ctx.data.balance.petLife.wishes.workMs - 60000);
   },
 };
 

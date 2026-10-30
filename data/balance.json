@@ -66,11 +66,16 @@
   "petLife": {
     "play": { "bond": { "okay": 5, "good": 8, "perfect": 12 }, "mood": "playful" },
     "moods": {
-      "playful": { "speed": 0.05, "ms": 7200000 }
+      "playful": { "speed": 0.05, "ms": 7200000 },
+      "cheered": { "speed": 0.05, "ms": 7200000 }
     },
     "nap": { "maxEnergyFrac": 0.5, "restMult": 2, "wakeBond": 2 },
     "book": { "maxEntries": 40 },
-    "fetch": { "throws": 3, "sweepMs": 1200, "goodWidth": 0.3, "perfectWidth": 0.1, "points": { "good": 1, "perfect": 2 }, "goodAt": 3, "perfectAt": 5, "pauseMs": 650 }
+    "fetch": { "throws": 3, "sweepMs": 1200, "goodWidth": 0.3, "perfectWidth": 0.1, "points": { "good": 1, "perfect": 2 }, "goodAt": 3, "perfectAt": 5, "pauseMs": 650 },
+    "leaf": { "leaves": 7, "spawnMs": 650, "fallMs": 1700, "goodAt": 4, "perfectAt": 6 },
+    "peekaboo": { "rounds": 5, "bushes": 4, "showMs": 1200, "pauseMs": 450, "goodAt": 3, "perfectAt": 5 },
+    "wishes": { "firstMs": 7200000, "waitMs": 28800000, "workMs": 3600000, "bond": 15, "mood": "cheered", "giftChance": 0.1 },
+    "tricks": { "sessions": 3 }
   },
   "buildings": {
     "maxTier": 5,
@@ -283,8 +288,10 @@
         "maxZ": 8
       }
     },
-    "emotes": { "showMs": 1900, "popMs": 220, "fadeMs": 400, "bobMs": 900, "bobPx": 1, "aboveHeadPx": 1, "gapMs": 3000, "maxOnScreen": 4 },
+    "emotes": { "showMs": 1900, "popMs": 220, "fadeMs": 400, "bobMs": 900, "bobPx": 1, "aboveHeadPx": 1, "gapMs": 3000, "maxOnScreen": 4, "wishEveryMs": 9000 },
     "home": {
+      "trickEveryMs": [8000, 16000],
+      "trickMs": 900,
       "restFrame": 0,
       "assistHopEveryMs": 1400,
       "assistSideGapPx": 6,

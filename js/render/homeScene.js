@@ -4,7 +4,8 @@
 // calls options.onTap({ kind: 'pet', id }) (Phase 11: pat, play, tuck in). The player
 // and every pet that is not out working wander on open ground (never through a building); resting pets
 // sleep with floating "z"s; emote bubbles pop up over pets (js/render/emotes.js), and a pat or a game makes
-// the pet hop. A bobbing arrow marks buildings that can be upgraded; a tier change swaps
+// the pet hop; idle pets now and then do a trick they know (Phase 12, js/render/tricks.js) and pets with a
+// wish show a thought bubble now and then. A bobbing arrow marks buildings that can be upgraded; a tier change swaps
 // the picture with a squash-and-stretch pop and a burst of sparkles.
 // Read-only: it never changes game state. Every number comes from data.balance.render.home / .polish.
 import { Application, Container, Graphics, Rectangle, Sprite, Text, Texture, TextureSource } from '../../lib/pixi.mjs';
@@ -12,6 +13,8 @@ import { loadSprites, createActor } from './sprites.js';
 import { createPolish } from './polish.js';
 import { createEmotes, emoteFor, actorTarget } from './emotes.js';
 import { petStatus } from '../systems/pets.js';
+import { trickInfo } from '../systems/wishes.js';
+import { trickPose } from './tricks.js';
 import { petRole } from '../systems/petstats.js';
 import { upgradeCheck, buildingTier } from '../systems/buildings.js';
 
@@ -473,6 +476,8 @@ export async function createHomeScene(host, game, options = {}) {
       dir,
       sleeping: false,
       zMs: 0,
+      trick: null, // { id, ms } while doing a trick
+      trickWait: rand.between(...hcfg.trickEveryMs),
       hopMs: -1,
       shadow: polish.addShadow(actor.view, shadowWidth(actor, k)),
     };
@@ -604,6 +609,32 @@ export async function createHomeScene(host, game, options = {}) {
     const f = hcfg.hopStretch * air - hcfg.hopSquash * land;
     a.actor.sprite.y = -hcfg.hopPx * air;
     view.scale.set(scale * a.k * (1 - f * 0.5), scale * a.k * (1 + f));
+  }
+
+  // A trick (js/render/tricks.js): the pet stops, does it, then wanders on.
+  function startTrick(a, id) {
+    if (a.post) return;
+    a.hopMs = -1;
+    a.state = 'pause';
+    a.actor.play('idle', a.dir);
+    a.trick = { id, ms: 0 };
+  }
+  function updateTrick(a, ms) {
+    const sp = a.actor.sprite;
+    a.trick.ms += ms;
+    const t = a.trick.ms / hcfg.trickMs;
+    if (t >= 1) {
+      a.trick = null;
+      sp.position.set(0, 0);
+      sp.rotation = 0;
+      a.actor.view.scale.set(scale * a.k);
+      startPause(a);
+      return;
+    }
+    const p = trickPose(a.trick.id, t, sp.texture.height, hcfg.hopPx);
+    sp.position.set(p.x, p.y);
+    sp.rotation = p.rot;
+    a.actor.view.scale.set(scale * a.k * p.sx, scale * a.k * p.sy);
   }
 
   // ---- floating z's for sleeping pets ----
@@ -874,7 +905,8 @@ export async function createHomeScene(host, game, options = {}) {
       const a = em && agents.get(em.id);
       if (!a || a.wild) continue;
       emotes.show(em.id, em.kind, actorTarget(a, () => agents.get(em.id) !== a), { force: em.force });
-      if ((e.type === 'petPat' || e.type === 'petPlayed') && a.hopMs < 0 && !a.sleeping) a.hopMs = 0;
+      if ((e.type === 'petPat' || e.type === 'petPlayed') && a.hopMs < 0 && !a.sleeping && !a.trick) a.hopMs = 0;
+      if (e.type === 'petTaught' && !a.sleeping && !a.goal) startTrick(a, e.trick);
     }
   });
   app.renderer.on('resize', layout);
@@ -882,6 +914,8 @@ export async function createHomeScene(host, game, options = {}) {
   const sizeWatch = new ResizeObserver(() => { if (host.clientWidth && !destroyed) app.resize(); });
   sizeWatch.observe(host);
 
+  let wishMs = 0;
+  let wishTurn = 0;
   let clock = 0;
   app.ticker.add((ticker) => {
     const ms = ticker.deltaMS;
@@ -899,6 +933,9 @@ export async function createHomeScene(host, game, options = {}) {
           a.state = 'pause';
           a.hopMs = -1;
           a.actor.sprite.y = 0;
+          a.trick = null;
+          a.actor.sprite.position.set(0, 0);
+          a.actor.sprite.rotation = 0;
           a.actor.view.scale.set(scale * a.k);
           a.actor.play('idle', a.dir);
           a.actor.sprite.gotoAndStop(hcfg.restFrame);
@@ -919,8 +956,19 @@ export async function createHomeScene(host, game, options = {}) {
         // Working at its station: stays put, hops now and then.
         a.workMs += ms;
         if (a.hopMs < 0 && a.workMs >= hcfg.assistHopEveryMs) { a.workMs = 0; a.hopMs = 0; }
+      } else if (a.trick) {
+        updateTrick(a, ms);
       } else {
         step(a, ms);
+        if (!a.isPlayer && !a.wild && a.state === 'pause') {
+          a.trickWait -= ms;
+          if (a.trickWait <= 0) {
+            a.trickWait = rand.between(...hcfg.trickEveryMs);
+            const pet = state.pets.list[a.id];
+            const known = pet ? trickInfo(data, pet).learned : [];
+            if (known.length) startTrick(a, rand.pick(known).id);
+          }
+        }
       }
       if (a.hopsLeft > 0 && a.hopMs < 0) { // a wild visitor's greeting hops
         a.hopGap -= ms;
@@ -928,6 +976,16 @@ export async function createHomeScene(host, game, options = {}) {
       }
       updateHop(a, ms);
       a.actor.update(ticker);
+    }
+    // A thought bubble over one pet with a wish now and then (taking turns).
+    wishMs += ms;
+    if (wishMs >= cfg.emotes.wishEveryMs) {
+      wishMs = 0;
+      const wishing = [...agents.values()].filter((a) => !a.isPlayer && !a.wild && !a.sleeping && state.pets.list[a.id]?.wish);
+      if (wishing.length) {
+        const a = wishing[wishTurn++ % wishing.length];
+        emotes.show(a.id, 'thinking', actorTarget(a, () => agents.get(a.id) !== a));
+      }
     }
     syncSanctuary(true, ms);
     syncGrove(true);

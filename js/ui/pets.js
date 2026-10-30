@@ -20,7 +20,8 @@ import {
 import { stationDef } from '../systems/crafting.js';
 import { retireInfo, heirEggList } from '../systems/elders.js';
 import { randomName, randomNameButton, renameSheet } from './petname.js';
-import { playButtons, playHelp, moodText } from './petplay.js';
+import { playButtons, playHelp, moodText, startPlay } from './petplay.js';
+import { wishCard, tricksPanel } from './petwish.js';
 import { scrapbookPanel } from './scrapbook.js';
 
 export const id = 'pets';
@@ -242,7 +243,7 @@ function petKey(st, p, day) {
   return [
     p.id, p.name, p.level, p.form, petHearts(d, p).hearts, petStatus(st, p.id), t ? `${t.zone}/${t.skill}` : '',
     canPatToday(st, p.id, day) ? 1 : 0, canPlayToday(st, p.id, day) ? 1 : 0, p.nap ? 1 : 0, napInfo(st, d, p.id, day).can ? 1 : 0,
-    p.mood?.kind || '-', (p.book || []).length, p.autoFeed ? 1 : 0, petProgress(d, p).capped ? 1 : 0,
+    p.mood?.kind || '-', (p.book || []).length, p.wish ? `${p.wish.kind}${p.wish.line}` : '-', p.teachDay ?? '-', JSON.stringify(p.tricks || {}), p.autoFeed ? 1 : 0, petProgress(d, p).capped ? 1 : 0,
     p.branch || '-', (p.talents || []).length, (p.gifts || []).length, (p.offer || []).join('+'), p.favoriteKnown ? 1 : 0,
     evolveKey(st, p), p.heirloom || '-', retireKey(st, p), Object.keys(st.crafting.assists || {}).filter((s) => st.crafting.assists[s] === p.id).join('+'),
   ].join(':');
@@ -534,7 +535,8 @@ function petCard(st, pet, day) {
         canPatToday(st, pet.id, day) ? el('span.pet-pat-badge', {}, 'Pat me!')
           : canPlayToday(st, pet.id, day) && el('span.pet-pat-badge', {}, 'Play time!'),
         evolveReady && el('span.pet-tag', {}, 'Ready to evolve'),
-        pet.offer && el('span.pet-tag', {}, 'Talent to choose')),
+        pet.offer && el('span.pet-tag', {}, 'Talent to choose'),
+        pet.wish && el('span.pet-wish-dot', { title: 'Has a wish', 'aria-label': 'Has a wish' })),
       el('span.small.muted.pet-sub', {}, `${petSpecies(d, pet)} - ${form?.name || ''} - Level ${pet.level}`),
       stars(pet),
       energyRow(pet.id),
@@ -896,6 +898,12 @@ function buildPage(st, day, pet) {
     refs.note,
     moodLine,
     el('p.small.muted', {}, playHelp(d, pet)));
+  const noteFn = (text, withHearts) => {
+    setNote(text);
+    if (withHearts) spawnHearts();
+  };
+  const wish = wishCard(app.game, pid, { note: noteFn, onPlay: () => startPlay(app.game, pid, noteFn), live });
+  if (wish) out.push(wish);
 
   // Energy and status
   const fill = el('div.fill', {});
@@ -996,6 +1004,7 @@ function buildPage(st, day, pet) {
     barBlock(bondFill),
     bondText,
     el('p.small.muted', {}, `Pat and play with ${pet.name} each day, and let them work, to grow your bond. A pat gives ${b.bond.pat}, a game up to ${d.balance.petLife.play.bond.perfect}, and every ${b.bond.workMinutesPerPoint} minutes of work gives 1.`)));
+  out.push(tricksPanel(app.game, pid, { note: noteFn, portrait: () => refs.portrait }));
 
   // Stats
   const affinity = arch?.affinity || [];

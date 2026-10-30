@@ -1,0 +1,31 @@
+{
+  "tricks": [
+    { "id": "spin", "name": "Spin", "blurb": "Twirls in one happy circle." },
+    { "id": "hop", "name": "Hop", "blurb": "Bounces high, then lands with a plop." },
+    { "id": "bow", "name": "Bow", "blurb": "Dips low, very politely." },
+    { "id": "roll", "name": "Roll", "blurb": "Tumbles over and pops back up." },
+    { "id": "dance", "name": "Dance", "blurb": "Sways side to side with a skip." }
+  ],
+  "lines": {
+    "taught": [
+      "{name} tries the {trick}. Almost there!",
+      "{name} wobbles through the {trick}, slowly.",
+      "{name} watches closely, then has a go.",
+      "{name} is still practicing the {trick}.",
+      "Nearly there. {name} keeps trying the {trick}.",
+      "{name} giggles and tries the {trick} again."
+    ],
+    "learned": [
+      "{name} learned to {trick}!",
+      "{name} has the {trick} down. Well done.",
+      "Lesson complete. {name} can now {trick}.",
+      "{name} beams after learning to {trick}."
+    ],
+    "show": [
+      "{name} shows off the {trick}!",
+      "Ta-da! {name} does a {trick}.",
+      "Watch this! {name} does the {trick} for you.",
+      "{name} shows you a fine {trick} today."
+    ]
+  }
+}

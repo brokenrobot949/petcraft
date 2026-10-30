@@ -64,9 +64,11 @@ export function newTamingState(seed) {
 }
 
 // A pet's life at home (v10, docs/architecture.md "Phase 11"): the day it last played, a nap (with the Bond it
-// gives on waking) and the day of its last nap, a mood (a short speed boost), its scrapbook, and (Phases 12-13) a wish, a day trip and tricks.
+// gives on waking) and the day of its last nap, a mood (a short speed boost), its scrapbook, and (Phases 12-13) a wish (with wishMs: game time until
+// the next one may appear), a day trip, tricks ({ trickId: lessons done }) and the day of its last lesson.
+// Fields added after v10 (wishMs, teachDay) are filled by pets.init, so no schema bump is needed.
 export function newPetLife() {
-  return { playDay: null, nap: null, napDay: null, mood: null, book: [], wish: null, trip: null, tricks: {} };
+  return { playDay: null, nap: null, napDay: null, mood: null, book: [], wish: null, wishMs: null, trip: null, tricks: {}, teachDay: null };
 }
 
 // A pet's own random stream (v7): talent offers, gift talents and its favorite dish.
@@ -198,6 +200,8 @@ export function validateState(s) {
     if (pet.wish != null && !isObj(pet.wish)) return 'bad wish';
     if (pet.trip != null && !isObj(pet.trip)) return 'bad trip';
     if (!isObj(pet.tricks)) return 'bad tricks';
+    if (pet.teachDay != null && !Number.isInteger(pet.teachDay)) return 'bad teach day';
+    if (pet.wishMs != null && !isCount(pet.wishMs)) return 'bad wish timer';
   }
   if (!isObj(s.yard) || !Array.isArray(s.yard.toys)) return 'bad yard';
   return null;

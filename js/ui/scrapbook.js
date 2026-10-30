@@ -21,6 +21,10 @@ function entryText(data, e) {
     case 'rare': return fmt(w.rare, { item: itemLabel(data, e.item), zone: zone(e.zone) });
     case 'talent': return fmt(w.talent, { talent: talentDef(data, e.talent)?.name || e.talent });
     case 'play': return w.play;
+    case 'wish': return w.wish?.[e.kind] ? fmt(w.wish[e.kind], {
+      item: e.item ? itemLabel(data, e.item) : '', zone: e.zone ? zone(e.zone) : '', buddy: e.buddy || 'a friend',
+    }) : null;
+    case 'trick': return fmt(w.trick, { trick: data.tricks?.tricks.find((t) => t.id === e.trick)?.name || e.trick });
     case 'retired': return w.retired;
     default: return w[e.k] && typeof w[e.k] === 'string' ? fmt(w[e.k], e) : null; // later phases' entries
   }

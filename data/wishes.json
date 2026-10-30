@@ -1,0 +1,77 @@
+{
+  "kinds": [
+    {
+      "id": "taste",
+      "weight": 3,
+      "need": "Feed {name} a {item} by hand.",
+      "lines": [
+        "I'd love a {item}.",
+        "Could you cook me a {item}?",
+        "I keep dreaming of {item}...",
+        "Is there any {item} in the kitchen?",
+        "My tummy wants {item}.",
+        "Some {item}, please?"
+      ]
+    },
+    {
+      "id": "outing",
+      "weight": 3,
+      "need": "{name} works in {zone} for an hour.",
+      "lines": [
+        "Take me to {zone}!",
+        "I wonder what {zone} smells like.",
+        "Can we work in {zone} for a while?",
+        "Could we visit {zone} today?",
+        "I'd love a walk in {zone}.",
+        "Let's explore {zone} together."
+      ]
+    },
+    {
+      "id": "buddy",
+      "weight": 2,
+      "need": "{name} and {buddy} work in the same zone for an hour.",
+      "lines": [
+        "Can I work with {buddy} today?",
+        "I miss {buddy}. Can we work together?",
+        "{buddy} and me, side by side!",
+        "Could {buddy} come along today?",
+        "Let's work with {buddy} again soon.",
+        "{buddy} is my favorite company."
+      ]
+    },
+    {
+      "id": "play",
+      "weight": 2,
+      "need": "Play a game with {name}.",
+      "lines": [
+        "Play with me?",
+        "I've got the wiggles. Let's play!",
+        "Is it game time yet?",
+        "Could we have a little game?",
+        "Want to play catch with me?",
+        "I'm bouncing off the walls. Play?"
+      ]
+    },
+    {
+      "id": "trick",
+      "weight": 2,
+      "need": "Have a trick lesson with {name}.",
+      "lines": [
+        "Teach me something new!",
+        "I want to learn a trick.",
+        "Watch me, then teach me more.",
+        "Could you show me a new move?",
+        "I'm ready for a lesson. Are you?",
+        "Let's practice something fun together."
+      ]
+    }
+  ],
+  "granted": [
+    "{name} beams from ear to ear. Wish come true.",
+    "A little wish, granted. {name} is delighted.",
+    "{name} wags with joy as the wish comes true.",
+    "The wish is granted, and {name} hums happily.",
+    "{name} looks up at you, thrilled and warm.",
+    "Wish granted! {name} does a happy little spin."
+  ]
+}
