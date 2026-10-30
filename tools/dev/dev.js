@@ -163,6 +163,12 @@ export const commands = {
   'dev/clearPat': (state, { pet }) => {
     devPet(state, pet).lastPatDay = null;
   },
+  // Lets the daily game and the nap Bond be tried again today.
+  'dev/clearPlay': (state, { pet }) => {
+    const p = devPet(state, pet);
+    p.playDay = null;
+    p.napDay = null;
+  },
 };
 
 function openSanctuary(state, ctx) {

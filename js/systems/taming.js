@@ -222,7 +222,7 @@ function resolveTrap(state, ctx, zoneId) {
   let pet = null;
   if (caught) {
     delete t.encounters[zoneId];
-    pet = createPet(state, ctx, { archetype: enc.archetype, quality: enc.quality, name: '', mythic: !!enc.mythic }, { force: true }).id;
+    pet = createPet(state, ctx, { archetype: enc.archetype, quality: enc.quality, name: '', mythic: !!enc.mythic, how: 'caught', zone: zoneId }, { force: true }).id;
     state.stats.tamed += 1;
     addXp(state, ctx, 'taming', b.catchXp * zoneById(data, zoneId).tier);
   } else {

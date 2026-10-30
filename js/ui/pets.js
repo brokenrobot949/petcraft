@@ -11,7 +11,7 @@ import { itemIcon, faceIcon } from './icons.js';
 import { localDay } from '../core/time.js';
 import {
   petList, getPet, needsStarter, canPatToday, petStatus, pantryList, foodList, workHoursLeft,
-  evolveInfo, talentInfo, assistInfo,
+  evolveInfo, talentInfo, assistInfo, canPlayToday, napInfo,
 } from '../systems/pets.js';
 import {
   archetypeOf, petProgress, petHearts, petMaxEnergy, petDrainPerHour, petRestPerHour, petSpeed, petRole,
@@ -20,6 +20,8 @@ import {
 import { stationDef } from '../systems/crafting.js';
 import { retireInfo, heirEggList } from '../systems/elders.js';
 import { randomName, randomNameButton, renameSheet } from './petname.js';
+import { playButtons, playHelp, moodText } from './petplay.js';
+import { scrapbookPanel } from './scrapbook.js';
 
 export const id = 'pets';
 export const label = 'Pets';
@@ -166,6 +168,7 @@ function statusInfo(st, pet) {
     const t = st.workers[pet.id]?.task;
     return { text: t ? `${skillName(t.skill)} at ${zoneName(t.zone)}` : 'Working', rest: false };
   }
+  if (pet.nap) return { text: 'Napping', rest: true };
   if (status === 'resting') return { text: 'Resting', rest: true };
   if (status === 'stabled') return { text: 'In the Stable, resting up', rest: true };
   return { text: 'Idle - give it a job on the World tab', rest: false };
@@ -238,7 +241,8 @@ function petKey(st, p, day) {
   const t = st.workers[p.id]?.task;
   return [
     p.id, p.name, p.level, p.form, petHearts(d, p).hearts, petStatus(st, p.id), t ? `${t.zone}/${t.skill}` : '',
-    canPatToday(st, p.id, day) ? 1 : 0, p.autoFeed ? 1 : 0, petProgress(d, p).capped ? 1 : 0,
+    canPatToday(st, p.id, day) ? 1 : 0, canPlayToday(st, p.id, day) ? 1 : 0, p.nap ? 1 : 0, napInfo(st, d, p.id, day).can ? 1 : 0,
+    p.mood?.kind || '-', (p.book || []).length, p.autoFeed ? 1 : 0, petProgress(d, p).capped ? 1 : 0,
     p.branch || '-', (p.talents || []).length, (p.gifts || []).length, (p.offer || []).join('+'), p.favoriteKnown ? 1 : 0,
     evolveKey(st, p), p.heirloom || '-', retireKey(st, p), Object.keys(st.crafting.assists || {}).filter((s) => st.crafting.assists[s] === p.id).join('+'),
   ].join(':');
@@ -527,7 +531,8 @@ function petCard(st, pet, day) {
     el('span.pet-card-body', {},
       el('span.pet-card-top', {},
         el('b.pet-name', {}, pet.name),
-        canPatToday(st, pet.id, day) && el('span.pet-pat-badge', {}, 'Pat me!'),
+        canPatToday(st, pet.id, day) ? el('span.pet-pat-badge', {}, 'Pat me!')
+          : canPlayToday(st, pet.id, day) && el('span.pet-pat-badge', {}, 'Play time!'),
         evolveReady && el('span.pet-tag', {}, 'Ready to evolve'),
         pet.offer && el('span.pet-tag', {}, 'Talent to choose')),
       el('span.small.muted.pet-sub', {}, `${petSpecies(d, pet)} - ${form?.name || ''} - Level ${pet.level}`),
@@ -565,6 +570,11 @@ function buildPantry(st, d) {
 }
 
 // ---- pet page ----
+
+// Opens a pet's page from another tab (the Home pet sheet); the shell switches to this tab first.
+export function openPetPage(petId) {
+  if (root) openPet(petId);
+}
 
 function openPet(petId) {
   ui.page = petId;
@@ -862,17 +872,18 @@ function buildPage(st, day, pet) {
   // Header
   refs.portrait = el('div.pet-portrait', {}, faceIcon(petRole(pet), 96, pet.name));
   refs.note = el('p.pet-note', { 'aria-live': 'polite' }, ui.note);
-  const patOk = canPatToday(st, pid, day);
-  const patBtn = el('button.btn.wide.pet-pat', {
-    type: 'button',
-    disabled: !patOk,
-    onclick: () => {
-      if (act('pets/pat', { pet: pid })) {
-        setNote(fmt(pick(lines.patted), { name: pet.name }));
-        spawnHearts();
-      }
-    },
-  }, patOk ? `Pat ${pet.name}` : 'Patted today - come back tomorrow');
+  // Pat, Play, Tuck in (js/ui/petplay.js). A command rebuilds the page first, so the note lands in the new one.
+  const playRow = playButtons(app.game, pid, (text, withHearts) => {
+    setNote(text);
+    if (withHearts) spawnHearts();
+  });
+  const moodLine = el('p.small.pet-mood', {});
+  live((s) => {
+    const p = getPet(s, pid);
+    const text = p && moodText(d, p);
+    moodLine.hidden = !text;
+    moodLine.textContent = text || '';
+  });
   out.push(el('div.panel.pet-head', {},
     refs.portrait,
     el('div.pet-head-text', {},
@@ -881,8 +892,10 @@ function buildPage(st, day, pet) {
         el('button.btn', { type: 'button', onclick: () => renameSheet(app.game, pet) }, 'Rename')),
       el('p.small.muted', {}, `${petSpecies(d, pet)} - ${form?.name || pet.form}`),
       el('p.pet-quality', {}, stars(pet), el('span.small', {}, quality?.name || pet.quality)))),
-    patBtn,
-    refs.note);
+    playRow,
+    refs.note,
+    moodLine,
+    el('p.small.muted', {}, playHelp(d, pet)));
 
   // Energy and status
   const fill = el('div.fill', {});
@@ -895,7 +908,8 @@ function buildPage(st, day, pet) {
     const max = petMaxEnergy(d, p);
     fill.style.width = `${Math.max(0, Math.min(100, (p.energy / max) * 100))}%`;
     eText.textContent = `${Math.round(p.energy)} / ${Math.round(max)}`;
-    if (status === 'working') leftText.textContent = `About ${fmtHours(workHoursLeft(d, p))} of work left`;
+    if (p.nap) leftText.textContent = 'Napping until full, then back to work';
+    else if (status === 'working') leftText.textContent = `About ${fmtHours(workHoursLeft(d, p))} of work left`;
     else if (status === 'resting') leftText.textContent = 'Resting until full';
     else if (status === 'stabled') leftText.textContent = 'Resting in the Stable';
     else leftText.textContent = 'Not working right now';
@@ -981,7 +995,7 @@ function buildPage(st, day, pet) {
     hearts(pet),
     barBlock(bondFill),
     bondText,
-    el('p.small.muted', {}, `Pat once a day and let ${pet.name} work to grow your bond. A pat gives ${b.bond.pat}, and every ${b.bond.workMinutesPerPoint} minutes of work gives 1.`)));
+    el('p.small.muted', {}, `Pat and play with ${pet.name} each day, and let them work, to grow your bond. A pat gives ${b.bond.pat}, a game up to ${d.balance.petLife.play.bond.perfect}, and every ${b.bond.workMinutesPerPoint} minutes of work gives 1.`)));
 
   // Stats
   const affinity = arch?.affinity || [];
@@ -1006,6 +1020,7 @@ function buildPage(st, day, pet) {
   out.push(buildHelping(st, pet));
   const retire = buildRetire(st, pet);
   if (retire) out.push(retire);
+  out.push(scrapbookPanel(d, pet.book, 'pet.book'));
 
   // Active / Stable
   const active = st.pets.active.includes(pid);

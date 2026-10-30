@@ -18,6 +18,7 @@ export function advance(state, ms, ctx) {
       if (b > EPS && b < t) t = b;
     }
     for (const sys of SYSTEMS) if (sys.advance) sys.advance(state, t, ctx);
+    if (Number.isFinite(ctx.now)) ctx.now += t; // the game clock moves with the span (scrapbook dates)
     left -= t;
   }
 }

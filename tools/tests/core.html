@@ -58,6 +58,9 @@ function check(name, ok, detail = '') {
 }
 const sortedJson = (o) => JSON.stringify(Object.keys(o).sort().map((k) => [k, o[k]]));
 const near = (a, b, tol) => Math.abs(a - b) <= tol;
+// A pet without its dates (bornAt, scrapbook times): the test clock stands still, so live ticks and catch-up
+// date things differently. Dates are for display only.
+const undated = (p) => p && { ...p, bornAt: 0, book: p.book.map((e) => ({ ...e, t: null })) };
 
 // The data files are fetched relative to the page, so load them from the repo root.
 const base = new URL('../../', location.href);
@@ -672,7 +675,7 @@ try {
   const pl = fL.getState(), po = fO.getState();
   check('a full catch works offline: the pet arrives', po.stats.tamed === 1 && Object.keys(po.pets.list).length === 2 && sumC.taming.results.length === 1 && sumC.taming.results[0].caught, JSON.stringify(sumC.taming));
   check('the caught pet takes the free active slot', po.pets.active.includes(sumC.taming.results[0]?.pet));
-  check('full catch: live ticks and catch-up agree', sortedJson(pl.bag) === sortedJson(po.bag) && JSON.stringify(pl.pets.list.pet2) === JSON.stringify(po.pets.list.pet2) && near(pl.pets.list.pet1.energy, po.pets.list.pet1.energy, 1e-6),
+  check('full catch: live ticks and catch-up agree', sortedJson(pl.bag) === sortedJson(po.bag) && JSON.stringify(undated(pl.pets.list.pet2)) === JSON.stringify(undated(po.pets.list.pet2)) && near(pl.pets.list.pet1.energy, po.pets.list.pet1.energy, 1e-6),
     `${sortedJson(pl.bag)} vs ${sortedJson(po.bag)}`);
   check('Taming level 30+: the encounter shows its quality', (() => { fO.dispatch('dev/encounter', { zone: 'meadowfold', quality: 'epic' }); return encounterInfo(po, data, 'meadowfold').quality === 'epic'; })());
 
@@ -1190,6 +1193,109 @@ try {
   check('endgame: live play and offline catch-up give the same results', sortedJson(gLive.getState().bag) === sortedJson(gOff.getState().bag)
     && JSON.stringify(gLive.getState().skills) === JSON.stringify(gOff.getState().skills));
   check('Phase 9 state is valid', [s7, sP, sM, sE9, sY, sR].every((x) => validateState(x) === null), [s7, sP, sM, sE9, sY, sR].map(validateState).filter(Boolean).join(', '));
+  }
+
+  // ---- Phase 11: pet life (play, naps, moods, the scrapbook) ----
+  {
+  const lifeGame = (seed = 1101) => {
+    const gx = freshGame(seed);
+    gx.dispatch('pets/hatchStarter', { archetype: 'wild', name: 'Pip' });
+    return gx;
+  };
+  // Migration from v9: life fields, an empty yard, and a scrapbook filled from what the save knows.
+  const g9 = lifeGame();
+  const p9id = g9.getState().pets.active[0];
+  g9.dispatch('dev/petBond', { pet: p9id, bond: 130 }); // 2 hearts
+  const v9 = JSON.parse(JSON.stringify(g9.getState()));
+  v9.version = 9;
+  delete v9.yard;
+  for (const p of Object.values(v9.pets.list)) for (const k of ['playDay', 'nap', 'napDay', 'mood', 'book', 'wish', 'trip', 'tricks']) delete p[k];
+  const m9 = parseSave(JSON.stringify(v9));
+  check('v9 save migrates to v10 and validates', !!m9.state && m9.state.version === SCHEMA_VERSION && SCHEMA_VERSION >= 10, m9.error || '');
+  const s9 = m9.state && createGame(data, m9.state, { clock }).getState();
+  const b9 = s9?.pets.list[p9id].book || [];
+  check('old pets get a scrapbook from what the save knows', b9[0]?.k === 'home' && b9[0].how === 'starter' && b9.filter((e) => e.k === 'heart').length === 2 && !('bookFill' in s9.pets.list[p9id]) && Array.isArray(s9.yard.toys),
+    JSON.stringify(b9));
+
+  // Play: once a day, Bond by result, a playful mood that speeds work and runs out in game time.
+  const gp = lifeGame();
+  const pp = gp.getState().pets.active[0];
+  const petP = () => gp.getState().pets.list[pp];
+  check('a new pet\'s scrapbook starts with how it came home', petP().book.length === 1 && petP().book[0].k === 'home' && petP().book[0].how === 'starter' && petP().book[0].t === Math.round(clockNow));
+  const speed0 = petSpeed(data, petP(), 'hunting');
+  const bond0 = petP().bond;
+  gp.dispatch('pets/play', { pet: pp, result: 'good' });
+  check('playing gives Bond by result and a playful mood', near(petP().bond - bond0, data.balance.petLife.play.bond.good, 1e-9) && petP().mood?.kind === 'playful' && gp.getState().stats.plays === 1);
+  check('the playful mood speeds work', near(petSpeed(data, petP(), 'hunting') / speed0, 1 + data.balance.petLife.moods.playful.speed, 1e-9));
+  threw = false;
+  try { gp.dispatch('pets/play', { pet: pp, result: 'perfect' }); } catch { threw = true; }
+  check('only one game a day', threw);
+  threw = false;
+  try { gp.dispatch('pets/play', { pet: pp, result: 'amazing' }); } catch { threw = true; }
+  check('an unknown game result is refused', threw);
+  check('Playtime! achievement', !!gp.getState().achievements.done.playtime);
+  clockNow += 24 * H;
+  gp.dispatch('pets/play', { pet: pp, result: 'perfect' });
+  check('a perfect game goes in the scrapbook once', petP().book.filter((e) => e.k === 'play').length === 1 && gp.getState().stats.perfectPlays === 1);
+  clockNow -= 24 * H;
+
+  // Mood running out mid-span: live ticks and catch-up agree.
+  const moodTwin = () => {
+    const gx = lifeGame(1102);
+    const id = gx.getState().pets.active[0];
+    gx.dispatch('harvest/assign', { worker: id, zone: 'meadowfold', skill: 'hunting', node: data.zones.zones[0].harvest.hunting[0].id });
+    gx.dispatch('pets/play', { pet: id, result: 'okay' });
+    return [gx, id];
+  };
+  const [mL, mid] = moodTwin();
+  const [mO] = moodTwin();
+  runChunks(mL, 3 * H, 250);
+  mO.catchUp(3 * H);
+  const pL = mL.getState().pets.list[mid];
+  const pO = mO.getState().pets.list[mid];
+  check('the mood runs out after its time', pL.mood === null && pO.mood === null);
+  check('mood: live ticks and catch-up give the same results', sortedJson(mL.getState().bag) === sortedJson(mO.getState().bag) && pL.level === pO.level && near(pL.xp, pO.xp, 1e-6) && near(pL.energy, pO.energy, 1e-6),
+    `${sortedJson(mL.getState().bag)} vs ${sortedJson(mO.getState().bag)}`);
+
+  // Naps: only when tired; rest faster; the first nap of a day gives Bond on waking; then back to work.
+  const gn = lifeGame(1103);
+  const pn = gn.getState().pets.active[0];
+  const petN = () => gn.getState().pets.list[pn];
+  gn.dispatch('harvest/assign', { worker: pn, zone: 'meadowfold', skill: 'hunting', node: data.zones.zones[0].harvest.hunting[0].id });
+  threw = false;
+  try { gn.dispatch('pets/tuckIn', { pet: pn }); } catch { threw = true; }
+  check('a pet full of energy can\'t be tucked in', threw);
+  gn.dispatch('dev/petEnergy', { pet: pn, energy: 20 });
+  const restPlain = petRestPerHour(gn.getState(), data, petN());
+  gn.dispatch('pets/tuckIn', { pet: pn });
+  check('tucked in: napping and resting, rests faster', !!petN().nap && petN().resting && near(petRestPerHour(gn.getState(), data, petN()) / restPlain, data.balance.petLife.nap.restMult, 1e-9));
+  const bondN = petN().bond;
+  runChunks(gn, H, 1000);
+  check('wakes up full with nap Bond, then works again', petN().nap === null && !petN().resting && near(petN().bond - bondN, data.balance.petLife.nap.wakeBond, 1.01) && petN().bond - bondN >= data.balance.petLife.nap.wakeBond
+    && gn.getState().workers[pn].task !== null, `${petN().bond - bondN}`);
+  gn.dispatch('dev/petEnergy', { pet: pn, energy: 10 });
+  gn.dispatch('pets/tuckIn', { pet: pn });
+  check('a second nap the same day gives no Bond', petN().nap?.bond === 0);
+  gn.dispatch('dev/grant', { item: Object.keys(data.items.items).find((k) => data.items.items[k].category === 'meal' && data.items.items[k].food), qty: 1 });
+  const meal = Object.keys(gn.getState().bag).find((k) => data.items.items[k.split(':')[0]]?.category === 'meal');
+  gn.dispatch('pets/feed', { pet: pn, item: meal });
+  check('feeding wakes a napping pet', petN().nap === null && !petN().resting);
+
+  // The scrapbook: hearts are written as they come, and it keeps to its size (the first entry stays).
+  gn.dispatch('dev/petBond', { pet: pn, bond: 0 });
+  const gb = lifeGame(1104);
+  const pb = gb.getState().pets.active[0];
+  const petB = () => gb.getState().pets.list[pb];
+  gb.dispatch('pets/pat', { pet: pb });
+  gb.dispatch('dev/petBond', { pet: pb, bond: 35 });
+  gb.dispatch('dev/clearPat', { pet: pb });
+  gb.dispatch('pets/pat', { pet: pb });
+  check('a new Bond heart goes in the scrapbook', petB().book.some((e) => e.k === 'heart' && e.n === 1));
+  const maxB = data.balance.petLife.book.maxEntries;
+  for (let i = 0; i < maxB + 5; i++) { gb.dispatch('dev/clearPat', { pet: pb }); gb.dispatch('dev/petBond', { pet: pb, bond: 35 }); gb.dispatch('pets/pat', { pet: pb }); }
+  check('the scrapbook keeps to its size and keeps the first entry', petB().book.length === maxB && petB().book[0].k === 'home');
+  check('Phase 11 state is valid', [s9, gp.getState(), gn.getState(), gb.getState()].every((x) => x && validateState(x) === null),
+    [s9, gp.getState(), gn.getState(), gb.getState()].map((x) => x && validateState(x)).filter(Boolean).join(', '));
   }
 } catch (err) {
   failed++;

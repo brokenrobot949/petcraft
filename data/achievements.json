@@ -89,6 +89,10 @@
     { "id": "elder_circle", "name": "Elder Circle", "desc": "Retire 3 pets to the Elder Grove.", "group": "pets", "renown": 150, "title": "Grove Keeper", "when": { "kind": "retired", "n": 3 } },
     { "id": "legend_befriended", "name": "Legend Befriended", "desc": "Tame a mythic pet.", "group": "pets", "renown": 200, "title": null, "when": { "kind": "mythics", "n": 1 } },
     { "id": "four_guardians", "name": "Four Guardians", "desc": "Tame all 4 mythic pets.", "group": "pets", "renown": 250, "title": "Guardian of the Grove", "when": { "kind": "mythics", "n": 4 } },
-    { "id": "picture_perfect", "name": "Picture Perfect", "desc": "Raise a Legendary pet with 2 gifts and 6 talents.", "group": "pets", "renown": 200, "title": null, "when": { "kind": "perfectPet" } }
+    { "id": "picture_perfect", "name": "Picture Perfect", "desc": "Raise a Legendary pet with 2 gifts and 6 talents.", "group": "pets", "renown": 200, "title": null, "when": { "kind": "perfectPet" } },
+    { "id": "playtime", "name": "Playtime!", "desc": "Play with a pet.", "group": "pets", "renown": 20, "title": null, "when": { "kind": "stat", "stat": "plays", "n": 1 } },
+    { "id": "good_sport", "name": "Good Sport", "desc": "Play with your pets 50 times.", "group": "pets", "renown": 80, "title": "Good Sport", "when": { "kind": "stat", "stat": "plays", "n": 50 } },
+    { "id": "perfect_throw", "name": "Perfect Throw", "desc": "Get a Perfect result in a game.", "group": "pets", "renown": 30, "title": null, "when": { "kind": "stat", "stat": "perfectPlays", "n": 1 } },
+    { "id": "sweet_dreams", "name": "Sweet Dreams", "desc": "Tuck a tired pet in for a nap.", "group": "pets", "renown": 20, "title": null, "when": { "kind": "stat", "stat": "naps", "n": 1 } }
   ]
 }

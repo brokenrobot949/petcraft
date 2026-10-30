@@ -73,6 +73,8 @@ export function conditionProgress(state, data, w) {
     case 'garden': return progress(state.stats.garden || 0, w.n);
     case 'found': return progress(Object.keys(state.stats.found || {}).length, w.n);
     case 'foundItem': return progress(state.stats.found?.[w.item] ? 1 : 0, 1);
+    // Phase 11: a lifetime counter in state.stats (plays, perfectPlays, naps)
+    case 'stat': return progress(state.stats[w.stat] || 0, w.n);
     // Phase 9
     case 'start': return progress(1, 1);
     case 'projects': return progress(state.sanctuary?.done.length || 0, w.n);

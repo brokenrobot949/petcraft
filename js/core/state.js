@@ -3,7 +3,7 @@
 // Per-skill and per-tool entries are filled from data by each system's init(), not here.
 import { newSeed, deriveSeed } from './rng.js';
 
-export const SCHEMA_VERSION = 9;
+export const SCHEMA_VERSION = 10;
 
 // seed: optional, for reproducible runs (the balance simulator, tests); a new game picks a random one.
 export function createInitialState(now, seed = newSeed()) {
@@ -41,6 +41,7 @@ export function createInitialState(now, seed = newSeed()) {
     ...newTamingState(seed),
     bestiary: {},
     ...newEndgameState(seed),
+    yard: { toys: [] },
   };
 }
 
@@ -60,6 +61,12 @@ export function newTamingState(seed) {
     treasure: { progress: {}, rng: deriveSeed(seed, 5100) },
     nest: { slots: [], rng: deriveSeed(seed, 5200) },
   };
+}
+
+// A pet's life at home (v10, docs/architecture.md "Phase 11"): the day it last played, a nap (with the Bond it
+// gives on waking) and the day of its last nap, a mood (a short speed boost), its scrapbook, and (Phases 12-13) a wish, a day trip and tricks.
+export function newPetLife() {
+  return { playDay: null, nap: null, napDay: null, mood: null, book: [], wish: null, trip: null, tricks: {} };
 }
 
 // A pet's own random stream (v7): talent offers, gift talents and its favorite dish.
@@ -181,5 +188,17 @@ export function validateState(s) {
   if (!isCount(t.mythicMs)) return 'bad mythic timer';
   if (s.version < 9) return null;
   if (typeof s.crafting.paused !== 'boolean') return 'bad crafting pause';
+  if (s.version < 10) return null;
+  for (const pet of Object.values(p.list)) {
+    if (!Array.isArray(pet.book) || !pet.book.every((e) => isObj(e) && typeof e.k === 'string')) return 'bad scrapbook';
+    if (pet.playDay != null && !Number.isInteger(pet.playDay)) return 'bad play day';
+    if (pet.napDay != null && !Number.isInteger(pet.napDay)) return 'bad nap day';
+    if (pet.nap != null && !(isObj(pet.nap) && isCount(pet.nap.bond))) return 'bad nap';
+    if (pet.mood != null && !(isObj(pet.mood) && typeof pet.mood.kind === 'string' && isCount(pet.mood.msLeft))) return 'bad mood';
+    if (pet.wish != null && !isObj(pet.wish)) return 'bad wish';
+    if (pet.trip != null && !isObj(pet.trip)) return 'bad trip';
+    if (!isObj(pet.tricks)) return 'bad tricks';
+  }
+  if (!isObj(s.yard) || !Array.isArray(s.yard.toys)) return 'bad yard';
   return null;
 }

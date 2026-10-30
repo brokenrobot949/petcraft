@@ -6,10 +6,13 @@
 // working pet drains energy, eats from the pantry when it gets low (auto-feed), and rests at 0
 // until full. Time is stepped event by event (an action or dig finishing, energy reaching the feed
 // line or 0, a Bond point from work), so any chunk size gives the same result.
+// Since Phase 11 (pet life): play once a day (Bond and a "playful" mood), tuck a tired pet in for a nap
+// (rests faster, Bond on waking once a day), moods (a short speed boost that runs out in game time), and
+// each pet's scrapbook (written here as things happen; dated with ctx.now, display only).
 // Random rolls: harvest and gifts from the pet's worker stream; talent offers, gift talents and the
 // favorite dish from the pet's own stream (pet.rng).
 import { deriveSeed, random, chance, randomInt } from '../core/rng.js';
-import { petSeed } from '../core/state.js';
+import { petSeed, newPetLife } from '../core/state.js';
 import { addItem, removeItem, itemDef, itemLabel, parseKey } from './bag.js';
 import { actionProfile, completeAction, dropStaleTask } from './harvest.js';
 import {
@@ -36,8 +39,11 @@ export function init(state, ctx) {
   if (!state.stats.evolved) state.stats.evolved = { juvenile: 0, adult: 0 };
   if (state.stats.talentPicks == null) state.stats.talentPicks = 0;
   if (state.stats.petGifts == null) state.stats.petGifts = 0;
+  for (const k of ['plays', 'perfectPlays', 'naps']) if (state.stats[k] == null) state.stats[k] = 0;
+  if (!state.yard) state.yard = { toys: [] };
   while (p.active.length < b.activeSlots) p.active.push(null);
   for (const pet of Object.values(p.list)) {
+    for (const [k, v] of Object.entries(newPetLife())) if (pet[k] === undefined) pet[k] = v;
     if (!archetypeOf(data, pet.archetype)) continue; // unknown archetype: keep the pet, skip defaults
     pet.actions = pet.actions || {};
     if (pet.workMs == null) pet.workMs = 0;
@@ -64,6 +70,8 @@ export function init(state, ctx) {
     rollBirthTraits(data, pet);
     ensureOffer(ctx, pet);
     pet.energy = Math.min(pet.energy, petMaxEnergy(data, pet));
+    if (pet.mood && !data.balance.petLife.moods[pet.mood.kind]) pet.mood = null;
+    if (pet.bookFill) fillOldBook(state, data, pet);
   }
   // Exactly the active pets have worker entries.
   const active = new Set(p.active.filter(Boolean));
@@ -81,6 +89,30 @@ export function init(state, ctx) {
 
 function newWorker(state, petId) {
   return { task: null, progressMs: 0, rng: deriveSeed(state.rng, 1000 + Number(petId.replace(/\D/g, '')) || 0), resume: null };
+}
+
+// ---- the scrapbook ----
+
+// Adds an entry ({ k, ...details }) dated now (null when the clock is unknown). The first entry (how the
+// pet came home) is kept; past balance.petLife.book.maxEntries the oldest of the rest go.
+export function addToBook(ctx, pet, entry) {
+  const t = Number.isFinite(ctx.now) && ctx.now > 0 ? Math.round(ctx.now) : null;
+  pet.book.push({ ...entry, t });
+  while (pet.book.length > ctx.data.balance.petLife.book.maxEntries) pet.book.splice(1, 1);
+}
+
+// A save from before Phase 11: the scrapbook starts with what the save already knows (undated except
+// the day the pet came home).
+function fillOldBook(state, data, pet) {
+  const first = petList(state)[0];
+  const how = pet.parent ? 'heir' : pet === first && state.pets.starter === pet.archetype ? 'starter' : null;
+  pet.book = [{ k: 'home', how, quality: pet.quality, t: pet.bornAt > 0 ? Math.round(pet.bornAt) : null }];
+  for (let n = 1; n <= petHearts(data, pet).hearts; n++) pet.book.push({ k: 'heart', n, t: null });
+  const forms = pet.form === 'adult' ? ['juvenile', 'adult'] : pet.form === 'juvenile' ? ['juvenile'] : [];
+  const br = branchDef(data, pet.archetype, pet.branch);
+  for (const form of forms) pet.book.push({ k: 'evolved', form, species: br?.[form]?.species || null, t: null });
+  if (pet.favoriteKnown && pet.favorite) pet.book.push({ k: 'favorite', item: pet.favorite, t: null });
+  delete pet.bookFill;
 }
 
 // ---- birth traits and talent offers (from the pet's own stream) ----
@@ -166,6 +198,23 @@ export function needsStarter(state) {
 export function canPatToday(state, petId, day) {
   const pet = state.pets.list[petId];
   return !!pet && pet.lastPatDay !== day;
+}
+
+export function canPlayToday(state, petId, day) {
+  const pet = state.pets.list[petId];
+  return !!pet && pet.playDay !== day;
+}
+
+// Can the pet be tucked in for a nap now? { can, reason, bond } (bond: what waking up will give).
+export function napInfo(state, data, petId, day) {
+  const pet = state.pets.list[petId];
+  const n = data.balance.petLife.nap;
+  const out = { can: false, reason: '', bond: pet && pet.napDay !== day ? n.wakeBond : 0 };
+  if (!pet) return out;
+  if (pet.nap) out.reason = `${pet.name} is already napping.`;
+  else if (pet.energy > petMaxEnergy(data, pet) * n.maxEnergyFrac + EPS) out.reason = `${pet.name} isn't tired yet. Tuck them in when their energy is below ${Math.round(n.maxEnergyFrac * 100)}%.`;
+  else out.can = true;
+  return out;
 }
 
 // What the pet is doing now: 'working' | 'resting' | 'idle' (active, no task) | 'stabled'.
@@ -320,7 +369,8 @@ export function cleanName(name, data) {
 // unless force is set: a trap that was set with a space held for its catch always delivers it.
 // Its gift talents (from its quality) and favorite dish are rolled from its own stream.
 // mythic: a single-form mythic pet (Heartgrove). heirloom / parent: an heir egg's inherited talent and elder.
-export function createPet(state, ctx, { archetype, quality, name, mythic = false, heirloom = null, parent = null }, { force = false } = {}) {
+// how / zone: for its scrapbook ('starter' | 'egg' | 'heir' | 'caught', and where it was caught).
+export function createPet(state, ctx, { archetype, quality, name, mythic = false, heirloom = null, parent = null, how = null, zone = null }, { force = false } = {}) {
   const { data } = ctx;
   const p = state.pets;
   if (!force && Object.keys(p.list).length >= petCapacity(state, data)) {
@@ -329,6 +379,7 @@ export function createPet(state, ctx, { archetype, quality, name, mythic = false
   const petId = `pet${p.nextId++}`;
   const species = mythic ? mythicDef(data, archetype)?.species : archetypeOf(data, archetype).species;
   const pet = {
+    ...newPetLife(),
     id: petId,
     name: cleanName(name, data) || species,
     archetype,
@@ -343,7 +394,7 @@ export function createPet(state, ctx, { archetype, quality, name, mythic = false
     bond: 0,
     workMs: 0,
     lastPatDay: null,
-    bornAt: ctx.now || 0,
+    bornAt: Math.round(ctx.now || 0),
     actions: {},
     gifts: [],
     talents: [],
@@ -356,6 +407,7 @@ export function createPet(state, ctx, { archetype, quality, name, mythic = false
   };
   rollBirthTraits(data, pet);
   pet.energy = petMaxEnergy(data, pet);
+  addToBook(ctx, pet, { k: 'home', how, zone, quality });
   p.list[petId] = pet;
   const slot = p.active.indexOf(null);
   if (slot >= 0) {
@@ -393,6 +445,23 @@ export function addBond(state, ctx, pet, amount) {
   pet.bond += amount * (1 + effectValue(ctx.data, pet, 'bond'));
   const after = petHearts(ctx.data, pet).hearts;
   if (after > before) ctx.emit?.({ type: 'petHeart', pet: pet.id, hearts: after });
+  for (let n = before + 1; n <= after; n++) addToBook(ctx, pet, { k: 'heart', n });
+}
+
+// A mood (balance.petLife.moods): moods don't stack, the one with more time left wins.
+function setMood(ctx, pet, kind) {
+  const m = ctx.data.balance.petLife.moods[kind];
+  if (!m || (pet.mood && pet.mood.msLeft >= m.ms)) return;
+  pet.mood = { kind, msLeft: m.ms };
+  ctx.emit?.({ type: 'petMood', pet: pet.id, mood: kind });
+}
+
+// A nap ends when the pet is full of energy: the first nap of a day gives Bond on waking.
+function wake(state, ctx, pet) {
+  const bond = pet.nap.bond;
+  pet.nap = null;
+  if (bond > 0) addBond(state, ctx, pet, bond);
+  ctx.emit?.({ type: 'petWoke', pet: pet.id, napped: true, bond });
 }
 
 function eat(state, ctx, pet, itemId, auto) {
@@ -410,6 +479,7 @@ function eat(state, ctx, pet, itemId, auto) {
     if (!pet.favoriteKnown) {
       pet.favoriteKnown = true;
       ctx.emit?.({ type: 'favoriteFound', pet: pet.id, item: pet.favorite });
+      addToBook(ctx, pet, { k: 'favorite', item: pet.favorite });
     }
   }
   return true;
@@ -460,6 +530,7 @@ function advancePet(state, ctx, pet, ms) {
     if (pet.energy >= max - EPS) {
       pet.energy = max;
       pet.resting = false;
+      if (pet.nap) wake(state, ctx, pet);
     }
     return { workMs, restMs: pet.resting ? ms : 0 };
   }
@@ -476,7 +547,10 @@ function advancePet(state, ctx, pet, ms) {
       // Stopped digging with nothing to go back to: idle recovery for the rest of the span.
       const rate = petRestPerHour(state, data, pet) / HOUR_MS;
       pet.energy = Math.min(max, pet.energy + rate * left);
-      if (pet.energy >= max - EPS) pet.resting = false;
+      if (pet.energy >= max - EPS) {
+        pet.resting = false;
+        if (pet.nap) wake(state, ctx, pet);
+      }
       break;
     }
     const digging = w.task.skill === 'treasure';
@@ -489,7 +563,8 @@ function advancePet(state, ctx, pet, ms) {
       if (pet.energy >= max - EPS) {
         pet.energy = max;
         pet.resting = false;
-        ctx.emit?.({ type: 'petWoke', pet: pet.id });
+        if (pet.nap) wake(state, ctx, pet);
+        else ctx.emit?.({ type: 'petWoke', pet: pet.id });
       }
       continue;
     }
@@ -533,8 +608,9 @@ function advancePet(state, ctx, pet, ms) {
         if (mapCount(state, data, w.task.zone) <= 0) stopDigging(w);
       } else {
         const skill = w.task.skill;
-        const { xp } = completeAction(state, ctx, pet.id, prof);
+        const { xp, rare } = completeAction(state, ctx, pet.id, prof);
         pet.actions[skill] = (pet.actions[skill] || 0) + 1;
+        if (rare && !pet.book.some((e) => e.k === 'rare')) addToBook(ctx, pet, { k: 'rare', item: rare, zone: w.task.zone });
         addPetXp(state, ctx, pet, earnedXp(data, pet, xp));
       }
     }
@@ -553,6 +629,8 @@ export function nextBoundaryMs(state, ctx) {
     const left = petDigMs(state, ctx.data, pet) - w.progressMs;
     if (left > EPS) next = Math.min(next, left);
   }
+  // A mood running out changes the pet's speed.
+  for (const pet of Object.values(state.pets.list)) if (pet.mood && pet.mood.msLeft > EPS) next = Math.min(next, pet.mood.msLeft);
   return next;
 }
 
@@ -561,6 +639,13 @@ export function advance(state, ms, ctx) {
     if (!archetypeOf(ctx.data, pet.archetype)) continue;
     const { workMs, restMs } = advancePet(state, ctx, pet, ms);
     if (workMs > 0 || restMs > 0) ctx.emit?.({ type: 'petTime', pet: pet.id, workMs, restMs });
+    if (pet.mood) {
+      pet.mood.msLeft -= ms;
+      if (pet.mood.msLeft <= EPS) {
+        ctx.emit?.({ type: 'petMoodEnded', pet: pet.id, mood: pet.mood.kind });
+        pet.mood = null;
+      }
+    }
   }
 }
 
@@ -586,7 +671,7 @@ export const commands = {
     if (!archetypeOf(ctx.data, archetype)) throw new Error("That egg isn't here.");
     if (!cleanName(name, ctx.data)) throw new Error('Give your pet a name first.');
     state.pets.starter = archetype;
-    createPet(state, ctx, { archetype, quality: ctx.data.balance.pets.starterQuality, name });
+    createPet(state, ctx, { archetype, quality: ctx.data.balance.pets.starterQuality, name, how: 'starter' });
   },
   'pets/rename': (state, { pet: petId, name }, ctx) => {
     const pet = needPet(state, petId);
@@ -611,6 +696,36 @@ export const commands = {
     if (pet.energy >= petMaxEnergy(ctx.data, pet) - EPS) throw new Error(`${pet.name} is full of energy.`);
     eat(state, ctx, pet, item, false);
     pet.resting = false;
+    pet.nap = null; // woken up for a snack: no nap Bond
+  },
+  // Play a game with the pet (the UI runs it and sends how it went: 'okay' | 'good' | 'perfect').
+  // Once per pet per local day: Bond by result and the play mood.
+  'pets/play': (state, { pet: petId, result }, ctx) => {
+    const pet = needPet(state, petId);
+    const cfg = ctx.data.balance.petLife.play;
+    if (!Object.prototype.hasOwnProperty.call(cfg.bond, result)) throw new Error('That game result is unknown.');
+    if (pet.playDay === ctx.day) throw new Error(`${pet.name} already played today. Come back tomorrow!`);
+    pet.playDay = ctx.day;
+    addBond(state, ctx, pet, cfg.bond[result]);
+    setMood(ctx, pet, cfg.mood);
+    state.stats.plays += 1;
+    if (result === 'perfect') {
+      state.stats.perfectPlays += 1;
+      if (!pet.book.some((e) => e.k === 'play')) addToBook(ctx, pet, { k: 'play', result });
+    }
+    ctx.emit?.({ type: 'petPlayed', pet: petId, result, bond: cfg.bond[result] });
+  },
+  // Tuck a tired pet in: it rests faster (balance.petLife.nap) until full, then goes back to what it was
+  // doing. The first nap of a day gives Bond on waking.
+  'pets/tuckIn': (state, { pet: petId }, ctx) => {
+    const pet = needPet(state, petId);
+    const info = napInfo(state, ctx.data, petId, ctx.day);
+    if (!info.can) throw new Error(info.reason);
+    pet.nap = { bond: info.bond };
+    pet.napDay = ctx.day;
+    pet.resting = true;
+    state.stats.naps += 1;
+    ctx.emit?.({ type: 'petNap', pet: petId });
   },
   'pets/setAutoFeed': (state, { pet: petId, on }) => {
     needPet(state, petId).autoFeed = !!on;
@@ -678,6 +793,7 @@ export const commands = {
     pet.form = info.next;
     state.stats.evolved[pet.form] = (state.stats.evolved[pet.form] || 0) + 1;
     ctx.emit?.({ type: 'petEvolved', pet: petId, form: pet.form, branch: pet.branch, species: petSpecies(data, pet) });
+    addToBook(ctx, pet, { k: 'evolved', form: pet.form, species: petSpecies(data, pet) });
     recordPet(state, ctx, pet);
     addPetXp(state, ctx, pet, 0); // banked XP counts toward the new stage's levels
   },
@@ -690,6 +806,7 @@ export const commands = {
     pet.offer = null;
     state.stats.talentPicks += 1;
     ctx.emit?.({ type: 'talentPicked', pet: petId, talent });
+    addToBook(ctx, pet, { k: 'talent', talent });
     ensureOffer(ctx, pet);
     pet.energy = Math.min(pet.energy, petMaxEnergy(ctx.data, pet));
   },

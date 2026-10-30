@@ -78,8 +78,14 @@ export function petDrainPerHour(data, pet) {
 export function petRestPerHour(state, data, pet, { stabled = false } = {}) {
   const e = data.balance.pets.energy;
   const stableTier = state.buildings.stable?.tier ?? 1;
-  const rate = e.restPerHour * (1 + e.stableRestBonusPerTier * (stableTier - 1) + effectValue(data, pet, 'rest') + sanctuaryBonus(state, data, 'petRest'));
+  const rate = e.restPerHour * (1 + e.stableRestBonusPerTier * (stableTier - 1) + effectValue(data, pet, 'rest') + sanctuaryBonus(state, data, 'petRest'))
+    * (pet.nap ? data.balance.petLife.nap.restMult : 1); // tucked in for a nap
   return stabled ? rate * e.stabledRestMult : rate;
+}
+
+// Extra work speed from the pet's mood (balance.petLife.moods), 0 when it has none.
+export function moodSpeed(data, pet) {
+  return pet.mood ? data.balance.petLife.moods[pet.mood.kind]?.speed || 0 : 0;
 }
 
 // Energy at or below which auto-feed kicks in.
@@ -98,6 +104,7 @@ export function petSpeed(data, pet, skillId) {
   if (hasAffinity(data, pet, skillId)) speed *= 1 + s.affinityBonus;
   speed *= 1 + s.bondPerHeart * petHearts(data, pet).hearts;
   speed *= 1 + effectValue(data, pet, 'speed', skillId);
+  speed *= 1 + moodSpeed(data, pet);
   return speed;
 }
 

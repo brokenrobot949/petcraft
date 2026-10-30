@@ -175,6 +175,50 @@
       "One bite of the {food} and {name} melts with joy. Their favorite!",
       "{name} hums happily over the {food}. Now you know their favorite.",
       "{name} will remember the {food} forever. It's their favorite dish."
-    ]
+    ],
+    "played": {
+      "okay": [
+        "{name} had fun chasing the ball around.",
+        "{name} trots back, tail wagging. Again tomorrow?"
+      ],
+      "good": [
+        "{name} snatches the ball and prances back, very pleased.",
+        "Nice throws! {name} is bouncing with energy."
+      ],
+      "perfect": [
+        "Perfect! {name} leaps, catches it in mid-air and does a happy spin.",
+        "{name} catches every throw. What a team you are!"
+      ]
+    },
+    "tuckedIn": [
+      "{name} curls up and is asleep in moments.",
+      "You tuck {name} in. A tiny yawn, then soft snores.",
+      "{name} snuggles down for a well-earned nap."
+    ],
+    "fetch": {
+      "title": "Fetch!",
+      "help": "Tap when the ball is right over {name}.",
+      "perfect": "Perfect catch!",
+      "good": "Good catch!",
+      "miss": "Missed it!"
+    },
+    "book": {
+      "home": {
+        "starter": "Hatched from the egg you chose in the ruins.",
+        "egg": "Hatched in the Nest.",
+        "heir": "Hatched from an heir egg, a gift from an elder.",
+        "caught": "Caught in {zone}.",
+        "other": "Came home to the homestead."
+      },
+      "quality": "{quality} quality.",
+      "heart": "Reached Bond heart {n}.",
+      "evolved": "Grew into a {species}!",
+      "favorite": "Found a favorite dish: {item}.",
+      "rare": "First rare find: a {item} in {zone}.",
+      "talent": "Learned a talent: {talent}.",
+      "play": "Played a perfect game of fetch!",
+      "retired": "Retired to the Elder Grove.",
+      "undated": "Before the scrapbook"
+    }
   }
 }

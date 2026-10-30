@@ -7,6 +7,7 @@ import { openSanctuary } from './sanctuary.js';
 import { openElderGrove } from './elders.js';
 import { playScene, scenePlaying } from './story.js';
 import { closeSheet } from './layer.js';
+import { openPetSheet } from './petplay.js';
 import { pendingScene } from '../systems/sanctuary.js';
 import { plotList, seedList, plotCount } from '../systems/garden.js';
 import { buildingList, buildingDef, buildingTier, tierCost, lookName, effectLines, upgradeCheck } from '../systems/buildings.js';
@@ -79,6 +80,8 @@ function handleTap(target) {
   if (!target) return;
   if (target.kind === 'building') {
     openBuilding(target.id);
+  } else if (target.kind === 'pet') {
+    openPetSheet(app.game, target.id, (petId) => app.openPet?.(petId));
   } else if (target.kind === 'decor') {
     const label = data().buildings.decor?.find((d) => d.prop === target.prop)?.label;
     if (target.prop === 'signpost') openMossbrook(app);

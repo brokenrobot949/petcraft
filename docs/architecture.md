@@ -944,3 +944,64 @@ Rob, 2026-10-25 (0.11.2).
 - Simulator (90 days, seeds 12345/777/4242, share 0 vs 0.25): milestones barely move (ending 64-67 -> 64-70; every
   paced milestone is gated by Renown or projects, not skill levels). Harvest skills climb faster: average level
   22 -> 28 on day 5, 32 -> 45 on day 10, 48 -> 60 on day 20 (all five at 60 by day 20 instead of ~day 30).
+
+## Phase 11: pet life at home (save schema v10)
+
+Rob's picks, 2026-10-30 (design.md "Pet life"). Phase 11 builds play, naps, moods, the scrapbook and emote bubbles;
+wishes and tricks are Phase 12, toys and day trips Phase 13. The one schema bump covers all three phases.
+
+### Save schema v10 (migration 9 -> 10)
+- Every pet gets `state.newPetLife()`: `playDay` (local day of the last game, or null), `nap` (null or `{ bond }`:
+  the Bond waking up will give), `napDay`, `mood` (null or `{ kind, msLeft }`), `book` (scrapbook entries),
+  and for later phases `wish` (null), `trip` (null), `tricks` ({}).
+- The migration marks old pets `bookFill`; `pets.init` writes their scrapbook from what the save knows (how they
+  came home and the day, hearts reached, evolutions, a known favorite dish; undated `t: null`) and drops the mark.
+- `state.yard = { toys: [] }` (the Pet Yard, Phase 13).
+- `stats.plays`, `stats.perfectPlays`, `stats.naps` (filled by `pets.init`).
+- Elder records (`elders/retire`) copy the pet's `book` and add `{ k: 'retired' }`.
+
+### Rules
+- `pets/play { pet, result }`: result is 'okay' | 'good' | 'perfect' (the UI runs the game). Once per pet per local
+  day (`playDay`). Bond `balance.petLife.play.bond[result]`, then the mood `play.mood`. A perfect game writes one
+  scrapbook entry per pet (the first).
+- Moods (`balance.petLife.moods`): `{ speed, ms }`. `petstats.moodSpeed` multiplies `petSpeed`; `harvest.profileKey`
+  includes the mood. A new mood replaces the current one only if it has more time left. Moods count down in
+  `pets.advance` (game time, offline too) and `pets.nextBoundaryMs` splits time where one ends, so live = catch-up.
+- `pets/tuckIn { pet }`: only at or below `nap.maxEnergyFrac` of max energy and not already napping. Sets
+  `resting = true` and `nap = { bond: wakeBond, or 0 if the pet already napped today }`. While `nap` is set
+  `petRestPerHour` is x `nap.restMult`. On reaching full energy the pet wakes (`petWoke` with `napped: true`),
+  gets the nap Bond and goes back to its task (the normal resting path). Hand-feeding cancels a nap (no Bond).
+- Scrapbook (`pets.addToBook(ctx, pet, entry)`): entries `{ k, ...details, t }`. Kinds now: home (how: starter /
+  egg / heir / caught + zone, quality), heart (n), evolved (form, species), favorite (item), rare (item, zone; the
+  first only), talent (talent), play (the first perfect game), retired. At most `book.maxEntries`; past that the
+  oldest after the first go.
+- The game clock: `game.advance(ms)` and `game.catchUp(ms)` set `ctx.now` to the start of the span and
+  `tick.advance` moves it along with each step. Only display dates use it (scrapbook `t`, `bornAt` of a pet caught
+  offline); no rule reads it, so live and catch-up still give the same results (tests compare pets `undated`).
+- `createPet(..., { how, zone })` for the scrapbook; `bornAt` is rounded.
+
+### Events (Phase 11)
+`petPlayed { pet, result, bond }`, `petMood { pet, mood }`, `petMoodEnded { pet, mood }`, `petNap { pet }`,
+`petWoke { pet, napped: true, bond }` (a plain wake has no `napped`).
+
+### Commands and selectors
+- Commands: `pets/play`, `pets/tuckIn`. Dev: `dev/clearPlay` (another game and nap Bond today).
+- Selectors: `pets.canPlayToday(state, petId, day)`, `pets.napInfo(state, data, petId, day)` -> `{ can, reason, bond }`,
+  `petstats.moodSpeed(data, pet)`. `harvest.completeAction` now returns `{ xp, rare }` (rare: the item or null).
+- Achievement kind `stat` (`{ stat, n }`: a `state.stats` counter): Playtime!, Good Sport, Perfect Throw, Sweet Dreams.
+
+### UI and render
+- `js/ui/petplay.js`: `playButtons` (Pat / Play / Tuck in), `playHelp`, `moodText`, `openPetSheet` (tap a pet on
+  Home), `fetchGame` (3 throws; points by `fetch.points`, result by `goodAt` / `perfectAt`; Stop sends nothing).
+- `js/ui/scrapbook.js`: `scrapbookPanel(data, book, foldKey, title)` on the pet page and elder cards. Words in
+  `pets.json` `lines.book`; play lines in `lines.played`, `lines.tuckedIn`, `lines.fetch`.
+- `app.openPet(petId)` (shell) switches to the Pets tab and opens a page.
+- `js/render/emotes.js`: `emoteFor(event, data)` maps live events to bubbles; `createEmotes(layer, bank, cfg)`
+  rations them (`balance.render.emotes`: one per character, `gapMs` between, `maxOnScreen`; forced for things the
+  player did). Both scenes use it. Home pets are tappable (hit area at least `render.home.tapMinPx`) and hop on a
+  pat or a game. Art: `emote.*` roles in sprites.json (group "emotes", pack `Ui/Emote`), recastable in the catalog.
+
+### balance.json additions (Phase 11)
+`petLife`: `play.bond` {okay 5, good 8, perfect 12}, `play.mood` 'playful', `moods.playful` {speed 0.05, ms 2 h},
+`nap` {maxEnergyFrac 0.5, restMult 2, wakeBond 2}, `book.maxEntries` 40, `fetch` (game timing and scoring).
+`render.emotes` (bubble timing and rationing).

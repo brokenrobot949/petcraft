@@ -60,8 +60,18 @@ Live play, offline catch-up and the balance simulator must call the same system 
 - Only one tab may own the save: a tab that sees another tab save pauses itself (main.js).
 
 ## Status
-Phase: 10 done (2026-10-24), plus Rob's follow-ups (0.10.1, 0.11.0-0.11.6). All eleven phases built.
-Next: Rob's final playtest; then fixes from it. Open design calls are listed under Known issues.
+Phase: 11 done (2026-10-30, 0.12.0): pet life at home. Phases 0-10 plus Rob's follow-ups (0.10.1-0.11.6) built earlier.
+Next: Phase 12 (pet wishes, two more play games, taught tricks), then Phase 13 (toys and the Pet Yard, day trips,
+Bond retune: work Bond 1 per 45 min, Rob's option (b)). Plan in docs/handoff.md "Pet life phases"; design in
+docs/design.md "Pet life". Open design calls are listed under Known issues.
+Phase 11 (pet life): save schema v10 (migration 9->10: per-pet playDay, nap, napDay, mood, book, wish, trip, tricks;
+  state.yard). Contract in docs/architecture.md "Phase 11". Play once a day per pet (Fetch game, js/ui/petplay.js:
+  +5/+8/+12 Bond, "playful" +5% work speed for 2 h of game time), tuck in a tired pet (<= 50% energy: naps rest 2x,
+  +2 Bond on waking once a day, then back to work), a scrapbook per pet (js/ui/scrapbook.js; old saves get one from
+  what they know; elders keep theirs), emote bubbles from the pack's Ui/Emote over pets in both scenes
+  (js/render/emotes.js; roles emote.* in the catalog's "Emote bubbles" group: Claude's picks), pets tappable on Home
+  (sheet with Pat / Play / Tuck in). 4 achievements. Core checks: 274. Save checks: 172 (old v9 code added to
+  tools/tests/extract-old.ps1). Simulator unchanged (it doesn't play or nap yet: Phase 13).
 Phase 10: no schema change (still v8). Contract in docs/architecture.md "Phase 10: tune and ship".
   Tuning (balance.json; simulator v5 + tools/sim/worker.js and lab.js, 3 seeds): renown.xpCurve {375, 0.5, 60}
   (a flatter curve: about 435-2100 XP a rank), pets.xpCurve {0.000007, 8, 11000} (levels 1-20 about as before,

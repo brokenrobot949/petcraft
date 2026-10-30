@@ -1,13 +1,16 @@
 // Home scene (PixiJS): the homestead. Every building from data/buildings.json stands on its plot
 // (tier 0 = an empty plot), with decor (the Old Sanctuary ruins, the signpost). Tapping a building or a
-// decor piece calls options.onTap({ kind: 'building', id } | { kind: 'decor', prop, label }). The player
+// decor piece calls options.onTap({ kind: 'building', id } | { kind: 'decor', prop, label }), and tapping a pet
+// calls options.onTap({ kind: 'pet', id }) (Phase 11: pat, play, tuck in). The player
 // and every pet that is not out working wander on open ground (never through a building); resting pets
-// sleep with floating "z"s. A bobbing arrow marks buildings that can be upgraded; a tier change swaps
+// sleep with floating "z"s; emote bubbles pop up over pets (js/render/emotes.js), and a pat or a game makes
+// the pet hop. A bobbing arrow marks buildings that can be upgraded; a tier change swaps
 // the picture with a squash-and-stretch pop and a burst of sparkles.
 // Read-only: it never changes game state. Every number comes from data.balance.render.home / .polish.
 import { Application, Container, Graphics, Rectangle, Sprite, Text, Texture, TextureSource } from '../../lib/pixi.mjs';
 import { loadSprites, createActor } from './sprites.js';
 import { createPolish } from './polish.js';
+import { createEmotes, emoteFor, actorTarget } from './emotes.js';
 import { petStatus } from '../systems/pets.js';
 import { petRole } from '../systems/petstats.js';
 import { upgradeCheck, buildingTier } from '../systems/buildings.js';
@@ -76,6 +79,7 @@ export async function createHomeScene(host, game, options = {}) {
   const fx = new Container();
   const polish = createPolish(app, { cfg: pcfg, bank });
   app.stage.addChild(ground, polish.shadows, world, polish.air, polish.tint, fx, polish.top);
+  const emotes = createEmotes(fx, bank, cfg.emotes);
 
   let scale = hcfg.pixelScale;
   let running = false;
@@ -473,14 +477,34 @@ export async function createHomeScene(host, game, options = {}) {
       shadow: polish.addShadow(actor.view, shadowWidth(actor, k)),
     };
     agents.set(id, agent);
+    if (id !== 'player' && !wild) {
+      actor.view.eventMode = 'static';
+      actor.view.cursor = 'pointer';
+      petHitArea(agent);
+      actor.view.on('pointertap', () => {
+        if (!running || destroyed || !onTap || !agents.has(id)) return;
+        onTap({ kind: 'pet', id });
+      });
+    }
     if (bounds.maxX > 0) {
       if (post) postSpot(agent); else { randomSpot(agent); settle(agent); }
     }
     return agent;
   }
+  // A pet's tap target: its body, grown to at least tapMinPx on screen (pets are only 16 px).
+  function petHitArea(agent) {
+    const sp = agent.actor.sprite;
+    const w = sp.texture.width;
+    const h = sp.texture.height;
+    const min = hcfg.tapMinPx / (scale * agent.k);
+    const hw = Math.max(w, min);
+    const hh = Math.max(h, min);
+    agent.actor.view.hitArea = new Rectangle(-hw / 2, -h * sp.anchor.y - (hh - h) / 2, hw, hh);
+  }
   function removeAgent(id) {
     const a = agents.get(id);
     if (!a) return;
+    emotes.clear(id);
     a.shadow.remove();
     a.actor.destroy();
     agents.delete(id);
@@ -508,7 +532,10 @@ export async function createHomeScene(host, game, options = {}) {
     scale = w >= hcfg.wideMinWidthPx ? hcfg.pixelScaleWide : hcfg.pixelScale; // whole numbers only
     polish.resize(w, app.screen.height, scale);
     for (const p of pieces) { sizePiece(p); layoutMarker(p); }
-    for (const a of agents.values()) a.actor.view.scale.set(scale * a.k);
+    for (const a of agents.values()) {
+      a.actor.view.scale.set(scale * a.k);
+      if (a.actor.view.hitArea) petHitArea(a);
+    }
     for (const e of elders) e.actor.view.scale.set(scale * e.k);
     computeBounds();
     drawGround();
@@ -841,6 +868,14 @@ export async function createHomeScene(host, game, options = {}) {
   const unsubEvents = game.onEvents((events) => {
     if (destroyed) return;
     if (events.some((e) => e.type === 'buildingUpgraded')) { syncTiers(running); markerMs = Infinity; }
+    if (!running) return; // (subscribers ran first, so a pet that just came home is already drawn)
+    for (const e of events) {
+      const em = emoteFor(e, data);
+      const a = em && agents.get(em.id);
+      if (!a || a.wild) continue;
+      emotes.show(em.id, em.kind, actorTarget(a, () => agents.get(em.id) !== a), { force: em.force });
+      if ((e.type === 'petPat' || e.type === 'petPlayed') && a.hopMs < 0 && !a.sleeping) a.hopMs = 0;
+    }
   });
   app.renderer.on('resize', layout);
   // The host may be hidden (zero size) when the scene is built; follow its real size once it shows.
@@ -902,6 +937,7 @@ export async function createHomeScene(host, game, options = {}) {
     updatePieces(ms, clock);
     updateSparks(ms);
     updateZs(ms);
+    emotes.update(ms);
     polish.update(ms);
   });
 
@@ -922,6 +958,7 @@ export async function createHomeScene(host, game, options = {}) {
       running = false;
       unsubscribe();
       unsubEvents();
+      emotes.destroy();
       sizeWatch.disconnect();
       app.renderer.off('resize', layout);
       polish.destroy();

@@ -63,6 +63,15 @@
       "legendary": { "growth": 1.75, "gifts": 2, "odds": 0.005 }
     }
   },
+  "petLife": {
+    "play": { "bond": { "okay": 5, "good": 8, "perfect": 12 }, "mood": "playful" },
+    "moods": {
+      "playful": { "speed": 0.05, "ms": 7200000 }
+    },
+    "nap": { "maxEnergyFrac": 0.5, "restMult": 2, "wakeBond": 2 },
+    "book": { "maxEntries": 40 },
+    "fetch": { "throws": 3, "sweepMs": 1200, "goodWidth": 0.3, "perfectWidth": 0.1, "points": { "good": 1, "perfect": 2 }, "goodAt": 3, "perfectAt": 5, "pauseMs": 650 }
+  },
   "buildings": {
     "maxTier": 5,
     "stableSpacesByTier": [2, 4, 6, 8, 10],
@@ -274,6 +283,7 @@
         "maxZ": 8
       }
     },
+    "emotes": { "showMs": 1900, "popMs": 220, "fadeMs": 400, "bobMs": 900, "bobPx": 1, "aboveHeadPx": 1, "gapMs": 3000, "maxOnScreen": 4 },
     "home": {
       "restFrame": 0,
       "assistHopEveryMs": 1400,

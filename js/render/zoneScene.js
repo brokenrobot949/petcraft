@@ -3,12 +3,14 @@
 // the active pets at the spot for their current task and animates the work (the player's wind-up
 // and strike synced to the action progress, a pet's squash-and-stretch hop on each finished action),
 // and floats "+N <item>" pops when the simulation reports a harvest. Resting pets nap with floating "z"s.
+// Emote bubbles (js/render/emotes.js) pop up over workers: a rare find, a map, a level, tiredness.
 // Read-only: it never changes game state. Every number comes from data.balance.render.zone
 // (pets: render.zone.pets) and the zone's scene data. Render-only randomness uses Math.random.
 // createZoneScene(host, game, zoneId) -> { start(), stop(), destroy() }. It is created and destroyed
 // each time the zone page opens and closes, so destroy() must release everything.
 import { Application, Container, Graphics, Rectangle, Sprite, Text, Texture, TextureSource } from '../../lib/pixi.mjs';
 import { loadSprites, createActor } from './sprites.js';
+import { createEmotes, emoteFor, actorTarget } from './emotes.js';
 import { actionMs, workerTask, isHarvestTask } from '../systems/harvest.js';
 import { mapCount } from '../systems/treasure.js';
 import { petStatus } from '../systems/pets.js';
@@ -61,6 +63,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
   const fx = new Container();
   const polish = createPolish(app, { cfg: data.balance.render.polish, bank });
   app.stage.addChild(ground, polish.shadows, world, polish.air, polish.tint, fx, polish.top);
+  const emotes = createEmotes(fx, bank, data.balance.render.emotes);
 
   let scale = cfg.pixelScale;
   let running = true;
@@ -724,6 +727,9 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
   const unsubscribe = game.onEvents((events) => {
     if (!running || destroyed) return;
     for (const e of events) {
+      const em = emoteFor(e, data);
+      const who = em && (e.type !== 'harvest' || e.zone === zoneId) && workers.get(em.id);
+      if (who && who.mode !== 'away') emotes.show(em.id, em.kind, actorTarget(who, () => workers.get(em.id) !== who || who.mode === 'away'), { force: em.force });
       if (e.type !== 'harvest' || e.zone !== zoneId) continue;
       const m = workers.get(e.worker);
       if (!m || m.mode === 'away') continue;
@@ -750,6 +756,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
     updateTaming(state, ticker.deltaMS, ticker);
     updatePops(ticker.deltaMS);
     updateZs(ticker.deltaMS);
+    emotes.update(ticker.deltaMS);
     polish.update(ticker.deltaMS);
   });
 
@@ -760,6 +767,7 @@ export async function createZoneScene(host, game, zoneId, { onSpotTap } = {}) {
       if (destroyed) return;
       destroyed = true;
       unsubscribe();
+      emotes.destroy();
       sizeWatch.disconnect();
       app.renderer.off('resize', layout);
       polish.destroy();

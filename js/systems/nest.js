@@ -125,7 +125,7 @@ export const commands = {
     if (!e) throw new Error("There's no egg there.");
     if (e.msLeft > EPS) throw new Error("This egg isn't ready to hatch yet.");
     if (freePetSpaces(state, ctx.data) <= 0) throw new Error('No room for another pet. Upgrade the Stable or release a pet.');
-    createPet(state, ctx, { archetype: e.archetype, quality: e.quality, name: cleanName(name, ctx.data), heirloom: e.heir?.heirloom || null, parent: e.heir?.elder || null });
+    createPet(state, ctx, { archetype: e.archetype, quality: e.quality, name: cleanName(name, ctx.data), heirloom: e.heir?.heirloom || null, parent: e.heir?.elder || null, how: e.heir ? 'heir' : 'egg' });
     state.nest.slots[slot] = null;
     state.stats.hatched += 1;
   },

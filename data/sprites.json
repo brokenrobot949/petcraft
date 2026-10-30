@@ -262,6 +262,10 @@
     {
       "id": "props",
       "label": "Scene props (zone pages)"
+    },
+    {
+      "id": "emotes",
+      "label": "Emote bubbles (shown over pets)"
     }
   ],
   "roles": {
@@ -1524,6 +1528,78 @@
       "src": "FX/Particle/Rain.png",
       "frameWidth": 8,
       "frameHeight": 8
+    },
+    "emote.heart": {
+      "group": "emotes",
+      "label": "Heart (pats, play, Bond)",
+      "layout": "prop",
+      "src": "Ui/Emote/emote27.png",
+      "frameWidth": 14,
+      "frameHeight": 13
+    },
+    "emote.alert": {
+      "group": "emotes",
+      "label": "! (found a map)",
+      "layout": "prop",
+      "src": "Ui/Emote/emote21.png",
+      "frameWidth": 14,
+      "frameHeight": 13
+    },
+    "emote.rare": {
+      "group": "emotes",
+      "label": "Red ! (rare find)",
+      "layout": "prop",
+      "src": "Ui/Emote/emote22.png",
+      "frameWidth": 14,
+      "frameHeight": 13
+    },
+    "emote.sleep": {
+      "group": "emotes",
+      "label": "Zzz (napping)",
+      "layout": "prop",
+      "src": "Ui/Emote/emote28.png",
+      "frameWidth": 14,
+      "frameHeight": 13
+    },
+    "emote.star": {
+      "group": "emotes",
+      "label": "Star (level up, talent)",
+      "layout": "prop",
+      "src": "Ui/Emote/emote29.png",
+      "frameWidth": 14,
+      "frameHeight": 13
+    },
+    "emote.happy": {
+      "group": "emotes",
+      "label": "Happy (woke up rested)",
+      "layout": "prop",
+      "src": "Ui/Emote/emote18.png",
+      "frameWidth": 14,
+      "frameHeight": 13
+    },
+    "emote.joy": {
+      "group": "emotes",
+      "label": "Big smile (yummy food, gifts)",
+      "layout": "prop",
+      "src": "Ui/Emote/emote6.png",
+      "frameWidth": 14,
+      "frameHeight": 13
+    },
+    "emote.tired": {
+      "group": "emotes",
+      "label": "Sad (out of energy)",
+      "layout": "prop",
+      "src": "Ui/Emote/emote13.png",
+      "frameWidth": 14,
+      "frameHeight": 13
+    },
+    "emote.thinking": {
+      "group": "emotes",
+      "label": "... (has a wish)",
+      "layout": "prop",
+      "src": "Ui/Emote/emote20.png",
+      "frameWidth": 14,
+      "frameHeight": 13
     },
     "fx.sparkle": {
       "group": "fx",

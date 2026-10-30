@@ -142,6 +142,7 @@ export function createDevPanel(app) {
     el('div.row', {}, bondIn,
       el('button.btn', { type: 'button', onclick: petCmd('dev/petBond', () => ({ bond: Number(bondIn.value) })) }, 'Set Bond')),
     el('button.btn.wide', { type: 'button', onclick: petCmd('dev/clearPat', () => ({})) }, 'Allow another pat today'),
+    el('button.btn.wide', { type: 'button', onclick: petCmd('dev/clearPlay', () => ({})) }, 'Allow another game and nap Bond today'),
     el('div.row', {},
       el('button.btn', { type: 'button', onclick: petCmd('dev/petReadyToEvolve', () => ({})) }, 'Ready to evolve'),
       el('button.btn', { type: 'button', onclick: petCmd('dev/petCalling', () => ({})) }, 'Fill callings')),

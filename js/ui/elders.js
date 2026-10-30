@@ -4,6 +4,7 @@ import { faceIcon } from './icons.js';
 import { openSheet } from './layer.js';
 import { groveOpen, elderList, heirEggList, legacyLines } from '../systems/elders.js';
 import { talentDef } from '../systems/petstats.js';
+import { scrapbookPanel } from './scrapbook.js';
 
 const CLOSED_TEXT = 'The Elder Grove opens when one of your pets reaches level 30.';
 
@@ -31,7 +32,8 @@ function elderCard(data, e, compact) {
         el('span.small.muted', {}, `Served ${e.days} day${e.days === 1 ? '' : 's'}, ${e.actions.toLocaleString()} actions`))),
     e.bonus && el('p.small.eg-bonus', {}, e.bonus),
     !compact && talents.length ? el('p.small.muted', {}, `Talents: ${talents.join(', ')}`) : null,
-    !compact && e.heirloom ? el('p.small.muted', {}, `Heirloom: ${talentDef(data, e.heirloom)?.name || e.heirloom}`) : null);
+    !compact && e.heirloom ? el('p.small.muted', {}, `Heirloom: ${talentDef(data, e.heirloom)?.name || e.heirloom}`) : null,
+    !compact && e.book?.length ? scrapbookPanel(data, e.book, `elder.book.${e.id}`, `${e.name}'s scrapbook`) : null);
 }
 
 function eggRow(game, h, data) {

@@ -1,7 +1,7 @@
 // Save migrations. MIGRATIONS[n] upgrades a version-n save to version n+1.
 // Rules: never delete a migration, never edit one that has shipped, and add one for every
 // SCHEMA_VERSION bump in state.js. Each migration must set the new version number.
-import { SCHEMA_VERSION, newVillage, newTamingState, newEndgameState, petSeed } from './state.js';
+import { SCHEMA_VERSION, newVillage, newTamingState, newEndgameState, newPetLife, petSeed } from './state.js';
 import { deriveSeed } from './rng.js';
 
 const MIGRATIONS = {
@@ -95,6 +95,19 @@ const MIGRATIONS = {
   8: (s) => {
     s.crafting.paused = false;
     s.version = 9;
+    return s;
+  },
+  // 9 -> 10 (Phase 11, pet life): every pet gets an empty life at home (no play today, no nap or mood, no
+  // wish, trip or tricks) and an empty scrapbook marked bookFill, which the pets system's init fills from
+  // what the save already knows (when it came home, its hearts, its form, its favorite dish). The Pet Yard
+  // starts with no toys.
+  9: (s) => {
+    for (const pet of Object.values(s.pets.list)) {
+      Object.assign(pet, newPetLife());
+      pet.bookFill = true;
+    }
+    s.yard = { toys: [] };
+    s.version = 10;
     return s;
   },
 };

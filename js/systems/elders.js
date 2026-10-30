@@ -187,6 +187,8 @@ export const commands = {
       days: pet.bornAt > 0 && now > pet.bornAt ? Math.floor((now - pet.bornAt) / DAY_MS) : 0,
       actions: Object.values(pet.actions || {}).reduce((a, n) => a + n, 0),
       talents: [...pet.talents], gifts: [...pet.gifts], heirloom: pet.heirloom || null,
+      // Its scrapbook goes with it (Phase 11), ending with the day it retired.
+      book: [...(pet.book || []), { k: 'retired', t: now > 0 ? Math.round(now) : null }],
     };
     state.elders.list.push(elder);
     const egg = { elder: pet.id, archetype: pet.archetype, quality: heirQuality(state, data, pet.quality), heirloom: info.heirlooms.length ? heirloom : null };

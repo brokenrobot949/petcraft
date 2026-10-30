@@ -31,7 +31,9 @@ export function initState(state, ctx) {
 }
 
 // options.clock: () => ms timestamp (the balance simulator passes its own). Commands read the time
-// from ctx.now and the local calendar day from ctx.day; advance() never needs the clock.
+// from ctx.now and the local calendar day from ctx.day. advance() and catchUp() set ctx.now to the start of
+// the span and the tick moves it along, so a system can date what happens (only for display: the scrapbook).
+// No rule depends on it, so live play and catch-up still agree.
 export function createGame(data, initialState, { clock = () => Date.now() } = {}) {
   const ctx = { data, emit: null, now: 0, day: 0 };
   let state = initState(initialState, ctx);
@@ -74,11 +76,13 @@ export function createGame(data, initialState, { clock = () => Date.now() } = {}
       });
     },
     advance(ms) {
+      ctx.now = clock() - ms;
       withLiveEvents(() => advance(state, ms, ctx));
     },
     // Long spans (offline time, a phone that slept): returns the "While you were away" summary.
     catchUp(ms) {
       const report = createReport(ms);
+      ctx.now = clock() - ms;
       ctx.emit = report.add;
       try {
         catchUp(state, ms, ctx);

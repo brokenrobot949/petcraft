@@ -200,7 +200,9 @@ function profileKey(state, data, pet, task) {
     const marks = data.balance.pets.bond.hearts;
     let hearts = 0;
     while (hearts < marks.length && pet.bond >= marks[hearts]) hearts++;
-    return pet.level * 64 + hearts;
+    // A mood changes the pet's speed too (petstats moodSpeed): moods are numbered from 1 in data order.
+    const mood = pet.mood ? Object.keys(data.balance.petLife.moods).indexOf(pet.mood.kind) + 1 : 0;
+    return pet.level * 64 + mood * 8 + hearts;
   }
   return masteryStars(state, data, task.skill);
 }
@@ -229,7 +231,7 @@ export function actionProfile(state, data, workerId, prev = null) {
 
 // One finished action for a worker: roll drops and rare finds (from the worker's own random
 // stream), fill the bag. The player earns skill XP (from a pet's action, a share of it); a pet's XP
-// is returned for the pets system to add. Returns { xp } (the XP the action is worth). `profile` (from actionProfile) is optional.
+// is returned for the pets system to add. Returns { xp, rare } (the XP the action is worth, the rare item found or null). `profile` (from actionProfile) is optional.
 export function completeAction(state, ctx, workerId, profile = null) {
   const { data } = ctx;
   const w = state.workers[workerId];
@@ -244,10 +246,12 @@ export function completeAction(state, ctx, workerId, profile = null) {
   }
   if (p.extra > 0 && p.main && chance(w, p.extra)) items[p.main.item] = (items[p.main.item] || 0) + 1;
   let rare = false;
+  let rareItem = null;
   if (p.rares && p.rares.length && chance(w, p.rareChance)) {
     const pick = pickWeighted(w, p.rares);
     items[pick.item] = (items[pick.item] || 0) + 1;
     rare = true;
+    rareItem = pick.item;
   }
   if (p.mapItem && chance(w, p.mapChance)) {
     items[p.mapItem] = (items[p.mapItem] || 0) + 1;
@@ -261,7 +265,7 @@ export function completeAction(state, ctx, workerId, profile = null) {
   const playerXp = pet ? onGrid(xp * data.balance.pets.playerXpShare) : xp;
   ctx.emit?.({ type: 'harvest', worker: workerId, zone: task.zone, skill: task.skill, node: task.node, items, xp: playerXp, petXp, rare });
   if (playerXp > 0) addXp(state, ctx, task.skill, playerXp);
-  return { xp: petXp };
+  return { xp: petXp, rare: rareItem };
 }
 
 // Clears a worker's harvest task if its zone or node vanished from the data (or its skill did). Returns true if it did.

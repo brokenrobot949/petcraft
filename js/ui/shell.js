@@ -57,6 +57,12 @@ export function mountShell(app) {
     setPref('tab', next.tab.id);
   }
 
+  // Another screen can open a pet's page (the Home pet sheet).
+  app.openPet = (petId) => {
+    select('pets');
+    pets.openPetPage(petId);
+  };
+
   // Pause/resume the visible tab's rendering when the whole page is hidden.
   document.addEventListener('visibilitychange', () => {
     if (!current) return;
