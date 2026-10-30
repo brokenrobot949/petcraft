@@ -216,6 +216,14 @@ Eleven phases, each ending in a playable build on GitHub Pages. Phases 0–4 mak
 | 9. Endgame | Grand Projects, story journal and scenes, ending, Heartgrove, mythics, Starmetal, Elder Grove, heir eggs, Mastery stars | A save can be pushed through all 5 projects in a test mode; retiring a pet gives its bonus and heir egg | Read the story beats |
 | 10. Tune and ship | Simulator tuning to the pacing targets, audio, save stress tests, performance pass, credits, iPhone install guide | Pacing within 25% of targets; no save loss across version updates; offline catch-up under 300 ms | Final playtest |
 
+**Pet life phases (proposed 2026-10-30, after Rob's final playtest; see "Pet life" in design.md).** One save schema bump (v9 -> v10) in Phase 11 covers all three, so later phases add fields only through that migration's defaults.
+
+| Phase | Builds | Acceptance checks | Rob's part |
+| --- | --- | --- | --- |
+| 11. Pet life: home | Schema v10 (per-pet wish, play day, nap, trip, tricks, scrapbook; Pet Yard), emote reactions, play sheet with Pat / Play (Fetch first) / Tuck in, moods, scrapbook (back-filled from what old saves already record) | An old v9 save loads with nothing lost; Play gives Bond once a day; a tucked-in pet naps, then goes back to work offline too; emotes never pile up | Pick the emote bubbles; play with each pet |
+| 12. Pet life: wishes and tricks | Wishes (all kinds except Toy and Trip), Leaf catch and Peekaboo games, taught tricks, new achievements, Haiku writes wish lines | Wishes appear offline at the same times as live; only grantable wishes roll; letting one go has no cost; a pet learns a trick in 3 days | Grant some wishes; say if they feel naggy |
+| 13. Pet life: yard and trips | Toys (recipes, Pet Yard spots by Stable tier), Toy and Trip wishes, day trips with postcards, simulator policy for all pet life, Bond retune | A trip works offline and returns the right loot; toys give stabled Bond; pacing still within 25% of targets | Place toys (Bond option (b) chosen 2026-10-30: work Bond 1 per 45 min) |
+
 - **Test mode:** from Phase 2 on, a hidden developer panel (opened from Settings) can grant items, skip time and jump to a phase's content, so each phase can be checked quickly. It is removed from the shipped build in Phase 10.
 - **Content pass:** full recipe lists, talents, achievements and commission templates are written by subagents in the phase that first needs them, following the rules in the design tab.
 

@@ -245,6 +245,105 @@ Catalysts use tier 3–4 materials, so most adults appear around Stonecrag and M
 - **Example talents:** Sure-footed (−15% energy drain), Keen nose (+3 points rare-find chance), Second wind (rest 25% faster), Packrat (10% chance of +1 item), Hearty eater (meals restore 50% more), Sunny disposition (+25% Bond gain).
 - **Content size:** about 40 talents across one hatchling pool, eight branch pools and one gift pool.
 
+## Pet life (proposed, 2026-10-30)
+
+Rob's picks for deepening the player and pet relationship. **Status: proposal; nothing is built.** All numbers are starting values for `balance.json`. Nothing here decays, expires or punishes absence.
+
+Seven features: pet wishes, play at home, toys and the Pet Yard, day trips, the pet scrapbook, emote reactions and taught tricks.
+
+**1. Pet wishes**
+
+- Each pet can hold **one wish** at a time. When it has none, a new one may appear every **8 hours** of game time (offline too). A wish never expires. The player can **let it go** with no penalty, and a new wish comes later.
+- **Wish kinds** (templates in `data/wishes.json`; only ones the player can grant right now are rolled):
+
+| Kind | Example | Granted when |
+| --- | --- | --- |
+| Taste | "I'd love a Berry Compote." | Hand-feed that cooked dish (tier the player can cook) |
+| Outing | "Take me to Whisperwood!" | The pet works 1 hour in that zone |
+| Buddy | "Can I work with Bram today?" | The pet works 1 hour beside that pet |
+| Play | "Play with me?" | Play with it at home (feature 2) |
+| Toy | "I want a Pine Ball." | That toy is placed in the Pet Yard (feature 3) |
+| Trip | "I've always wanted to see the Mistfen." | It comes back from a day trip there (feature 4) |
+| Trick | "Teach me something new!" | A teaching session (feature 7) |
+
+- **Reward:** +15 Bond, a "Cheered" mood (+5% work speed for 2 hours), a scrapbook entry, and a 10% chance of a small gift (treasure loot roll).
+- **Shown as:** a thought bubble over the pet in scenes, and a Wish card at the top of its page. Small dot on the pet's roster card; **no tab badge**, so wishes stay gentle rather than naggy.
+
+**2. Play at home**
+
+- Tap a pet in the Home scene (or use the buttons on its page) for a small sheet: **Pat**, **Play**, **Tuck in**.
+- **Pat:** the existing daily pat, now with a heart pop and a hop.
+- **Play:** once per pet per local day. A 5-second tap game; three games, one picked at random:
+  - *Fetch:* tap as the ball passes over the pet (built on the Focus tap).
+  - *Leaf catch:* tap falling leaves before they land.
+  - *Peekaboo:* tap the bush that wiggles.
+- **Play reward:** +5 / +8 / +12 Bond for Okay / Good / Perfect; the game can't be failed. Plus "Playful" (+5% work speed for 2 hours; does not stack with Cheered, the longer one wins).
+- **Tuck in:** sends a tired pet to nap at Home. It rests twice as fast until full, then goes back to its job by itself. Wakes up "Well rested" (+2 Bond). This gives the rest system a purpose: today pets rest under 1% of the time.
+
+**3. Toys and the Pet Yard**
+
+- A **Pet Yard** beside the Stable with toy spots: 1 / 2 / 3 / 4 / 5 by Stable tier.
+- **About 10 toys** crafted at the Workbench (a few at the Forge or Kitchen), each liked by one archetype. Examples: Pine Ball (Wild), Chew Stick (Stone), Pond Float (Tide), Scratching Log (Sprout), Feather Wand, Wind Chime, Hay Pile, Rock Garden, Rope Tug, Paper Lantern.
+- **What toys do:** stabled pets play with them on Home. A stabled pet gains +1 Bond an hour while a toy its archetype likes is placed. Toys fulfill Toy wishes and never break.
+- **Decor (later, optional):** benches, flower beds and banners bought in Mossbrook. This gives coins somewhere to go and fills the decor coin sink still missing from Known issues.
+
+**4. Day trips**
+
+- From a **stabled** pet's page (not active, not posted as an assistant): **Send on a trip** to an unlocked zone, for **1, 4 or 8 hours**. Runs offline. The pet keeps its Stable space.
+- **Uses energy** like work, so the pet must have energy to leave.
+- **Brings back:** a small bag of that zone's materials (about 20% of what an hour of work there would give, per hour away), a little pet XP, a small chance of a treasure map, and a **postcard**: one line about what it saw (`data/trips.json`, several per zone, written by Haiku).
+- Gives benched pets a job besides being assistants.
+
+**5. Pet scrapbook**
+
+- A **Scrapbook** section on each pet's page. Entries are written automatically, with the date:
+  - came home (hatched, caught where, quality) and named
+  - first rare find
+  - personal favorite dish discovered
+  - each Bond heart reached
+  - evolved (to which form)
+  - wishes granted (one line each)
+  - postcards (latest 10 kept)
+  - tricks learned
+  - retired
+- When a pet retires, its Elder Grove record shows the scrapbook.
+- Capped at **40 entries** per pet, so saves stay small.
+
+**6. Emote reactions**
+
+- The pack has **30 emote bubbles** (`Ui/Emote`). They appear above pets in the Home and zone scenes for about 2 seconds:
+  - heart: pat, play, new heart, favorite dish
+  - "!": rare find, map
+  - music note: playing with a toy
+  - "Zzz": napping or resting
+  - sweat drop: low energy
+  - star: level up or talent ready
+  - thought bubble: has a wish
+- They are limited so the screen never fills with bubbles. Display only, nothing saved.
+- Rob picks which bubble means what in the catalog.
+
+**7. Taught tricks**
+
+- Each Bond heart (1-5) lets a pet learn one trick: **Spin, Hop, Bow, Roll, Dance** (`data/tricks.json`).
+- **Teaching:** a "Teach" tap once a day; after 3 sessions the trick is learned. It can't fail.
+- **Shows:** idle pets on Home sometimes do a known trick, and "Show me a trick" on the pet page plays one.
+- Tricks are animations made in code (spin, squash, bounce), since the sprites have few frames.
+- Purely for charm, plus scrapbook entries and achievements.
+
+**Bond budget (needs Rob's call)**
+
+Today a working pet earns about 48 Bond a day from work plus 10 from the pat. Wishes (about 2 a day), play and toys could add 30-45 a day, so hearts would come about 1.6x faster.
+
+Level is what actually holds back evolution and retiring (heart 3 and heart 5 are rarely the blocker), so faster hearts mostly mean:
+- the +2% speed per heart comes sooner;
+- Heart 4 gifts start sooner, adding to the loot pile-up.
+
+**Decided (Rob, 2026-10-30): option (b).** Bond from work drops to 1 per 45 minutes (`balance.pets.bond.workMinutesPerPoint` 30 -> 45), so attention matters more than time. A light player still gets every heart, just later. The simulator checks it in Phase 13; if hearts still come too fast or too slow, only that number and the wish/play rewards are tuned.
+
+(Options not taken: (a) accept faster hearts; (c) raise the heart thresholds.)
+
+**Achievements to add:** first wish granted, 25 / 100 wishes, a Perfect play, every toy placed, 10 postcards, a pet that knows all 5 tricks.
+
 ## Taming and treasure
 
 New pets come from tracking and trapping in the wild, and from eggs. Treasure maps turn every harvest into a small lottery that also feeds the Grand Projects.
