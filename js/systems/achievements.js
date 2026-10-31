@@ -48,6 +48,15 @@ export function conditionProgress(state, data, w) {
     }
     case 'renown': return progress(state.renown.rank, w.rank);
     case 'zone': return progress(zoneUnlocked(state, data, w.zone) ? 1 : 0, 1);
+    // Zone mastery (0.14.1): the zone is open and every harvesting skill reaches the next material tier's
+    // level (skills.json tierLevels[zone tier]), so its Renown carries the player toward the next zone.
+    case 'zoneMastery': {
+      const list = skills.filter((s) => s.type === 'harvest');
+      if (!zoneUnlocked(state, data, w.zone)) return progress(0, list.length);
+      const tier = data.zones.zones.find((z) => z.id === w.zone)?.tier || 1;
+      const level = data.skills.tierLevels[tier] ?? data.skills.tierLevels[data.skills.tierLevels.length - 1];
+      return progress(list.filter((s) => lvl(s.id) >= level).length, list.length);
+    }
     case 'pets': return progress(pets.length, w.n);
     case 'tamed': return progress(state.stats.tamed || 0, w.n);
     case 'digs': return progress(state.stats.digs || 0, w.n);

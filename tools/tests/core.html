@@ -552,6 +552,18 @@ try {
   }
   const unearned = achievementList(sv, data).find((a) => !a.done && a.title);
   check('an unearned title cannot be worn', !unearned || refusedV('achievements/setTitle', { id: unearned.id }));
+
+  // Zone mastery (0.14.1): the zone open and every harvesting skill at the next tier's level.
+  const gz = freshGame(4321);
+  gz.dispatch('dev/setRenown', { rank: 5 });
+  for (const sk of data.skills.skills.filter((x) => x.type === 'harvest')) gz.dispatch('dev/setLevel', { skill: sk.id, level: 30 });
+  const zm = data.achievements.achievements.find((a) => a.id === 'master_stonecrag');
+  check('zone mastery waits for its zone to open', !gz.getState().achievements.done.master_stonecrag && !!gz.getState().achievements.done.master_whisperwood);
+  const xpZ = gz.getState().renown.xp;
+  gz.dispatch('dev/setRenown', { rank: 6 });
+  const sz = gz.getState();
+  check('zone mastery gives its Renown once the zone opens', !!sz.achievements.done.master_stonecrag && !sz.achievements.done.master_mistfen
+    && (sz.renown.rank > 6 || sz.renown.xp >= zm.renown), `rank ${sz.renown.rank}, xp ${sz.renown.xp} (was ${xpZ})`);
   check('Phase 6 state is valid', validateState(sv) === null && validateState(sw) === null, validateState(sv) || validateState(sw) || '');
 
   // Data: every id the village refers to exists; coin sinks exist.

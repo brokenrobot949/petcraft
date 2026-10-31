@@ -1097,3 +1097,18 @@ Rob's picks, 2026-10-30 (design.md "Pet life" 3 and 4; Bond option (b)).
 `petLife.yard` {spotsByStableTier [1..5], msPerBond 1 h}; `petLife.trips` {hours [1, 4, 8], workFrac 0.2,
 energyFracPerHour 0.1, xpMult 1, mapChancePerHour 0.03, postcardsKept 10}; `render.home.yardToyOffsets`,
 `render.home.yardToyScale`, `render.emotes.toyEveryMs`; `pets.bond.workMinutesPerPoint` 45.
+
+## 0.14.1: zone mastery Renown (Rob, 2026-10-31; no schema change)
+
+Skills had outrun the Renown gates since pets share XP (0.11.2): harvest skills passed Stonecrag's top tier
+about 3 days after it opened, but Mistfen opened 7-8 days after it (11 for a light player), with nothing new to do.
+- New achievement condition `zoneMastery` (js/systems/achievements.js): `{ kind: "zoneMastery", zone }` is met
+  when the zone is unlocked and every harvesting skill reaches `skills.json tierLevels[zone tier]` (the level of
+  the next material tier: Meadowfold 10, Whisperwood 20, Stonecrag 30, Mistfen 40, Emberfall 50). Progress
+  counts harvest skills at that level (0 while the zone is closed).
+- Five achievements in the "skills" group: Meadowfold 50, Whisperwood 100, Stonecrag 1500 ("Hillwalker"),
+  Mistfen 2000 ("Fen Strider"), Emberfall 250 ("Flamewalker") Renown. Old saves that already qualify get them
+  quietly on load (achievements.init), which may move them up a few ranks.
+- Simulator (3 seeds, regular): Stonecrag day 4-4.5, Mistfen day 8.2-9.2 (was 12-13), Renown 12 day 9-10
+  (was 17-19), Emberfall day 14.5-15 (was 29-35), ending day 43-45 (was 57-62). Light: Mistfen day 12
+  (was 17), Emberfall 22, ending 57.5.

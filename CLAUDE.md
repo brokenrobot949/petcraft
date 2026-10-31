@@ -64,6 +64,12 @@ Phase: 13 done (2026-10-30, 0.14.0): toys and the Pet Yard, day trips, Bond retu
 are built; Phases 0-10 plus Rob's follow-ups (0.10.1-0.11.6) earlier.
 Next: Rob's phone test of Phases 11-13 (pet life), then fixes. Design in docs/design.md "Pet life".
 Open design calls are listed under Known issues.
+0.14.1 (Rob, 2026-10-31): zone mastery Renown. Skills had outrun the Renown gates (Stonecrag used up ~3 days after
+  opening, Mistfen 7-8 days later). Achievement kind "zoneMastery": zone open + every harvest skill at the next
+  tier's level (skills.json tierLevels) -> 5 "<Zone> Mastered" achievements (50/100/1500/2000/250 Renown). No schema
+  change; old saves that qualify get them on load. Simulator: Mistfen day 8-9 (was 12-13), Renown 12 day 9-10,
+  Emberfall day 15 (was 29-35), ending day 43-45 (was 57-62; inside 25% of the week 8-10 target), light ending 57.5.
+  Contract in docs/architecture.md "0.14.1". Core checks: 311.
 Phase 13 (yard and trips): no schema bump (pets.init fills per-pet yardMs and lastTrip; trip and state.yard were in v10).
   Contract in docs/architecture.md "Phase 13". 10 toys (items.json category "toy", likes an archetype; Workbench, Wind
   Chime at the Forge; art: Claude's picks from the pack, recastable). Pet Yard on the Pets roster: spots = Stable tier;

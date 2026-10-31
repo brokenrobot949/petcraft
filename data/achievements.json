@@ -10,6 +10,11 @@
     { "id": "sure_shot", "name": "Sure Shot", "desc": "Reach Hunting level 20.", "group": "skills", "renown": 50, "title": null, "when": { "kind": "skillLevel", "skill": "hunting", "level": 20 } },
     { "id": "well_rounded", "name": "Well Rounded", "desc": "Reach level 10 in every skill.", "group": "skills", "renown": 80, "title": null, "when": { "kind": "allSkillsLevel", "level": 10 } },
     { "id": "gatherer_supreme", "name": "Gatherer Supreme", "desc": "Reach level 30 in every harvesting skill.", "group": "skills", "renown": 150, "title": "Master Gatherer", "when": { "kind": "allSkillsLevel", "level": 30, "type": "harvest" } },
+    { "id": "master_meadowfold", "name": "Meadowfold Mastered", "desc": "With Meadowfold open, reach level 10 in every harvesting skill.", "group": "skills", "renown": 50, "title": null, "when": { "kind": "zoneMastery", "zone": "meadowfold" } },
+    { "id": "master_whisperwood", "name": "Whisperwood Mastered", "desc": "With Whisperwood open, reach level 20 in every harvesting skill.", "group": "skills", "renown": 100, "title": null, "when": { "kind": "zoneMastery", "zone": "whisperwood" } },
+    { "id": "master_stonecrag", "name": "Stonecrag Mastered", "desc": "With Stonecrag Hills open, reach level 30 in every harvesting skill.", "group": "skills", "renown": 1500, "title": "Hillwalker", "when": { "kind": "zoneMastery", "zone": "stonecrag" } },
+    { "id": "master_mistfen", "name": "Mistfen Mastered", "desc": "With Mistfen Marsh open, reach level 40 in every harvesting skill.", "group": "skills", "renown": 2000, "title": "Fen Strider", "when": { "kind": "zoneMastery", "zone": "mistfen" } },
+    { "id": "master_emberfall", "name": "Emberfall Mastered", "desc": "With Emberfall Caldera open, reach level 50 in every harvesting skill.", "group": "skills", "renown": 250, "title": "Flamewalker", "when": { "kind": "zoneMastery", "zone": "emberfall" } },
     { "id": "master_of_all", "name": "Master of All", "desc": "Reach level 50 in every skill.", "group": "skills", "renown": 250, "title": null, "when": { "kind": "allSkillsLevel", "level": 50 } },
 
     { "id": "first_plank", "name": "First Plank", "desc": "Craft a pine plank.", "group": "homestead", "renown": 25, "title": null, "when": { "kind": "crafts", "recipe": "pine_plank", "n": 1 } },

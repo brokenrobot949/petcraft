@@ -462,7 +462,7 @@ Mossbrook turns surplus into coins and gives each day a few goals. Coins are the
 | --- | --- |
 | Daily commission | 20–60 |
 | Great Commission | 200 |
-| Achievement | 25–250 |
+| Achievement | 25–250 (zone mastery: up to 2,000) |
 | Building upgrade | 30 × new tier |
 | First craft of a recipe | 5 |
 | Grand Project stage | 300 |
@@ -588,9 +588,9 @@ The balance simulator tunes the numbers until a regular player (4 check-ins a da
 | First stage-2 evolution | day 2 |
 | Stonecrag Hills (Renown 6) | day 4–5 |
 | First stage-3 evolution | day 8–10 |
-| Mistfen Marsh (Renown 10) | week 2–3 |
-| Grand Projects open (Renown 12) | week 3 |
-| Emberfall Caldera (Renown 15) | week 5 |
+| Mistfen Marsh (Renown 10) | day 8–10 (Rob, 0.14.1: zone mastery Renown) |
+| Grand Projects open (Renown 12) | day 10–14 |
+| Emberfall Caldera (Renown 15) | day 15–20 |
 | First pet retired to the Elder Grove | week 6–8 |
 | Ending (Grand Project 5) | week 8–10 |
 | Bestiary complete | month 4 or later |
