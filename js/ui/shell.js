@@ -1,5 +1,5 @@
 // The app frame: top bar and the five bottom tabs. Each tab module exports
-// { id, label, icon, mount(container, app), show?(), hide?() }.
+// { id, label, icon, mount(container, app), show?(), hide?(), reselect?() }.
 import { el, toast } from './dom.js';
 import { getPref, setPref } from './device.js';
 import { offlineCapMs, localDay } from '../core/time.js';
@@ -37,7 +37,11 @@ export function mountShell(app) {
   let current = null;
   function select(id) {
     const next = entries.find((e) => e.tab.id === id) || entries[0];
-    if (current === next) return;
+    // Tapping the open tab again lets it go back to its top level (the Pets tab returns to the roster).
+    if (current === next) {
+      next.tab.reselect?.();
+      return;
+    }
     if (current) {
       current.screen.hidden = true;
       current.button.setAttribute('aria-selected', 'false');

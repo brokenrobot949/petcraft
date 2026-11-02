@@ -3,6 +3,7 @@
 // "structural key" changes (who/what is shown); bars and numbers are updated in place on every
 // change so taps are never swallowed by a rebuild.
 import { el, toast, sheetWithClose } from './dom.js';
+import { getPref, setPref } from './device.js';
 import { buildingTier, petCapacity } from '../systems/buildings.js';
 import { freePetSpaces } from '../systems/taming.js';
 import { nestList, eggList } from '../systems/nest.js';
@@ -36,8 +37,8 @@ let lastKey = null;
 let updaters = []; // functions (state) that refresh numbers/bars in place
 let refs = {};
 
-// Screen state (not saved): which egg is picked, hatch flow, which pet page is open.
-const ui = { sel: null, hatch: null, page: null, note: '' };
+// Screen state (not saved): which egg is picked, hatch flow, which pet page is open and its sub-tab.
+const ui = { sel: null, hatch: null, page: null, note: '', tab: null };
 
 const HATCH_MS = 1500; // length of the wobble-and-crack animation (matches css/pets.css)
 
@@ -222,6 +223,12 @@ export function show() {
 
 export function hide() {
   // Nothing to stop: updates only run while the tab is visible.
+}
+
+// Tapping the Pets tab button while already on it goes back to the roster (Rob, 2026-11-02).
+export function reselect() {
+  if (ui.page) closePet();
+  else container.scrollTop = 0;
 }
 
 // ---- rendering ----
@@ -865,11 +872,8 @@ function buildRetire(st, pet) {
 
 function buildPage(st, day, pet) {
   const d = gdata();
-  const b = d.balance.pets;
-  const arch = archetypeOf(d, pet.archetype);
   const form = d.pets.forms.find((f) => f.id === pet.form);
   const quality = d.pets.qualities.find((q) => q.id === pet.quality);
-  const lines = d.pets.lines;
   const out = [];
   const pid = pet.id;
 
@@ -900,8 +904,7 @@ function buildPage(st, day, pet) {
       el('p.pet-quality', {}, stars(pet), el('span.small', {}, quality?.name || pet.quality)))),
     playRow,
     refs.note,
-    moodLine,
-    el('p.small.muted', {}, playHelp(d, pet)));
+    moodLine);
   const noteFn = (text, withHearts) => {
     setNote(text);
     if (withHearts) spawnHearts();
@@ -909,11 +912,47 @@ function buildPage(st, day, pet) {
   const wish = wishCard(app.game, pid, { note: noteFn, onPlay: () => startPlay(app.game, pid, noteFn), live });
   if (wish) out.push(wish);
 
-  // Energy and status
+  // The rest of the page sits under three sub-tabs so nothing gets buried: Care (energy, food, Bond, tricks,
+  // scrapbook), Grow (level, evolution, talents, stats) and Work (slot, day trips, helping, retiring).
+  const panes = {
+    care: careTab(st, pet, noteFn),
+    grow: growTab(st, pet),
+    work: workTab(st, pet),
+  };
+  const tabBtns = {};
+  const tabBar = el('div.subtabs', { role: 'tablist', 'aria-label': `${pet.name}'s page` }, PAGE_TABS.map(([tid, name]) => {
+    const dot = el('span.dot', { hidden: true, 'aria-label': 'needs attention' });
+    const btn = el('button.subtab', { type: 'button', role: 'tab', onclick: () => pickTab(tid) }, name, dot);
+    tabBtns[tid] = { btn, dot };
+    return btn;
+  }));
+  // A dot on Grow when the pet can evolve or has a talent to choose.
+  tabBtns.grow.dot.hidden = !(evolveInfo(st, d, pid).ready || pet.offer);
+  function pickTab(tid) {
+    ui.tab = tid;
+    setPref('petTab', tid);
+    for (const [k, p] of Object.entries(panes)) p.hidden = k !== tid;
+    for (const [k, t] of Object.entries(tabBtns)) t.btn.setAttribute('aria-selected', k === tid ? 'true' : 'false');
+  }
+  if (!panes[ui.tab]) ui.tab = getPref('petTab', 'care');
+  if (!panes[ui.tab]) ui.tab = 'care';
+  pickTab(ui.tab);
+  out.push(tabBar, panes.care, panes.grow, panes.work);
+  return out;
+}
+
+const PAGE_TABS = [['care', 'Care'], ['grow', 'Grow'], ['work', 'Work']];
+
+function careTab(st, pet, noteFn) {
+  const d = gdata();
+  const b = d.balance.pets;
+  const pid = pet.id;
+  const status = petStatus(st, pid);
+
+  // Energy and food. Hand-feeding opens a sheet, so a long pantry never pushes the rest of the page down.
   const fill = el('div.fill', {});
   const eText = el('span.pet-energy-text', {});
   const leftText = el('p.small.muted', {});
-  const status = petStatus(st, pid);
   live((s) => {
     const p = getPet(s, pid);
     if (!p) return;
@@ -928,22 +967,6 @@ function buildPage(st, day, pet) {
     else leftText.textContent = 'Not working right now';
   });
   const foods = foodList(st, d);
-  const feedRows = foods.map((e) => {
-    const r = pantryRow(e, null);
-    return el('button.pet-row.pet-feed', {
-      type: 'button',
-      'aria-label': `Feed ${e.label} to ${pet.name}`,
-      onclick: () => {
-        if (act('pets/feed', { pet: pid, item: e.id })) {
-          const after = getPet(gstate(), pid);
-          if (after && after.favoriteKnown && !pet.favoriteKnown) {
-            setNote(fmt(pick(lines.favorite), { name: pet.name, food: itemLabel(d, after.favorite) }));
-            spawnHearts();
-          } else setNote(fmt(pick(lines.ate), { name: pet.name, food: e.label }));
-        }
-      },
-    }, r.parts);
-  });
   const pct = Math.round(b.energy.autoFeedBelowFrac * 100);
   const autoBtn = el('button.btn.pet-toggle', {
     type: 'button',
@@ -951,19 +974,111 @@ function buildPage(st, day, pet) {
     'aria-label': 'Auto-feed from the pantry',
     onclick: () => act('pets/setAutoFeed', { pet: pid, on: !pet.autoFeed }),
   }, pet.autoFeed ? 'On' : 'Off');
-  out.push(panelOf('Energy',
+  const energy = panelOf('Energy',
     el('div.pet-energy', {}, barBlock(fill), eText),
     el('p.pet-status-line', {}, statusInfo(st, pet).text),
     leftText,
     el('p.small.pet-favorite', {}, pet.favoriteKnown && pet.favorite
       ? `Favorite dish: ${itemLabel(d, pet.favorite)}`
       : 'Favorite dish: not found yet (try feeding different meals)'),
-    el('h3.pet-sub-h', {}, 'Feed'),
-    foods.length ? el('div.pet-feed-list', {}, feedRows) : el('p.small.muted', {}, 'No cooked food in your bag. Cook a meal in the Kitchen, or brew a tonic in the Alchemy Lab.'),
+    foods.length
+      ? el('button.btn.wide.pet-feed-open', { type: 'button', onclick: () => feedSheet(pid, noteFn) }, `Feed by hand (${foods.length} food${foods.length === 1 ? '' : 's'})`)
+      : el('p.small.muted', {}, 'No cooked food in your bag. Cook a meal in the Kitchen, or brew a tonic in the Alchemy Lab.'),
     el('div.toggle-row', {},
       el('span', {}, 'Auto-feed'),
       autoBtn),
-    el('p.small.muted', {}, `Eats cooked meals and tonics from the pantry when energy drops below ${pct}%.`)));
+    el('p.small.muted', {}, `Eats cooked meals and tonics from the pantry when energy drops below ${pct}%.`));
+
+  // Bond
+  const bondFill = el('div.fill', {});
+  const bondText = el('span.small', {});
+  live((s) => {
+    const p = getPet(s, pid);
+    if (!p) return;
+    const h = petHearts(d, p);
+    if (h.to == null) {
+      bondFill.style.width = '100%';
+      bondText.textContent = `Bond ${Math.floor(h.bond)} - every heart earned`;
+    } else {
+      bondFill.style.width = `${Math.max(0, Math.min(100, ((h.bond - h.from) / (h.to - h.from)) * 100))}%`;
+      bondText.textContent = `Bond ${Math.floor(h.bond)} / ${h.to} for the next heart`;
+    }
+  });
+  const bond = panelOf('Bond',
+    hearts(pet),
+    barBlock(bondFill),
+    bondText,
+    el('p.small.muted', {}, `Pat and play with ${pet.name} each day, and let them work, to grow your bond. A pat gives ${b.bond.pat}, a game up to ${d.balance.petLife.play.bond.perfect}, and every ${b.bond.workMinutesPerPoint} minutes of work gives 1.`),
+    el('p.small.muted', {}, playHelp(d, pet)));
+
+  return el('div.subpane', { role: 'tabpanel' },
+    energy,
+    bond,
+    tricksPanel(app.game, pid, { note: noteFn, portrait: () => refs.portrait }),
+    scrapbookPanel(d, pet.book, 'pet.book'));
+}
+
+// Hand-feeding: a sheet with every cooked food in the bag (the favorite first once it is known). The sheet
+// stays open so the player can feed several times; it redraws itself after each meal.
+function feedSheet(pid, noteFn) {
+  const d = gdata();
+  const lines = d.pets.lines;
+  const note = el('p.pet-note', { 'aria-live': 'polite' });
+  const energyLine = el('p.small.muted', {});
+  const list = el('div.pet-feed-list', {});
+  const draw = () => {
+    const st = gstate();
+    const pet = getPet(st, pid);
+    if (!pet) return;
+    energyLine.textContent = `Energy ${Math.round(pet.energy)} / ${Math.round(petMaxEnergy(d, pet))}`;
+    const fav = pet.favoriteKnown ? pet.favorite : null;
+    const foods = foodList(st, d).sort((a, b) => (b.id === fav) - (a.id === fav));
+    if (!foods.length) {
+      list.replaceChildren(el('p.small.muted', {}, 'No cooked food left in your bag.'));
+      return;
+    }
+    list.replaceChildren(...foods.map((e) => el('button.pet-row.pet-feed', {
+      type: 'button',
+      'aria-label': `Feed ${e.label} to ${pet.name}`,
+      onclick: () => feed(e),
+    },
+    itemIcon(e.id, 32, e.label),
+    el('span.pet-row-name', {}, e.id === fav ? `★ ${e.label}` : e.label,
+      el('span.small.muted.pet-energy-gain', {}, `+${Math.round(e.food)} energy${e.id === fav ? ' - favorite' : ''}`)),
+    el('span.pet-count', {}, `x${e.count}`))));
+  };
+  const feed = (e) => {
+    const before = getPet(gstate(), pid);
+    const name = before?.name || '';
+    const knewFavorite = before?.favoriteKnown;
+    try {
+      app.game.dispatch('pets/feed', { pet: pid, item: e.id });
+    } catch (err) {
+      // The sheet covers the toast, so the reason is shown inside the sheet.
+      note.textContent = err.message;
+      return;
+    }
+    const after = getPet(gstate(), pid);
+    let text;
+    if (after && after.favoriteKnown && !knewFavorite) {
+      text = fmt(pick(lines.favorite), { name, food: itemLabel(d, after.favorite) });
+      noteFn(text, true);
+    } else {
+      text = fmt(pick(lines.ate), { name, food: e.label });
+      noteFn(text, false);
+    }
+    note.textContent = text;
+    draw();
+  };
+  draw();
+  sheetWithClose('Done', `Feed ${getPet(gstate(), pid)?.name || ''}`, energyLine, note, list);
+}
+
+function growTab(st, pet) {
+  const d = gdata();
+  const pid = pet.id;
+  const arch = archetypeOf(d, pet.archetype);
+  const form = d.pets.forms.find((f) => f.id === pet.form);
 
   // Level
   const prog = petProgress(d, pet);
@@ -981,36 +1096,13 @@ function buildPage(st, day, pet) {
       xpFill.style.width = `${Math.max(0, Math.min(100, (pr.xp / pr.next) * 100))}%`;
     }
   });
-  out.push(panelOf('Level',
+  const level = panelOf('Level',
     el('p', {}, `Level ${prog.level}`),
     barBlock(xpFill),
     xpText,
     prog.capped && el('p.small.muted', {}, evolveInfo(st, d, pid).next
       ? `Highest level for a ${(form?.name || 'pet').toLowerCase()}. See the Evolution panel below to grow further; new XP is saved.`
-      : 'Fully grown. New XP is saved.')));
-
-  // Bond
-  const bondFill = el('div.fill', {});
-  const bondText = el('span.small', {});
-  live((s) => {
-    const p = getPet(s, pid);
-    if (!p) return;
-    const h = petHearts(d, p);
-    if (h.to == null) {
-      bondFill.style.width = '100%';
-      bondText.textContent = `Bond ${Math.floor(h.bond)} - every heart earned`;
-    } else {
-      bondFill.style.width = `${Math.max(0, Math.min(100, ((h.bond - h.from) / (h.to - h.from)) * 100))}%`;
-      bondText.textContent = `Bond ${Math.floor(h.bond)} / ${h.to} for the next heart`;
-    }
-  });
-  out.push(panelOf('Bond',
-    hearts(pet),
-    barBlock(bondFill),
-    bondText,
-    el('p.small.muted', {}, `Pat and play with ${pet.name} each day, and let them work, to grow your bond. A pat gives ${b.bond.pat}, a game up to ${d.balance.petLife.play.bond.perfect}, and every ${b.bond.workMinutesPerPoint} minutes of work gives 1.`)));
-  out.push(tricksPanel(app.game, pid, { note: noteFn, portrait: () => refs.portrait }));
-  out.push(tripPanel(app.game, pid, { note: (text) => setNote(text), live }));
+      : 'Fully grown. New XP is saved.'));
 
   // Stats
   const affinity = arch?.affinity || [];
@@ -1020,7 +1112,7 @@ function buildPage(st, day, pet) {
   const speedText = plainSkill
     ? `Work speed: x${petSpeed(d, pet, plainSkill.id).toFixed(2)}, ${speedBits.join('')}`
     : `Work speed: ${speedBits.join('')}`;
-  out.push(panelOf('Stats',
+  const stats = panelOf('Stats',
     el('p.small', {}, speedText),
     el('p.small', {}, `Max energy: ${Math.round(petMaxEnergy(d, pet))}`),
     el('p.small', {}, `Energy used while working: ${round1(petDrainPerHour(d, pet))} per hour`),
@@ -1028,15 +1120,13 @@ function buildPage(st, day, pet) {
     el('h3.pet-sub-h', {}, 'Bonuses'),
     ...(petEffects(d, pet).length
       ? petEffects(d, pet).map((e) => el('p.small.pet-effect', {}, effectText(d, e)))
-      : [el('p.small.muted', {}, 'No bonuses yet')])));
+      : [el('p.small.muted', {}, 'No bonuses yet')]));
 
-  out.push(buildEvolution(st, pet));
-  out.push(buildTalents(st, pet));
-  out.push(buildHelping(st, pet));
-  const retire = buildRetire(st, pet);
-  if (retire) out.push(retire);
-  out.push(scrapbookPanel(d, pet.book, 'pet.book'));
+  return el('div.subpane', { role: 'tabpanel' }, level, buildEvolution(st, pet), buildTalents(st, pet), stats);
+}
 
+function workTab(st, pet) {
+  const pid = pet.id;
   // Active / Stable
   const active = st.pets.active.includes(pid);
   const place = [];
@@ -1053,10 +1143,14 @@ function buildPage(st, day, pet) {
         who ? `Make active in slot ${i + 1} (swaps out ${who.name})` : `Make active in slot ${i + 1} (free)`));
     });
   }
-  out.push(panelOf(active ? 'Active' : 'In the Stable', place));
+  const pane = el('div.subpane', { role: 'tabpanel' },
+    panelOf(active ? 'Active' : 'In the Stable', el('p.pet-status-line', {}, statusInfo(st, pet).text), place),
+    tripPanel(app.game, pid, { note: (text) => setNote(text), live }),
+    buildHelping(st, pet),
+    buildRetire(st, pet));
   if (petList(st).length > 1) {
-    out.push(el('div.pet-release', {},
+    pane.append(el('div.pet-release', {},
       el('button.btn.btn-danger', { type: 'button', onclick: () => releaseSheet(pet) }, 'Release to the wild')));
   }
-  return out;
+  return pane;
 }

@@ -84,16 +84,19 @@ button.pet-row:active { background: #5a4a30; border-color: var(--orange); }
 .pet-toggle[aria-pressed='true'] { color: var(--ink); }
 .pet-toggle[aria-pressed='false'] { opacity: 0.7; }
 .pet-feed-list { display: flex; flex-direction: column; }
+.pet-feed-open { margin: 10px 0 4px; }
 .pet-sub-h { margin-top: 12px; }
 
 /* ---- pet page ---- */
-.pet-head { text-align: center; }
+/* The header is one row (picture left, name right) so the sub-tabs show without scrolling. */
+.pet-head { display: flex; align-items: center; gap: 12px; }
+.pet-head > .pet-portrait { margin: 0; flex: none; }
 .pet-portrait { position: relative; display: inline-block; margin: 4px auto 8px; min-width: 96px; min-height: 96px; }
 .pet-portrait > .item-icon { border: 3px solid var(--ink); border-radius: 6px; background-color: var(--wood-dark); }
-.pet-head-text { margin-bottom: 8px; }
-.pet-name-row { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; }
+.pet-head-text { flex: 1; min-width: 0; }
+.pet-head-text p { margin: 4px 0 0; }
+.pet-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .pet-title { margin: 0; overflow-wrap: anywhere; }
-.pet-head-text .pet-quality { justify-content: center; }
 .pet-pat { margin-top: 4px; }
 .pet-note { min-height: 1.35em; margin: 8px 0 0; color: var(--cream); }
 .pet-calling { margin-bottom: 8px; }

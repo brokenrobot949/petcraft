@@ -10,7 +10,7 @@ import {
 } from '../systems/crafting.js';
 import { activeBuffs, buffOf } from '../systems/buffs.js';
 import { isUpgrade } from '../systems/tools.js';
-import { foodValue, getPet } from '../systems/pets.js';
+import { foodValue, getPet, canAutoFeed } from '../systems/pets.js';
 import { petRole } from '../systems/petstats.js';
 import { sellPrice } from '../systems/village.js';
 
@@ -260,19 +260,25 @@ function openPicker(stationId) {
   showList();
 
   // Recipes you can make now come first, then ones short of materials, then locked ones (each group
-  // keeps the data order). Chips narrow the list: "Can make" and one per kind of output (Tools,
-  // Parts...). The Sort chip can order it by recipe level instead (lowest or highest first). The choices are
+  // keeps the data order). Chips narrow the list: "Can make", "For pets" (food pets eat, toys, catalysts,
+  // taming gear: categories marked forPets in items.json) and one per kind of output (Tools, Parts...).
+  // The Sort chip can order it by recipe level instead (lowest or highest first). The choices are
   // remembered per device, per station.
   function showList() {
     const st = state();
     const d = data();
     const pref = `pickerFilter.${stationId}`;
-    const filter = { canMake: false, category: null, sort: 'ready', ...getPref(pref, {}) };
+    const filter = { canMake: false, forPets: false, category: null, sort: 'ready', ...getPref(pref, {}) };
     const rank = (chk) => (chk.reason.startsWith('Needs') ? 2 : chk.max < 1 ? 1 : 0);
     const all = recipesFor(d, stationId).map((r, i) => {
       const chk = recipeCheck(st, d, r.id, 1);
-      return { r, i, rank: rank(chk), category: d.items.items[r.output]?.category };
+      const category = d.items.items[r.output]?.category;
+      const forPets = canAutoFeed(d, r.output) || !!d.items.categories.find((c) => c.id === category)?.forPets;
+      return { r, i, rank: rank(chk), category, forPets };
     });
+    // Only offered where it narrows the list (in the Kitchen everything is for pets).
+    const anyForPets = all.some((e) => e.forPets) && !all.every((e) => e.forPets);
+    if (!anyForPets) filter.forPets = false;
     const cats = d.items.categories.filter((c) => all.some((e) => e.category === c.id));
     if (filter.category && !cats.some((c) => c.id === filter.category)) filter.category = null;
     const set = (next) => {
@@ -281,6 +287,7 @@ function openPicker(stationId) {
     };
     const chip = (label, on, onclick) => el('button.chip', { type: 'button', 'aria-pressed': String(on), onclick }, label);
     const chips = [chip('Can make', filter.canMake, () => set({ canMake: !filter.canMake }))];
+    if (anyForPets) chips.push(chip('For pets', filter.forPets, () => set({ forPets: !filter.forPets })));
     if (cats.length > 1) {
       chips.push(chip('All', !filter.category, () => set({ category: null })));
       for (const c of cats) chips.push(chip(c.name, filter.category === c.id, () => set({ category: filter.category === c.id ? null : c.id })));
@@ -300,7 +307,8 @@ function openPicker(stationId) {
       levelDown: (a, b) => level(b) - level(a) || a.i - b.i,
     };
     const shown = all
-      .filter((e) => (!filter.canMake || e.rank === 0) && (!filter.category || e.category === filter.category))
+      .filter((e) => (!filter.canMake || e.rank === 0) && (!filter.forPets || e.forPets)
+        && (!filter.category || e.category === filter.category))
       .sort(order[filter.sort] || order.ready);
     box.replaceChildren(
       el('div.picker-filters', {}, chips),

@@ -64,6 +64,12 @@ Phase: 13 done (2026-10-30, 0.14.0): toys and the Pet Yard, day trips, Bond retu
 are built; Phases 0-10 plus Rob's follow-ups (0.10.1-0.11.6) earlier.
 Next: Rob's phone test of Phases 11-13 (pet life), then fixes. Design in docs/design.md "Pet life".
 Open design calls are listed under Known issues.
+0.14.2 (Rob, 2026-11-02): pet page tidy-up. One-row header (picture beside the name), then Care / Grow / Work
+  sub-tabs (remembered per device; a dot on Grow for evolve/talent). Hand-feeding moved into a "Feed by hand" sheet
+  (favorite first, stays open). Tapping the Pets tab button while on it goes back to the roster (tab.reselect in
+  shell.js). Recipe picker: a "For pets" chip (food pets eat + categories with forPets in items.json: traps, bait,
+  lures, toys, catalysts), hidden where it would not narrow the list. items.json gained the missing "toy" category
+  (toys were not shown in the Craft bag or the Market sell list). Core checks: 311.
 0.14.1 (Rob, 2026-10-31): zone mastery Renown. Skills had outrun the Renown gates (Stonecrag used up ~3 days after
   opening, Mistfen 7-8 days later). Achievement kind "zoneMastery": zone open + every harvest skill at the next
   tier's level (skills.json tierLevels) -> 5 "<Zone> Mastered" achievements (50/100/1500/2000/250 Renown). No schema
